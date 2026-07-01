@@ -12,6 +12,29 @@ if not hasattr(bcrypt, "__about__"):
         __version__ = getattr(bcrypt, "__version__", "4.0.0")
     bcrypt.__about__ = AboutClass()
 
+# Monkeypatch bcrypt functions to prevent ValueError: password cannot be longer than 72 bytes
+orig_hashpw = bcrypt.hashpw
+def patched_hashpw(password, salt):
+    if isinstance(password, str):
+        password_bytes = password.encode("utf-8")
+    else:
+        password_bytes = password
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    return orig_hashpw(password_bytes, salt)
+bcrypt.hashpw = patched_hashpw
+
+orig_checkpw = bcrypt.checkpw
+def patched_checkpw(password, hashed_password):
+    if isinstance(password, str):
+        password_bytes = password.encode("utf-8")
+    else:
+        password_bytes = password
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    return orig_checkpw(password_bytes, hashed_password)
+bcrypt.checkpw = patched_checkpw
+
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -82,8 +105,11 @@ def get_current_user(request: Request, token: Optional[str] = Depends(oauth2_sch
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    # Try header first, fallback to cookie
-    actual_token = token or request.cookies.get("access_token")
+    # Try header first, fallback to cookie. Safely handle empty, null, or undefined token strings.
+    actual_token = token
+    if not actual_token or actual_token.strip() in ("", "null", "undefined"):
+        actual_token = request.cookies.get("access_token")
+        
     if not actual_token:
         raise credentials_exception
 
@@ -128,6 +154,7 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
     db.add(org)
     db.commit()
     db.refresh(org)
+    print("inside register function")
 
     # Create user as Organization Admin
     hashed_pwd = get_password_hash(user_in.password)
@@ -155,14 +182,15 @@ def login_for_access_token(response: Response, form_data: OAuth2PasswordRequestF
     
     access_token = create_access_token(data={"sub": user.id, "org": user.organization_id, "role": user.role})
     
-    # Set secure HTTP-only cookie
+    # Set secure HTTP-only cookie, matching RecruitEase Pro production logic
+    secure_cookie = get_env("PYTHON_ENV", "development") == "production"
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         samesite="lax",
-        secure=False,  # Set to True in production
+        secure=secure_cookie,
     )
     
     return {
