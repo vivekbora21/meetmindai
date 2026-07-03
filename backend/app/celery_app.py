@@ -13,3 +13,6 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
+
+# Explicitly import tasks so the worker registers them
+celery_app.conf.imports = ("app.tasks.meeting_tasks",)

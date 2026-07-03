@@ -9,6 +9,7 @@ from app.api.v1.endpoints.agent_events import manager
 
 router = APIRouter()
 
+
 @router.post("/callback")
 async def teams_callback(request: Request, db: Session = Depends(get_db)):
     """
@@ -34,10 +35,16 @@ async def teams_callback(request: Request, db: Session = Depends(get_db)):
     for event in value:
         resource_data = event.get("resourceData", {})
         call_id = resource_data.get("id")
-        state = resource_data.get("state") # 'establishing', 'established', 'terminating', 'terminated'
-        
+        state = resource_data.get(
+            "state"
+        )  # 'establishing', 'established', 'terminating', 'terminated'
+
         # In our DB mapping, we lookup active live session matching call_id or fallback to most recent
-        session = db.query(AgentLiveSession).order_by(AgentLiveSession.start_time.desc()).first()
+        session = (
+            db.query(AgentLiveSession)
+            .order_by(AgentLiveSession.start_time.desc())
+            .first()
+        )
         if not session:
             continue
 
@@ -49,17 +56,20 @@ async def teams_callback(request: Request, db: Session = Depends(get_db)):
             if meeting:
                 meeting.status = "Processing"
             db.commit()
-            
+
             # Broadcast to WebSocket dashboard clients
-            await manager.broadcast(session.meeting_id, {
-                "event": "agent_connected",
-                "data": {
-                    "status": "Live",
-                    "bot_name": "MeetingMind AI (Teams Bot)",
-                    "platform": "Teams",
-                    "call_id": call_id
-                }
-            })
+            await manager.broadcast(
+                session.meeting_id,
+                {
+                    "event": "agent_connected",
+                    "data": {
+                        "status": "Live",
+                        "bot_name": "MeetingMind AI (Teams Bot)",
+                        "platform": "Teams",
+                        "call_id": call_id,
+                    },
+                },
+            )
 
         elif state == "terminated":
             session.status = "Completed"
@@ -68,13 +78,16 @@ async def teams_callback(request: Request, db: Session = Depends(get_db)):
                 meeting.status = "Completed"
             db.commit()
 
-            await manager.broadcast(session.meeting_id, {
-                "event": "agent_disconnected",
-                "data": {
-                    "status": "Completed",
-                    "message": "Call terminated in Microsoft Teams."
-                }
-            })
+            await manager.broadcast(
+                session.meeting_id,
+                {
+                    "event": "agent_disconnected",
+                    "data": {
+                        "status": "Completed",
+                        "message": "Call terminated in Microsoft Teams.",
+                    },
+                },
+            )
 
         # Handle participant changes inside notification resources
         # e.g. Resource path contains '/participants'
@@ -94,17 +107,21 @@ async def teams_callback(request: Request, db: Session = Depends(get_db)):
                 session.participants_count = len(names)
                 db.commit()
 
-                await manager.broadcast(session.meeting_id, {
-                    "event": "agent_connected",
-                    "data": {
-                        "status": "Live",
-                        "bot_name": "MeetingMind AI (Teams Bot)",
-                        "platform": "Teams",
-                        "participants": names
-                    }
-                })
+                await manager.broadcast(
+                    session.meeting_id,
+                    {
+                        "event": "agent_connected",
+                        "data": {
+                            "status": "Live",
+                            "bot_name": "MeetingMind AI (Teams Bot)",
+                            "platform": "Teams",
+                            "participants": names,
+                        },
+                    },
+                )
 
     return Response(status_code=status.HTTP_202_ACCEPTED)
+
 
 @router.post("/audio")
 async def ingest_teams_audio(request: Request):

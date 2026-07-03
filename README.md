@@ -23,20 +23,14 @@ MeetingMind AI is a multi-tenant meeting intelligence platform for capturing mee
 4. Workers join the meeting, process audio, extract insights, and update meeting records.
 5. The frontend fetches meeting details and renders summaries, insights, and meeting state.
 
-## Local Development
+## Local Development & Setup
 
-Backend and worker services are designed to run against PostgreSQL, Redis, and the Next.js frontend.
+For a complete step-by-step guide to installing and running this project from scratch on another system, refer to the [Installation & Setup Guide](INSTALL.md). It includes platform-specific instructions for:
+- 🖥️ **Ubuntu (Linux)**
+- 🏁 **Windows**
 
-Environment variables live in a root `.env` file copied from [`.env.example`](/home/ubuntu/Desktop/ai/.env.example).
+### Quick Entry Points:
+- Backend: `backend/app/main.py`
+- Frontend: `frontend/src/app/page.tsx`
+- Celery tasks: `backend/app/celery_app.py`
 
-Useful entry points:
-
-- `backend/app/main.py`
-- `frontend/src/app/page.tsx`
-- `frontend/src/app/dashboard/page.tsx`
-- `workers/tasks.py`
-
-## Docs
-
-- [Architecture](docs/architecture_and_design.md)
-- [Deployment & Testing](docs/deployment_and_testing.md)

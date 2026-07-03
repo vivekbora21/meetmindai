@@ -1,9 +1,19 @@
 import time
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
-from app.api.v1.endpoints import auth, meetings, search, knowledge, analytics, agent_events, teams_bot
+from app.api.v1.endpoints import (
+    auth,
+    meetings,
+    search,
+    knowledge,
+    analytics,
+    agent_events,
+    teams_bot,
+)
 
 app = FastAPI(
     title="MeetingMind AI API",
@@ -11,7 +21,11 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS middleware configuration
+# Serve uploaded files static directory
+uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -19,6 +33,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Simple rate limiter/latency logger middleware
 @app.middleware("http")
@@ -29,10 +44,12 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
+
 # Standard healthcheck endpoint
 @app.get("/health")
 def healthcheck():
     return {"status": "healthy", "timestamp": time.time()}
+
 
 # Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])

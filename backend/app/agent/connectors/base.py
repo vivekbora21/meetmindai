@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Dict, Any, Optional
 
+
 class MeetingConnector(ABC):
     """
     Abstract base class defining the interfaces for connecting to live meetings
@@ -8,7 +9,9 @@ class MeetingConnector(ABC):
     """
 
     @abstractmethod
-    def join_meeting(self, meeting_url: str, options: Optional[Dict[str, Any]] = None) -> None:
+    def join_meeting(
+        self, meeting_url: str, options: Optional[Dict[str, Any]] = None
+    ) -> None:
         """Join a meeting as a silent note-taker bot."""
         pass
 
@@ -33,6 +36,8 @@ class MeetingConnector(ABC):
         pass
 
     @abstractmethod
-    def receive_participant_events(self, callback: Callable[[Dict[str, Any]], None]) -> None:
+    def receive_participant_events(
+        self, callback: Callable[[Dict[str, Any]], None]
+    ) -> None:
         """Register a callback for participant join/leave events."""
         pass

@@ -6,3 +6,7 @@ __pycache__/
 frontend/.next/
 frontend/node_modules/
 
+# Python virtual environments
+.venv/
+**/.venv/
+

@@ -9,6 +9,7 @@ from app.database.connection import engine, Base, SessionLocal
 from app.models.models import *  # Import all models to ensure they are registered
 from app.api.v1.endpoints.auth import get_password_hash
 
+
 def init_database():
     print("Connecting to database...")
     with engine.connect() as conn:
@@ -37,11 +38,13 @@ def init_database():
             email="vivek@company.com",
             hashed_password=hashed_pwd,
             organization_id=org.id,
-            role="Admin"
+            role="Admin",
         )
         db.add(user)
         db.commit()
-        print("Successfully seeded default organization and admin user (vivek@company.com / password)")
+        print(
+            "Successfully seeded default organization and admin user (vivek@company.com / password)"
+        )
     except Exception as e:
         print(f"Error seeding database: {e}")
         db.rollback()
@@ -50,6 +53,6 @@ def init_database():
 
     print("Database initialization completed successfully!")
 
+
 if __name__ == "__main__":
     init_database()
-
