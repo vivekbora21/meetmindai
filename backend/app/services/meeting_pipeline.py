@@ -16,7 +16,7 @@ from app.models.models import (
 from app.services.media_service import MediaService
 from app.services.whisper_service import WhisperService
 from app.services.transcript_repository import TranscriptRepository
-from app.services.openrouter_service import OpenRouterService
+from app.services.ai.gemini_service import GeminiService
 from app.services.embedding_service import EmbeddingService
 from app.services.knowledge_graph_service import KnowledgeGraphService
 
@@ -56,7 +56,7 @@ class MeetingPipeline:
         self.media_service = MediaService()
         self.whisper_service = WhisperService()
         self.transcript_repo = TranscriptRepository()
-        self.openrouter_service = OpenRouterService()
+        self.gemini_service = GeminiService()
         self.embedding_service = EmbeddingService()
         self.kg_service = KnowledgeGraphService()
 
@@ -67,7 +67,11 @@ class MeetingPipeline:
         Stage 1: Verify Media -> FFmpeg -> Whisper -> Save Transcript immediately.
         """
         start_time = time.time()
-        meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+        meeting = (
+            db.query(Meeting)
+            .filter(Meeting.id == meeting_id)
+            .first()
+        )
         if not meeting:
             logger.error(f"Meeting {meeting_id} not found.")
             return
@@ -118,10 +122,45 @@ class MeetingPipeline:
             if segments:
                 duration_seconds = max(0, int(segments[-1]["end_ms"] / 1000))
 
-            # 4. Save transcript in db transaction
-            # Begin transaction is automatic; we delegate deletes/inserts to repo and commit here
+            # 4. Use LLM to diarize and assign speaker names
+            logger.info("Running LLM-based speaker diarization...")
+            # Use a separate short-lived session for the user lookup to avoid leaving
+            # the main pipeline session idle in transaction during the LLM call.
+            from app.models.models import User
+            from app.database.connection import SessionLocal
+            try:
+                _lookup_db = SessionLocal()
+                try:
+                    org_users = _lookup_db.query(User).filter(
+                        User.organization_id == meeting.organization_id
+                    ).all()
+                    known_users = [u.name for u in org_users if u.name]
+                finally:
+                    _lookup_db.close()
+            except Exception as e:
+                logger.warning(f"Failed to fetch organization users for diarization: {e}")
+                known_users = []
+
+            diarization_results = self.gemini_service.diarize_transcript(segments, known_users=known_users)
+            speakers_map = diarization_results.get("speakers", {})
+
+            # The new diarization keeps Whisper's existing speaker_tags per segment.
+            # We just ensure all unique tags from segments have an entry in speakers_map.
+            if speakers_map:
+                logger.info(f"LLM diarization mapped {len(speakers_map)} speaker(s): {list(speakers_map.keys())}")
+            else:
+                logger.warning("LLM diarization returned no speaker names. Falling back to generic labels.")
+
+            # Fill in any speaker tags that the LLM didn't map
+            for seg in segments:
+                tag = seg["speaker_tag"]
+                if tag not in speakers_map:
+                    suffix = tag.split("_")[-1] if "_" in tag else tag
+                    speakers_map[tag] = f"Speaker {suffix}"
+
+            # 5. Save transcript in db transaction
             db_writes = self.transcript_repo.save_transcript(
-                db, meeting_id, segments, duration_seconds
+                db, meeting_id, segments, duration_seconds, speakers_map=speakers_map
             )
 
             # 5. Set status to TRANSCRIBED and commit
@@ -161,14 +200,13 @@ class MeetingPipeline:
         Stage 2: Run LLM summary and insights extraction using OpenRouter.
         """
         start_time = time.time()
-        meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+        meeting = (
+            db.query(Meeting)
+            .filter(Meeting.id == meeting_id)
+            .first()
+        )
         if not meeting:
             return {}
-
-        # Update meeting and AI status
-        meeting.status = "ANALYZING"
-        meeting.ai_status = "RUNNING"
-        db.commit()
 
         # Retrieve segments
         segments = (
@@ -178,7 +216,6 @@ class MeetingPipeline:
             .all()
         )
         if not segments:
-            # No segments: skip AI stage
             meeting.status = "TRANSCRIBED"
             meeting.ai_status = "SKIPPED"
             db.commit()
@@ -193,12 +230,84 @@ class MeetingPipeline:
 
         transcript_text = ""
         for seg in segments:
-            # We don't have hardcoded speaker names, just speaker tag
             transcript_text += f"{seg.speaker_tag}: {seg.text}\n"
 
+        # Check Cache
+        if meeting.executive_summary and meeting.ai_status == "SUCCESS":
+            logger.info(f"MeetingPipeline | AI analysis already success for meeting {meeting_id}. Reusing cached insights.")
+            
+            action_items = []
+            for a in meeting.action_items:
+                assigned_name = a.assigned_user.name if a.assigned_user else ""
+                action_items.append({
+                    "description": a.description,
+                    "assigned_to": assigned_name,
+                    "priority": a.priority,
+                    "confidence_score": a.confidence_score or 1.0
+                })
+                
+            decisions = []
+            for d in meeting.decisions:
+                decisions.append({
+                    "decision_text": d.decision_text,
+                    "rationale": d.rationale,
+                    "confidence_score": d.confidence_score or 1.0
+                })
+                
+            risks = []
+            for r in meeting.risks:
+                risks.append({
+                    "risk_text": r.risk_text,
+                    "mitigation": r.mitigation,
+                    "severity": r.severity
+                })
+                
+            questions = [q.question_text for q in meeting.questions]
+            agenda_items = meeting.agenda_items or []
+            technical_context = meeting.technical_context or {
+                "repositories": [],
+                "files": [],
+                "apis": [],
+                "database_tables": [],
+                "services": [],
+                "libraries": []
+            }
+            
+            insights = {
+                "executive_summary": meeting.executive_summary,
+                "one_minute_read": [line.strip()[2:] if line.strip().startswith("- ") else line.strip() for line in meeting.one_minute_read.split("\n") if line.strip()],
+                "sentiment_summary": meeting.sentiment_summary,
+                "action_items": action_items,
+                "decisions": decisions,
+                "risks": risks,
+                "questions": questions,
+                "agenda_items": agenda_items,
+                "technical_context": technical_context
+            }
+            
+            meeting.status = "TRANSCRIBED"
+            db.commit()
+            
+            duration = time.time() - start_time
+            log_pipeline_stage(
+                stage="AI_ANALYSIS",
+                meeting_id=meeting_id,
+                task_id=task_id,
+                duration=duration,
+                transcript_length=len(transcript_text),
+                llm_model=self.gemini_service.model_name + " (CACHED)",
+                db_writes=0
+            )
+            return insights
+
+        # Update meeting and AI status
+        meeting.status = "ANALYZING"
+        meeting.ai_status = "RUNNING"
+        db.commit()
+
         try:
-            # Run OpenRouter
-            insights = self.openrouter_service.extract_meeting_insights(transcript_text)
+            # Run GeminiService
+            insights = self.gemini_service.extract_meeting_insights(transcript_text)
 
             # Write insights in transaction
             # Delete old items first
@@ -207,7 +316,7 @@ class MeetingPipeline:
             db.query(Risk).filter(Risk.meeting_id == meeting_id).delete()
             db.query(Question).filter(Question.meeting_id == meeting_id).delete()
 
-            is_success = insights.get("status") != "LLM temporarily unavailable"
+            is_success = insights.get("status") != "Gemini service temporarily unavailable"
 
             if is_success:
                 meeting.executive_summary = insights.get("executive_summary", "")
@@ -223,6 +332,10 @@ class MeetingPipeline:
                 meeting.sentiment_summary = insights.get(
                     "sentiment_summary", "Collaborative meeting."
                 )
+
+                # Save new agenda_items (timeline) and technical_context fields
+                meeting.agenda_items = insights.get("agenda_items", [])
+                meeting.technical_context = insights.get("technical_context", {})
 
                 # Build followup email
                 email_text = f"Hi team,\n\nFollowing up on our session today, here is the summary:\n\n{meeting.executive_summary}\n\nKey Action Items:\n"
@@ -293,9 +406,11 @@ class MeetingPipeline:
                 meeting.one_minute_read = ""
                 meeting.sentiment_summary = "AI analysis unavailable."
                 meeting.followup_email = ""
+                meeting.agenda_items = []
+                meeting.technical_context = {}
                 meeting.ai_status = "FAILED"
                 logger.warning(
-                    f"MeetingPipeline | Meeting ID: {meeting_id} | OpenRouter failed. Set AI status = FAILED."
+                    f"MeetingPipeline | Meeting ID: {meeting_id} | Gemini failed. Set AI status = FAILED."
                 )
 
             # Set status back to TRANSCRIBED and commit
@@ -309,11 +424,7 @@ class MeetingPipeline:
                 task_id=task_id,
                 duration=duration,
                 transcript_length=len(transcript_text),
-                llm_model=(
-                    self.openrouter_service.models[0]
-                    if self.openrouter_service.provider == "openrouter"
-                    else get_env("QWEN_MODEL", "qwen2.5:latest")
-                ),
+                llm_model=self.gemini_service.model_name,
                 db_writes=db_writes,
             )
             return insights
@@ -322,18 +433,18 @@ class MeetingPipeline:
             db.rollback()
             meeting.status = "TRANSCRIBED"
             meeting.ai_status = "FAILED"
-            # Keep empty AI fields on exception
             meeting.executive_summary = "AI analysis unavailable."
             meeting.one_minute_read = ""
             meeting.sentiment_summary = "AI analysis unavailable."
             meeting.followup_email = ""
+            meeting.agenda_items = []
+            meeting.technical_context = {}
             db.commit()
 
             duration = time.time() - start_time
             log_pipeline_stage(
                 "AI_ANALYSIS", meeting_id, task_id, duration, failure=str(e)
             )
-            # Do not raise exception, we degrade gracefully and continue to embeddings/KG!
             return {}
 
     def run_embeddings_stage(self, db: Session, meeting_id: str, task_id: str) -> None:
@@ -341,7 +452,11 @@ class MeetingPipeline:
         Stage 3: Generate segment vector embeddings.
         """
         start_time = time.time()
-        meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+        meeting = (
+            db.query(Meeting)
+            .filter(Meeting.id == meeting_id)
+            .first()
+        )
         if not meeting:
             return
 
@@ -381,7 +496,11 @@ class MeetingPipeline:
         Stage 4: Update Knowledge Graph.
         """
         start_time = time.time()
-        meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+        meeting = (
+            db.query(Meeting)
+            .filter(Meeting.id == meeting_id)
+            .first()
+        )
         if not meeting:
             return
 

@@ -39,7 +39,7 @@ export default function DashboardLayout({
   useEffect(() => {
     const isMockMode = getCookie("mock_mode") === "true";
     if (isMockMode) {
-      setUserName("Vivek Sharma");
+      setUserName("Vivek Singh Bora");
       setUserRole("Admin");
       setIsAuthenticated(true);
       setLoading(false);
@@ -66,7 +66,7 @@ export default function DashboardLayout({
       }
     } catch (e) {
       console.warn("Backend not active. Falling back to mock details.");
-      setUserName("Vivek Sharma");
+      setUserName("Vivek Singh Bora");
       setUserRole("Admin");
       setIsAuthenticated(true);
     } finally {
@@ -91,13 +91,13 @@ export default function DashboardLayout({
 
   if (isAuthenticated !== true) {
     return (
-      <div className="min-h-screen bg-[#fffaf4] flex flex-col items-center justify-center gap-4">
-        <div className="p-3 bg-[#205866] rounded-2xl shadow-lg shadow-[#205866]/15 animate-bounce">
-          <Brain className="w-8 h-8 text-[#fffaf4]" />
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
+        <div className="p-3 bg-[#0f766e] rounded-2xl shadow-lg shadow-[#0f766e]/15 animate-bounce">
+          <Brain className="w-8 h-8 text-white" />
         </div>
         <div className="flex items-center gap-2">
-          <Loader2 className="w-5 h-5 text-[#205866] animate-spin" />
-          <span className="font-outfit text-sm font-medium text-[#6d6473]">
+          <Loader2 className="w-5 h-5 text-[#0f766e] animate-spin" />
+          <span className="font-outfit text-sm font-medium text-slate-500">
             {isAuthenticated === false ? "Redirecting to login..." : "Verifying session..."}
           </span>
         </div>
@@ -106,7 +106,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen flex selection:bg-[#2f7c8f] selection:text-white text-[#18161f]">
+    <div className="min-h-screen flex selection:bg-[#0f766e] selection:text-white text-[#0f172a] bg-slate-50">
       <Sidebar 
         userName={userName} 
         userRole={userRole} 
@@ -115,7 +115,7 @@ export default function DashboardLayout({
       />
 
       {/* Main Workspace - Controlled height and independent scrolling */}
-      <div className="flex-1 overflow-y-auto h-screen">
+      <div className="flex-1 overflow-y-auto h-screen bg-slate-50">
         {children}
       </div>
     </div>

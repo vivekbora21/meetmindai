@@ -24,6 +24,7 @@ class TranscriptRepository:
         meeting_id: str,
         segments: List[Dict[str, Any]],
         duration_seconds: int,
+        speakers_map: Dict[str, str] = None,
     ) -> int:
         """
         Saves speakers and segments in a transaction.
@@ -45,13 +46,20 @@ class TranscriptRepository:
             )
 
             # 2. Insert speakers
-            speaker_tags = set(seg["speaker_tag"] for seg in segments)
-            for tag in speaker_tags:
-                display_name = f"Speaker {tag.split('_')[-1]}"
-                speaker = Speaker(
-                    meeting_id=meeting_id, speaker_tag=tag, display_name=display_name
-                )
-                db.add(speaker)
+            if speakers_map:
+                for tag, name in speakers_map.items():
+                    speaker = Speaker(
+                        meeting_id=meeting_id, speaker_tag=tag, display_name=name
+                    )
+                    db.add(speaker)
+            else:
+                speaker_tags = set(seg["speaker_tag"] for seg in segments)
+                for tag in speaker_tags:
+                    display_name = f"Speaker {tag.split('_')[-1]}"
+                    speaker = Speaker(
+                        meeting_id=meeting_id, speaker_tag=tag, display_name=display_name
+                    )
+                    db.add(speaker)
 
             # 3. Insert transcript segments
             for seg in segments:

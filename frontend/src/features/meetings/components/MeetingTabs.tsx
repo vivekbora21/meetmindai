@@ -1,0 +1,35 @@
+import React from "react";
+
+interface MeetingTabsProps {
+  activeTab: string;
+  setActiveTab: (tab: any) => void;
+}
+
+export const MeetingTabs: React.FC<MeetingTabsProps> = ({ activeTab, setActiveTab }) => {
+  const tabs = [
+    { id: "summary", label: "Summary" },
+    { id: "timeline", label: "Timeline" },
+    { id: "actions", label: "Action Items" },
+    { id: "decisions", label: "Decisions" },
+    { id: "risks", label: "Risks" },
+    { id: "technical", label: "Technical" }
+  ];
+
+  return (
+    <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-1 scrollbar">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => setActiveTab(tab.id)}
+          className={`px-4 py-2 text-xs font-bold font-outfit rounded-t-xl transition-all whitespace-nowrap ${
+            activeTab === tab.id
+              ? "bg-white border-t border-x border-slate-200 text-[#0f766e] -mb-[1px]"
+              : "text-slate-500 hover:text-[#0f172a] hover:bg-white/40"
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+};

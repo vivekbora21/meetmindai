@@ -45,27 +45,34 @@ class WhisperService:
             results = []
             segment_list = list(segments)
 
-            # Basic fallback diarization: alternate speaker tags when there's a pause > 1.5 seconds.
-            current_speaker = "SPEAKER_00"
+            # Improved pause-based diarization:
+            # - Switch speaker when there's a pause > 0.8s (natural speaking turn gap)
+            # - Use up to 4 speaker slots to capture more distinct voices
+            # - Avoid flipping back immediately (require gap before switching again)
+            speaker_slots = ["SPEAKER_00", "SPEAKER_01", "SPEAKER_02", "SPEAKER_03"]
+            current_speaker_idx = 0
             last_end = 0.0
+            min_gap_for_switch = 0.8  # seconds
+            last_switch_end = 0.0
+            min_gap_between_switches = 3.0  # don't switch more than once every 3s
 
             for i, segment in enumerate(segment_list):
                 start_ms = int(segment.start * 1000)
                 end_ms = int(segment.end * 1000)
 
-                # Check for speaker turn based on pause duration
-                if last_end > 0 and (segment.start - last_end) > 1.5:
-                    current_speaker = (
-                        "SPEAKER_01"
-                        if current_speaker == "SPEAKER_00"
-                        else "SPEAKER_00"
-                    )
+                # Switch speaker on significant pause, but not too frequently
+                gap = segment.start - last_end if last_end > 0 else 0
+                time_since_last_switch = segment.start - last_switch_end
+                if (gap > min_gap_for_switch and
+                        time_since_last_switch > min_gap_between_switches):
+                    current_speaker_idx = (current_speaker_idx + 1) % len(speaker_slots)
+                    last_switch_end = segment.start
 
                 results.append(
                     {
                         "start_ms": start_ms,
                         "end_ms": end_ms,
-                        "speaker_tag": current_speaker,
+                        "speaker_tag": speaker_slots[current_speaker_idx],
                         "text": segment.text.strip(),
                     }
                 )

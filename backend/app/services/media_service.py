@@ -16,7 +16,8 @@ class MediaService:
         base_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         )
-        return os.path.join(base_dir, "uploads")
+        return os.path.join(base_dir, "app", "uploads")
+
 
     def verify_recording_exists(self, db: Session, meeting_id: str) -> Optional[str]:
         """

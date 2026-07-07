@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Brain, Calendar, Network, BarChart3, LogOut } from "lucide-react";
+import { Brain, LayoutDashboard, Network, BarChart3, Settings, HelpCircle, LogOut, ChevronDown } from "lucide-react";
 
 interface SidebarProps {
   userName: string;
@@ -17,77 +17,113 @@ export default function Sidebar({ userName, userRole, loading, onLogout }: Sideb
   const isDashboardActive = pathname === "/dashboard";
   const isKnowledgeActive = pathname.startsWith("/knowledge");
   const isAnalyticsActive = pathname.startsWith("/analytics");
+  const isSettingsActive = pathname.startsWith("/settings");
 
   return (
-    <aside className="w-72 border-r border-[#d8cfc2] flex flex-col justify-between p-6 h-screen sticky top-0 bg-[rgba(255,250,244,0.82)] backdrop-blur-xl">
+    <aside className="w-72 border-r border-[#e2e8f0] flex flex-col justify-between p-6 h-screen sticky top-0 bg-white">
       <div className="flex flex-col gap-8">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-[#205866] rounded-lg shadow-lg shadow-[#205866]/15">
-            <Brain className="w-5 h-5 text-[#fffaf4]" />
+        {/* Logo Section */}
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#0f766e] rounded-xl flex items-center justify-center shadow-sm">
+            <Brain className="w-6 h-6 text-white" />
           </div>
-          <span className="font-bold tracking-tight font-outfit text-[#18161f]">MeetingMind AI</span>
+          <span className="font-bold tracking-tight font-outfit text-[#0f172a] text-lg">MeetingMind AI</span>
         </div>
 
-        <nav className="flex flex-col gap-1">
+        {/* Navigation Section */}
+        <nav className="flex flex-col gap-1.5">
           <button 
             onClick={() => router.push("/dashboard")}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
               isDashboardActive 
-                ? "bg-[#205866]/10 text-[#205866]" 
-                : "text-[#6d6473] hover:text-[#18161f]"
+                ? "bg-[#e6f4f1] text-[#0f766e]" 
+                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
             }`}
           >
-            <Calendar className={`w-4 h-4 ${isDashboardActive ? "text-[#205866]" : ""}`} /> Dashboard
+            <LayoutDashboard className={`w-4 h-4 ${isDashboardActive ? "text-[#0f766e]" : "text-[#64748b]"}`} /> Dashboard
           </button>
           <button 
             onClick={() => router.push("/knowledge")}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
               isKnowledgeActive 
-                ? "bg-[#205866]/10 text-[#205866]" 
-                : "text-[#6d6473] hover:text-[#18161f]"
+                ? "bg-[#e6f4f1] text-[#0f766e]" 
+                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
             }`}
           >
-            <Network className={`w-4 h-4 ${isKnowledgeActive ? "text-[#205866]" : ""}`} /> Knowledge Graph
+            <Network className={`w-4 h-4 ${isKnowledgeActive ? "text-[#0f766e]" : "text-[#64748b]"}`} /> Knowledge Graph
           </button>
           <button 
             onClick={() => router.push("/analytics")}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
               isAnalyticsActive 
-                ? "bg-[#205866]/10 text-[#205866]" 
-                : "text-[#6d6473] hover:text-[#18161f]"
+                ? "bg-[#e6f4f1] text-[#0f766e]" 
+                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
             }`}
           >
-            <BarChart3 className={`w-4 h-4 ${isAnalyticsActive ? "text-[#205866]" : ""}`} /> Analytics
+            <BarChart3 className={`w-4 h-4 ${isAnalyticsActive ? "text-[#0f766e]" : "text-[#64748b]"}`} /> Analytics
+          </button>
+          <button 
+            onClick={() => router.push("/settings")}
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+              isSettingsActive 
+                ? "bg-[#e6f4f1] text-[#0f766e]" 
+                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
+            }`}
+          >
+            <Settings className={`w-4 h-4 ${isSettingsActive ? "text-[#0f766e]" : "text-[#64748b]"}`} /> Settings
           </button>
         </nav>
       </div>
 
       <div className="flex flex-col gap-4">
+        {/* Brain network illustration from the theme image */}
+        <div className="relative w-full aspect-square max-h-[160px] rounded-2xl overflow-hidden flex items-center justify-center p-2">
+          <img 
+            src="/brain_illustration.png" 
+            alt="AI Brain Illustration" 
+            className="w-full h-full object-contain mix-blend-multiply opacity-90" 
+          />
+        </div>
+
+        {/* Profile Card / User section */}
         {loading ? (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/80 border border-[#d8cfc2] animate-pulse">
-            <div className="w-8 h-8 rounded-full bg-[#205866]/10" />
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white border border-[#e2e8f0] animate-pulse">
+            <div className="w-9 h-9 rounded-full bg-slate-100" />
             <div className="flex flex-col gap-1.5 flex-1">
-              <div className="h-2.5 bg-[#205866]/10 rounded w-20" />
-              <div className="h-2 bg-[#205866]/10 rounded w-12" />
+              <div className="h-3 bg-slate-100 rounded w-20" />
+              <div className="h-2.5 bg-slate-100 rounded w-12" />
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/80 border border-[#d8cfc2]">
-            <div className="w-8 h-8 rounded-full bg-[#c57b57] flex items-center justify-center text-xs font-bold text-white uppercase">
-              {userName ? userName.split(" ").map((n: string) => n[0]).join("").slice(0, 2) : "VS"}
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white border border-[#e2e8f0] hover:bg-slate-50 transition-colors cursor-pointer group">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#0f766e] flex items-center justify-center text-xs font-bold text-white uppercase shadow-sm">
+                {userName ? userName.split(" ").map((n: string) => n[0]).join("").slice(0, 2) : "VS"}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-[#0f172a] truncate max-w-[110px]">{userName}</span>
+                <span className="text-[10px] text-[#64748b] capitalize">{userRole}</span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-semibold text-[#18161f] truncate max-w-[120px]">{userName}</span>
-              <span className="text-[10px] text-[#6d6473] capitalize">{userRole}</span>
-            </div>
+            <ChevronDown className="w-4 h-4 text-[#64748b] group-hover:text-[#0f172a] transition-colors" />
           </div>
         )}
-        <button 
-          onClick={onLogout}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-[#6d6473] hover:text-red-600 text-sm font-medium transition-colors w-full text-left"
-        >
-          <LogOut className="w-4 h-4" /> Sign Out
-        </button>
+
+        {/* Footer links in sidebar */}
+        <div className="flex flex-col gap-1">
+          <button 
+            onClick={() => router.push("/help")}
+            className="flex items-center gap-3 px-4 py-2 rounded-xl text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50 text-sm font-medium transition-colors w-full text-left"
+          >
+            <HelpCircle className="w-4 h-4" /> Help & Support
+          </button>
+          <button 
+            onClick={onLogout}
+            className="flex items-center gap-3 px-4 py-2 rounded-xl text-[#64748b] hover:text-red-600 hover:bg-red-50/50 text-sm font-medium transition-colors w-full text-left"
+          >
+            <LogOut className="w-4 h-4" /> Sign Out
+          </button>
+        </div>
       </div>
     </aside>
   );

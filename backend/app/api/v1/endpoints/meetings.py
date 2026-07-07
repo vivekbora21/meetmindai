@@ -20,6 +20,7 @@ from app.models.models import (
 )
 from app.api.v1.endpoints.auth import get_current_user
 from app.services.media_service import MediaService
+from app.services.cache_service import MeetingContextCache
 
 router = APIRouter()
 
@@ -133,6 +134,8 @@ class MeetingDetailOut(BaseModel):
     decisions: List[DecisionOut]
     risks: List[RiskOut]
     questions: List[QuestionOut]
+    agenda_items: Optional[List[dict]] = None
+    technical_context: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -316,6 +319,7 @@ def upload_meeting_media(
 
     meeting.status = "PROCESSING"
     db.commit()
+    MeetingContextCache.invalidate(meeting_id)
 
     media_service = MediaService()
     try:
@@ -363,6 +367,7 @@ def transcribe_meeting(
 
     meeting.status = "PROCESSING"
     db.commit()
+    MeetingContextCache.invalidate(meeting_id)
 
     try:
         from app.tasks.meeting_tasks import process_meeting_audio

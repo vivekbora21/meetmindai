@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingService:
+    _query_cache = {}
+
     def __init__(self):
         self._embeddings_model = None
         self._embeddings_failed = False
@@ -18,6 +20,10 @@ class EmbeddingService:
         Generates 1536-dimension embeddings using nomic-embed-text-v1.
         Supports Hugging Face serverless API, local sentence-transformers, or graceful fallback.
         """
+        if text in self._query_cache:
+            logger.info("EmbeddingService | Reusing cached embedding for query.")
+            return self._query_cache[text]
+
         hf_token = get_env("HUGGINGFACE_API_KEY", "")
 
         # 1. Attempt Hugging Face Serverless Inference API
@@ -34,11 +40,15 @@ class EmbeddingService:
                 if response.status_code == 200:
                     embedding = response.json()
                     if isinstance(embedding, list) and len(embedding) == 1536:
+                        self._query_cache[text] = embedding
                         return embedding
                     elif isinstance(embedding, list) and len(embedding) > 0:
                         if len(embedding) < 1536:
-                            return embedding + [0.0] * (1536 - len(embedding))
-                        return embedding[:1536]
+                            res = embedding + [0.0] * (1536 - len(embedding))
+                        else:
+                            res = embedding[:1536]
+                        self._query_cache[text] = res
+                        return res
             except Exception as e:
                 logger.warning(
                     f"EmbeddingService | HF serverless inference failed: {e}"
@@ -62,11 +72,15 @@ class EmbeddingService:
             embedding = self._embeddings_model.encode(text).tolist()
             if len(embedding) < 1536:
                 embedding = embedding + [0.0] * (1536 - len(embedding))
-            return embedding[:1536]
+            res = embedding[:1536]
+            self._query_cache[text] = res
+            return res
         except Exception as e:
             logger.error(f"EmbeddingService | Local sentence-transformers failed: {e}")
             self._embeddings_failed = True
-            return [0.0] * 1536
+            res = [0.0] * 1536
+            self._query_cache[text] = res
+            return res
 
     def update_segments_embeddings(self, db: Session, meeting_id: str) -> int:
         """

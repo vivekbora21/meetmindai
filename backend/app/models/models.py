@@ -52,6 +52,8 @@ class User(Base):
 
     organization = relationship("Organization", back_populates="users")
     action_items = relationship("ActionItem", back_populates="assigned_user")
+    chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
+    chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
 
 
 class Meeting(Base):
@@ -86,10 +88,15 @@ class Meeting(Base):
     one_minute_read = Column(Text, nullable=True)
     followup_email = Column(Text, nullable=True)
     sentiment_summary = Column(Text, nullable=True)
+    agenda_items = Column(JSON, nullable=True)
+    technical_context = Column(JSON, nullable=True)
 
     organization = relationship("Organization", back_populates="meetings")
     transcripts = relationship(
-        "TranscriptSegment", back_populates="meeting", cascade="all, delete-orphan"
+        "TranscriptSegment",
+        back_populates="meeting",
+        cascade="all, delete-orphan",
+        order_by="TranscriptSegment.start_ms",
     )
     action_items = relationship(
         "ActionItem", back_populates="meeting", cascade="all, delete-orphan"
@@ -103,6 +110,12 @@ class Meeting(Base):
     )
     speakers = relationship(
         "Speaker", back_populates="meeting", cascade="all, delete-orphan"
+    )
+    chat_messages = relationship(
+        "ChatMessage", back_populates="meeting", cascade="all, delete-orphan"
+    )
+    chat_sessions = relationship(
+        "ChatSession", back_populates="meeting", cascade="all, delete-orphan"
     )
 
 
@@ -312,3 +325,47 @@ class AgentLiveSession(Base):
     health_score = Column(Float, default=100.0)
     start_time = Column(DateTime, server_default=func.now())
     end_time = Column(DateTime, nullable=True)
+
+
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    meeting_id = Column(
+        String(36), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id = Column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    title = Column(String(255), nullable=False)
+    is_archived = Column(Boolean, default=False, server_default="false")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    meeting = relationship("Meeting", back_populates="chat_sessions")
+    user = relationship("User", back_populates="chat_sessions")
+    messages = relationship(
+        "ChatMessage", back_populates="session", cascade="all, delete-orphan", order_by="ChatMessage.created_at"
+    )
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    meeting_id = Column(
+        String(36), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id = Column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    session_id = Column(
+        String(36), ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=True
+    )
+    role = Column(String(50), nullable=False)  # "user" or "assistant"
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    meeting = relationship("Meeting", back_populates="chat_messages")
+    user = relationship("User", back_populates="chat_messages")
+    session = relationship("ChatSession", back_populates="messages")
