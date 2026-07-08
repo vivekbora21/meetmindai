@@ -13,7 +13,8 @@ from app.models.models import (
     User,
     Organization,
     UserProfile,
-    UserIntegration,
+    ConnectedAccount,
+    Provider,
     AIPreference,
     MeetingPreference,
     NotificationSetting,
@@ -223,21 +224,57 @@ def get_full_profile(
     # Format and return all details
     user_integrations = []
     for integration in current_user.integrations:
-        user_integrations.append(
-            {
-                "id": integration.id,
-                "provider": integration.provider,
-                "email": integration.email,
-                "connection_status": integration.connection_status,
-                "last_sync": (
-                    integration.last_sync.isoformat() if integration.last_sync else None
-                ),
-                "sync_errors": integration.sync_errors,
-                "auto_sync": integration.auto_sync,
-                "recording_import": integration.recording_import,
-                "calendar_sync": integration.calendar_sync,
-            }
-        )
+        if integration.provider == Provider.MICROSOFT:
+            for virtual_provider in ["msteams", "outlook"]:
+                user_integrations.append(
+                    {
+                        "id": integration.id,
+                        "provider": virtual_provider,
+                        "email": integration.email,
+                        "connection_status": integration.connection_status,
+                        "last_sync": (
+                            integration.last_sync.isoformat() if integration.last_sync else None
+                        ),
+                        "sync_errors": integration.sync_errors,
+                        "auto_sync": integration.auto_sync,
+                        "recording_import": integration.recording_import,
+                        "calendar_sync": integration.calendar_sync,
+                    }
+                )
+        elif integration.provider == Provider.GOOGLE or integration.provider == "google":
+            for virtual_provider in ["googlemeet", "googlecalendar"]:
+                user_integrations.append(
+                    {
+                        "id": integration.id,
+                        "provider": virtual_provider,
+                        "email": integration.email,
+                        "connection_status": integration.connection_status,
+                        "last_sync": (
+                            integration.last_sync.isoformat() if integration.last_sync else None
+                        ),
+                        "sync_errors": integration.sync_errors,
+                        "auto_sync": integration.auto_sync,
+                        "recording_import": integration.recording_import,
+                        "calendar_sync": integration.calendar_sync,
+                    }
+                )
+        else:
+            user_integrations.append(
+                {
+                    "id": integration.id,
+                    "provider": integration.provider,
+                    "email": integration.email,
+                    "connection_status": integration.connection_status,
+                    "last_sync": (
+                        integration.last_sync.isoformat() if integration.last_sync else None
+                    ),
+                    "sync_errors": integration.sync_errors,
+                    "auto_sync": integration.auto_sync,
+                    "recording_import": integration.recording_import,
+                    "calendar_sync": integration.calendar_sync,
+                }
+            )
+
 
     # Fetch default profile settings
     return {
@@ -456,11 +493,54 @@ def request_email_verification(
 def list_integrations(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    return (
-        db.query(UserIntegration)
-        .filter(UserIntegration.user_id == current_user.id)
+    accounts = (
+        db.query(ConnectedAccount)
+        .filter(ConnectedAccount.user_id == current_user.id)
         .all()
     )
+    # Project microsoft into msteams and outlook for frontend compatibility
+    projected = []
+    for acc in accounts:
+        if acc.provider == Provider.MICROSOFT:
+            for virtual_provider in ["msteams", "outlook"]:
+                projected.append({
+                    "id": acc.id,
+                    "provider": virtual_provider,
+                    "email": acc.email,
+                    "connection_status": acc.connection_status,
+                    "last_sync": acc.last_sync.isoformat() if acc.last_sync else None,
+                    "sync_errors": acc.sync_errors,
+                    "auto_sync": acc.auto_sync,
+                    "recording_import": acc.recording_import,
+                    "calendar_sync": acc.calendar_sync,
+                })
+        elif acc.provider == Provider.GOOGLE or acc.provider == "google":
+            for virtual_provider in ["googlemeet", "googlecalendar"]:
+                projected.append({
+                    "id": acc.id,
+                    "provider": virtual_provider,
+                    "email": acc.email,
+                    "connection_status": acc.connection_status,
+                    "last_sync": acc.last_sync.isoformat() if acc.last_sync else None,
+                    "sync_errors": acc.sync_errors,
+                    "auto_sync": acc.auto_sync,
+                    "recording_import": acc.recording_import,
+                    "calendar_sync": acc.calendar_sync,
+                })
+        else:
+            projected.append({
+                "id": acc.id,
+                "provider": acc.provider,
+                "email": acc.email,
+                "connection_status": acc.connection_status,
+                "last_sync": acc.last_sync.isoformat() if acc.last_sync else None,
+                "sync_errors": acc.sync_errors,
+                "auto_sync": acc.auto_sync,
+                "recording_import": acc.recording_import,
+                "calendar_sync": acc.calendar_sync,
+            })
+    return projected
+
 
 
 @router.post("/integrations/connect")
@@ -469,18 +549,25 @@ def connect_integration(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Simulates OAuth connection success
+    if data.provider in ["msteams", "outlook", "microsoft", "googlemeet", "googlecalendar", "google"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Microsoft and Google integrations must be connected via the secure OAuth flow."
+        )
+
+
+    # Simulates OAuth connection success for non-Microsoft (e.g. other mock/demo apps)
     integration = (
-        db.query(UserIntegration)
+        db.query(ConnectedAccount)
         .filter(
-            UserIntegration.user_id == current_user.id,
-            UserIntegration.provider == data.provider,
+            ConnectedAccount.user_id == current_user.id,
+            ConnectedAccount.provider == data.provider,
         )
         .first()
     )
 
     if not integration:
-        integration = UserIntegration(
+        integration = ConnectedAccount(
             user_id=current_user.id,
             provider=data.provider,
         )
@@ -490,7 +577,7 @@ def connect_integration(
     integration.provider_user_id = str(uuid.uuid4())
     integration.access_token = f"mock_access_token_{uuid.uuid4().hex}"
     integration.refresh_token = f"mock_refresh_token_{uuid.uuid4().hex}"
-    integration.token_expiry = datetime.utcnow() + timedelta(hours=1)
+    integration.expires_at = datetime.utcnow() + timedelta(hours=1)
     integration.connection_status = "Connected"
     integration.last_sync = datetime.utcnow()
     integration.sync_errors = None
@@ -512,26 +599,36 @@ def connect_integration(
 
 
 @router.post("/integrations/{id}/sync")
-def sync_integration(
+async def sync_integration(
     id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     integration = (
-        db.query(UserIntegration)
-        .filter(UserIntegration.id == id, UserIntegration.user_id == current_user.id)
+        db.query(ConnectedAccount)
+        .filter(ConnectedAccount.id == id, ConnectedAccount.user_id == current_user.id)
         .first()
     )
 
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
 
-    # Check expiry simulator
-    if integration.token_expiry and integration.token_expiry < datetime.utcnow():
-        # Auto refresh token simulator
-        integration.access_token = f"mock_refreshed_access_token_{uuid.uuid4().hex}"
-        integration.token_expiry = datetime.utcnow() + timedelta(hours=1)
-        integration.connection_status = "Connected"
+    if integration.provider == Provider.MICROSOFT:
+        from app.services.microsoft_calendar import MicrosoftCalendarService
+        service = MicrosoftCalendarService()
+        await service.sync_calendar_events(db, current_user.id)
+    elif integration.provider == Provider.GOOGLE or integration.provider == "google":
+        from app.services.google_calendar import GoogleCalendarService
+        service = GoogleCalendarService()
+        await service.sync_calendar_events(db, current_user.id)
+    else:
+        # Check expiry simulator
+        if integration.expires_at and integration.expires_at < datetime.utcnow():
+            # Auto refresh token simulator
+            integration.access_token = f"mock_refreshed_access_token_{uuid.uuid4().hex}"
+            integration.expires_at = datetime.utcnow() + timedelta(hours=1)
+            integration.connection_status = "Connected"
+
 
     integration.last_sync = datetime.utcnow()
     integration.sync_errors = None
@@ -556,8 +653,8 @@ def disconnect_integration(
     db: Session = Depends(get_db),
 ):
     integration = (
-        db.query(UserIntegration)
-        .filter(UserIntegration.id == id, UserIntegration.user_id == current_user.id)
+        db.query(ConnectedAccount)
+        .filter(ConnectedAccount.id == id, ConnectedAccount.user_id == current_user.id)
         .first()
     )
 

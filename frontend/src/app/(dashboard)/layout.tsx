@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Brain, Loader2 } from "lucide-react";
 import { getApiUrl } from "../config";
 import Sidebar from "../components/Sidebar";
+import Navbar from "../components/Navbar";
 
 export default function DashboardLayout({
   children,
@@ -18,6 +19,7 @@ export default function DashboardLayout({
   const [userRole, setUserRole] = useState("");
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const getCookie = (name: string): string | null => {
     if (typeof document === "undefined") return null;
@@ -106,18 +108,33 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen flex selection:bg-[#0f766e] selection:text-white text-[#0f172a] bg-slate-50">
-      <Sidebar 
+    <div className="min-h-screen flex flex-col selection:bg-[#0f766e] selection:text-white text-[#0f172a] bg-slate-50 overflow-hidden">
+      {/* Top Navbar */}
+      <Navbar 
         userName={userName} 
         userRole={userRole} 
         loading={loading} 
+        isCollapsed={isCollapsed} 
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)} 
         onLogout={handleLogout} 
       />
 
-      {/* Main Workspace - Controlled height and independent scrolling */}
-      <div className="flex-1 overflow-y-auto h-screen bg-slate-50">
-        {children}
+      <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)]">
+        {/* Sidebar */}
+        <Sidebar 
+          userName={userName} 
+          userRole={userRole} 
+          loading={loading} 
+          onLogout={handleLogout} 
+          isCollapsed={isCollapsed}
+        />
+
+        {/* Main Workspace - Controlled height and independent scrolling */}
+        <div className="flex-1 overflow-y-auto h-full bg-slate-50">
+          {children}
+        </div>
       </div>
     </div>
   );
 }
+

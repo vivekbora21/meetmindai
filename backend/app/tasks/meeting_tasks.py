@@ -303,6 +303,12 @@ def speaker_diarization(self, meeting_id: str):
                 f"Speaker diarization stage completed successfully for meeting: {meeting_id}"
             )
 
+            # Auto-detect speaker names if AI analysis is also done
+            try:
+                auto_detect_speaker_names(db, meeting_id)
+            except Exception as e:
+                logger.error(f"Failed to auto-detect speaker names in diarization: {e}")
+
         finally:
             if os.path.exists(extracted_wav_path):
                 try:
@@ -353,10 +359,12 @@ def generate_embeddings(self, meeting_id: str):
         embedding_service = EmbeddingService()
         embedding_service.update_segments_embeddings(db, meeting_id)
 
-        meeting.embedding_status = "SUCCESS"
-        db.commit()
+        # Run RAG chunking and indexing pipeline
+        from app.services.ai.rag_service import RAGService
+        RAGService.index_meeting(db, meeting_id)
 
         logger.info(f"Embedding stage completed successfully for meeting: {meeting_id}")
+
 
     except Exception as exc:
         logger.error(
@@ -612,6 +620,12 @@ def generate_ai_analysis(self, meeting_id: str):
             logger.info(
                 f"Meeting updated | Meeting ID: {meeting_id} | ai_status: {meeting.ai_status}"
             )
+
+            # Auto-detect speaker names if diarization is also done
+            try:
+                auto_detect_speaker_names(db, meeting_id)
+            except Exception as e:
+                logger.error(f"Failed to auto-detect speaker names in AI analysis: {e}")
         else:
             meeting.ai_status = "FAILED"
             meeting.executive_summary = "AI analysis unavailable."
@@ -794,3 +808,98 @@ def join_scheduled_meeting(self, scheduled_meeting_id: str):
         db.commit()
     finally:
         db.close()
+
+
+def auto_detect_speaker_names(db: Session, meeting_id: str):
+    """
+    Checks if both speaker_diarization and generate_ai_analysis are completed.
+    If yes, runs LLM speaker name detection to map generic 'Speaker X' names to real names
+    based on transcript context, and updates the database.
+    """
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting:
+        return
+
+    # Check if both diarization and AI analysis have run successfully
+    if meeting.speaker_status != "COMPLETED" or meeting.ai_status != "SUCCESS":
+        logger.info(
+            f"auto_detect_speaker_names | Skipping because stages not completed. "
+            f"speaker_status={meeting.speaker_status}, ai_status={meeting.ai_status}"
+        )
+        return
+
+    logger.info(f"auto_detect_speaker_names | Running speaker name identification for meeting {meeting_id}")
+
+    # Get all unconfirmed speakers with generic-looking names
+    unconfirmed_speakers = (
+        db.query(MeetingSpeaker)
+        .filter(
+            MeetingSpeaker.meeting_id == meeting_id,
+            MeetingSpeaker.is_confirmed == False,
+        )
+        .all()
+    )
+
+    if not unconfirmed_speakers:
+        logger.info("auto_detect_speaker_names | No unconfirmed speakers found. Skipping.")
+        return
+
+    # Check if they have generic names (e.g. starting with "speaker")
+    generic_speakers = []
+    for spk in unconfirmed_speakers:
+        if spk.display_name.lower().startswith("speaker"):
+            generic_speakers.append(spk)
+
+    if not generic_speakers:
+        logger.info("auto_detect_speaker_names | No generic unconfirmed speakers found. Skipping.")
+        return
+
+    # Load transcripts to build text
+    transcripts = (
+        db.query(Transcript)
+        .filter(Transcript.meeting_id == meeting_id)
+        .order_by(Transcript.start_time)
+        .all()
+    )
+    if not transcripts:
+        return
+
+    # Format transcript text with speaker labels
+    transcript_lines = []
+    for t in transcripts:
+        name = t.speaker.display_name if t.speaker else f"Speaker {t.speaker_id}"
+        transcript_lines.append(f"{name}: {t.text}")
+    transcript_text = "\n".join(transcript_lines)
+
+    # Get known organization users to match against
+    org_users = db.query(User).filter(User.organization_id == meeting.organization_id).all()
+    known_members = [u.name for u in org_users if u.name]
+
+    # Map current generic names
+    current_generic_names = [spk.display_name for spk in generic_speakers]
+
+    gemini_service = GeminiService()
+    detected_mapping = gemini_service.identify_speaker_names(
+        transcript_text, current_generic_names, known_members
+    )
+
+    if not detected_mapping:
+        logger.info("auto_detect_speaker_names | No speaker names detected by LLM.")
+        return
+
+    logger.info(f"auto_detect_speaker_names | LLM detected mapping: {detected_mapping}")
+
+    updated = False
+    for spk in generic_speakers:
+        detected_name = detected_mapping.get(spk.display_name)
+        if detected_name:
+            logger.info(f"auto_detect_speaker_names | Mapping '{spk.display_name}' to '{detected_name}'")
+            spk.display_name = detected_name
+            spk.is_confirmed = True
+            updated = True
+
+    if updated:
+        db.commit()
+        # Invalidate cache so the frontend gets the fresh names
+        MeetingContextCache.invalidate(meeting_id)
+        logger.info("auto_detect_speaker_names | Database updated and cache invalidated.")

@@ -184,36 +184,6 @@ export default function Dashboard() {
             ⌘ K
           </kbd>
         </div>
-
-        {/* Top Right Badges and User Profile */}
-        <div className="flex items-center gap-5">
-          {/* AI Ready Badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#e6f4f1] text-[#0f766e] text-xs font-bold border border-teal-150 shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-[#0f766e]" /> AI Ready
-          </div>
-
-          {/* Notifications */}
-          <button className="p-2 text-slate-500 hover:text-[#0f172a] transition-colors relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-[#0f766e] rounded-full border-2 border-white" />
-          </button>
-
-          {/* User Profile */}
-          <div className="flex items-center gap-2.5 border-l border-slate-200/80 pl-5 cursor-pointer group">
-            <div className="w-9 h-9 rounded-full bg-[#0f766e] flex items-center justify-center text-xs font-bold text-white uppercase shadow-sm">
-              {userName ? userName.split(" ").map((n: string) => n[0]).join("").slice(0, 2) : "VS"}
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-xs font-bold text-[#0f172a] leading-tight group-hover:text-[#0f766e] transition-colors">
-                {userName}
-              </span>
-              <span className="text-[10px] text-slate-400 font-semibold leading-tight capitalize">
-                {userRole}
-              </span>
-            </div>
-            <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-650 transition-colors" />
-          </div>
-        </div>
       </div>
 
       {/* Overview Stats Cards matching image layout */}

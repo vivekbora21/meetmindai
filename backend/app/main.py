@@ -14,6 +14,8 @@ from app.api.v1.endpoints import (
     agent_events,
     teams_bot,
     profile,
+    ai,
+    calendar,
 )
 
 app = FastAPI(
@@ -54,6 +56,10 @@ def healthcheck():
 
 # Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(auth.microsoft_router, tags=["microsoft-auth"])
+app.include_router(auth.google_router, tags=["google-auth"])
+app.include_router(calendar.router, tags=["calendar"])
+
 app.include_router(profile.router, prefix="/api/v1/profile", tags=["profile"])
 app.include_router(meetings.router, prefix="/api/v1/meetings", tags=["meetings"])
 app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
@@ -61,3 +67,14 @@ app.include_router(knowledge.router, prefix="/api/v1/knowledge", tags=["knowledg
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(agent_events.router, prefix="/api/v1/agent", tags=["agent"])
 app.include_router(teams_bot.router, prefix="/api/v1/agent/teams", tags=["teams-bot"])
+app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
+app.include_router(ai.meeting_router, prefix="/api/meetings", tags=["meetings"])
+
+
+@app.on_event("startup")
+async def startup_event():
+    import asyncio
+    from app.services.scheduler import start_scheduler
+    asyncio.create_task(start_scheduler())
+
+

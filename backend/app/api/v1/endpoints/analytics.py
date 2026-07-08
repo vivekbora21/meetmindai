@@ -121,17 +121,7 @@ def get_speaker_analytics(
     if not segments:
         return []
 
-    # Calculate spoken duration per speaker
-    from collections import defaultdict
-
-    speaker_time_sec = defaultdict(float)
-    total_time_sec = 0.0
-    for seg in segments:
-        duration = max(0.0, seg.end_time - seg.start_time)
-        speaker_time_sec[seg.speaker_id] += duration
-        total_time_sec += duration
-
-    # Get speaker display names
+    # Get speaker display names first
     speakers = (
         db.query(MeetingSpeaker)
         .filter(MeetingSpeaker.meeting_id.in_(meeting_ids))
@@ -141,11 +131,21 @@ def get_speaker_analytics(
     for s in speakers:
         speaker_names[s.id] = s.display_name
 
+    # Calculate spoken duration per speaker display name
+    from collections import defaultdict
+
+    speaker_time_sec = defaultdict(float)
+    total_time_sec = 0.0
+    for seg in segments:
+        duration = max(0.0, seg.end_time - seg.start_time)
+        name = speaker_names.get(seg.speaker_id, "Unknown Speaker")
+        speaker_time_sec[name] += duration
+        total_time_sec += duration
+
     results = []
-    for spk_id, secs in speaker_time_sec.items():
+    for name, secs in speaker_time_sec.items():
         minutes = round(secs / 60.0, 1)
         pct = round((secs / total_time_sec) * 100.0, 1) if total_time_sec > 0 else 0.0
-        name = speaker_names.get(spk_id, f"Speaker {spk_id}")
         results.append(SpeakerMetric(name=name, minutes_spoken=minutes, percentage=pct))
 
     results.sort(key=lambda x: x.minutes_spoken, reverse=True)
@@ -169,10 +169,10 @@ def get_topic_distribution(
 
     segments = db.query(Transcript).filter(Transcript.meeting_id.in_(meeting_ids)).all()
 
-    import spacy
     from collections import Counter
 
     try:
+        import spacy
         nlp = spacy.load("en_core_web_sm")
     except Exception:
         nlp = None
@@ -201,12 +201,11 @@ def get_topic_distribution(
             for word in seg.text.split():
                 clean_word = "".join(c for c in word if c.isalnum()).title()
                 if len(clean_word) > 4 and clean_word not in (
-                    "About",
-                    "There",
-                    "Their",
-                    "Would",
-                    "Could",
-                    "Which",
+                    "About", "There", "Their", "Would", "Could", "Which", "Thats", "Think", "Ensure",
+                    "Going", "Maybe", "Should", "Really", "Using", "Where", "These", "Those", "Every",
+                    "Other", "Because", "Through", "Under", "Before", "After", "Still", "Always",
+                    "Never", "Something", "Anything", "Someone", "Anyone", "First", "Second", "Third",
+                    "Right", "People", "Things", "Doing", "Table", "Query", "Field"
                 ):
                     candidates.append(clean_word)
 

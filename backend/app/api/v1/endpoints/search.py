@@ -46,7 +46,7 @@ class ChatResponse(BaseModel):
 
 class ChatMessageOut(BaseModel):
     id: str
-    meeting_id: str
+    meeting_id: Optional[str] = None
     user_id: str
     session_id: Optional[str] = None
     role: str
@@ -63,7 +63,7 @@ class ChatSessionCreate(BaseModel):
 
 class ChatSessionOut(BaseModel):
     id: str
-    meeting_id: str
+    meeting_id: Optional[str] = None
     user_id: str
     title: str
     is_archived: bool
@@ -76,7 +76,7 @@ class ChatSessionOut(BaseModel):
 
 class ChatSessionDetailOut(BaseModel):
     id: str
-    meeting_id: str
+    meeting_id: Optional[str] = None
     user_id: str
     title: str
     is_archived: bool
@@ -598,6 +598,32 @@ def get_chat_session(
     if not session:
         raise HTTPException(status_code=404, detail="Chat session not found")
     return session
+
+
+@router.get("/session/{session_id}", response_model=List[ChatMessageOut])
+def get_session_messages(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    session = (
+        db.query(ChatSession)
+        .filter(
+            ChatSession.id == session_id,
+            ChatSession.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+
+    messages = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.session_id == session_id)
+        .order_by(ChatMessage.created_at.asc())
+        .all()
+    )
+    return messages
 
 
 @router.patch("/chat/{session_id}/title", response_model=ChatSessionOut)

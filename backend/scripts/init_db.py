@@ -13,14 +13,22 @@ from app.api.v1.endpoints.auth import get_password_hash
 def init_database():
     print("Connecting to database...")
     with engine.connect() as conn:
-        print("Enabling pgvector extension if not exists...")
+        print("Dropping all tables by recreating schema...")
+        conn.execute(text("DROP SCHEMA public CASCADE;"))
+        conn.execute(text("CREATE SCHEMA public;"))
+        conn.execute(text("GRANT ALL ON SCHEMA public TO postgres;"))
+        conn.execute(text("GRANT ALL ON SCHEMA public TO public;"))
+        print("Enabling pgvector extension...")
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         conn.commit()
 
-    print("Dropping existing tables...")
-    Base.metadata.drop_all(bind=engine)
-    print("Creating all tables...")
-    Base.metadata.create_all(bind=engine)
+    print("Running database migrations...")
+    from alembic.config import Config
+    from alembic import command
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
+    print("Database migrations applied successfully.")
+
 
     print("Seeding default database data...")
     db = SessionLocal()

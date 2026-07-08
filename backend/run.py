@@ -73,151 +73,46 @@ def check_and_setup_db():
             time.sleep(5)
 
     try:
-        with engine.connect() as conn:
-            result = conn.execute(
-                text(
-                    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')"
-                )
-            )
-            users_table_exists = result.scalar()
+        # Run Alembic migrations programmatically on startup
+        print("Running database migrations...")
+        from alembic.config import Config
+        from alembic import command
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        print("Database migrations applied successfully.")
 
-            if not users_table_exists:
-                print("Database tables not found. Initializing database schema...")
-
-                print("Enabling pgvector extension if not exists...")
-                conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-                conn.commit()
-
-                print("Creating all tables...")
-                Base.metadata.create_all(bind=engine)
-
+        # Seed default database data if users table is empty
+        db = SessionLocal()
+        try:
+            user_count = db.query(User).count()
+            if user_count == 0:
                 print("Seeding default database data...")
-                db = SessionLocal()
-                try:
-                    org = Organization(name="MeetingMind AI")
-                    db.add(org)
-                    db.commit()
-                    db.refresh(org)
+                org = Organization(name="MeetingMind AI")
+                db.add(org)
+                db.commit()
+                db.refresh(org)
 
-                    hashed_pwd = get_password_hash("password")
-                    user = User(
-                        name="Vivek Sharma",
-                        email="vivek@company.com",
-                        hashed_password=hashed_pwd,
-                        organization_id=org.id,
-                        role="Admin",
-                    )
-                    db.add(user)
-                    db.commit()
-                    print(
-                        "Successfully seeded default organization and admin user (vivek@company.com / password)"
-                    )
-                except Exception as seed_err:
-                    print(f"Error seeding database: {seed_err}")
-                    db.rollback()
-                finally:
-                    db.close()
-            else:
-                try:
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS original_filename VARCHAR(255) NULL;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS file_size INTEGER NULL;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS content_type VARCHAR(100) NULL;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS ai_status VARCHAR(50) DEFAULT 'PENDING';"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS embedding_status VARCHAR(50) DEFAULT 'PENDING';"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS speaker_status VARCHAR(50) DEFAULT 'PENDING';"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS kg_status VARCHAR(50) DEFAULT 'PENDING';"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS agenda_items JSON NULL;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS technical_context JSON NULL;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS language VARCHAR(50) NULL;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS key_themes JSON NULL;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS main_takeaways JSON NULL;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS important_quotes JSON NULL;"
-                        )
-                    )
-                    conn.commit()
-                    print("Creating new tables if any...")
-                    Base.metadata.create_all(bind=engine)
-
-                    conn.execute(
-                        text(
-                            "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS session_id VARCHAR(36) NULL REFERENCES chat_sessions(id) ON DELETE CASCADE;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meeting_speakers ADD COLUMN IF NOT EXISTS contribution_percentage FLOAT NULL;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meeting_speakers ADD COLUMN IF NOT EXISTS has_conflict BOOLEAN DEFAULT FALSE;"
-                        )
-                    )
-                    conn.execute(
-                        text(
-                            "ALTER TABLE meeting_speakers ADD COLUMN IF NOT EXISTS conflict_details VARCHAR(255) NULL;"
-                        )
-                    )
-                    conn.commit()
-                    print(
-                        "Checked and updated meetings and chat_messages and meeting_speakers table schema columns successfully."
-                    )
-                except Exception as alter_err:
-                    print(
-                        f"Non-fatal error checking/updating table columns: {alter_err}"
-                    )
+                hashed_pwd = get_password_hash("password")
+                user = User(
+                    name="Vivek Sharma",
+                    email="vivek@company.com",
+                    hashed_password=hashed_pwd,
+                    organization_id=org.id,
+                    role="Admin",
+                )
+                db.add(user)
+                db.commit()
+                print(
+                    "Successfully seeded default organization and admin user (vivek@company.com / password)"
+                )
+        except Exception as seed_err:
+            print(f"Error checking/seeding database: {seed_err}")
+            db.rollback()
+        finally:
+            db.close()
     except Exception as e:
         print(f"Error during database initialization: {e}")
+
 
 
 def start_server():
@@ -273,6 +168,16 @@ if __name__ == "__main__":
 
     # Automatically check and setup database before running server or celery
     check_and_setup_db()
+
+    # Validate LLM provider settings on startup
+    try:
+        from app.services.llm.factory import LLMFactory
+        print("Validating LLM configuration...")
+        provider_instance = LLMFactory.get_provider()
+        print(f"LLM Configuration validated successfully. Active Provider: '{provider_instance.provider_name}' | Model: '{provider_instance.model_name}'")
+    except Exception as e:
+        print(f"CRITICAL CONFIGURATION ERROR: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if args.command == "server":
         start_server()

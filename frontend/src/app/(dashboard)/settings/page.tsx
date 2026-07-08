@@ -341,6 +341,18 @@ export default function SettingsPage() {
   // Fetch individual list states on active tab change
   useEffect(() => {
     fetchData();
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const syncStatus = params.get("sync");
+      if (syncStatus === "success") {
+        showToast("Connected account successfully!");
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (syncStatus === "error") {
+        const detail = params.get("detail") || "An error occurred during authentication.";
+        showToast(`Failed to connect: ${detail}`, "error");
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -1225,11 +1237,20 @@ export default function SettingsPage() {
                               </button>
                             ) : (
                               <button 
-                                onClick={() => setConnectProvider(platform.key)}
+                                onClick={() => {
+                                  if (platform.key === "msteams" || platform.key === "outlook") {
+                                    window.location.href = getApiUrl("/api/auth/microsoft/login");
+                                  } else if (platform.key === "googlemeet" || platform.key === "googlecalendar") {
+                                    window.location.href = getApiUrl("/api/auth/google/login");
+                                  } else {
+                                    setConnectProvider(platform.key);
+                                  }
+                                }}
                                 className="px-3 py-1 bg-teal-800 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition-colors"
                               >
                                 Connect
                               </button>
+
                             )}
                           </div>
 

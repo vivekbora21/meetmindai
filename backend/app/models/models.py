@@ -17,8 +17,16 @@ from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 from app.database.connection import Base
 
-# Many-to-Many association for users and integrations (if needed)
-# Here we define the direct structures for the platform
+from enum import Enum
+
+class Provider(str, Enum):
+    MICROSOFT = "microsoft"
+    GOOGLE = "google"
+    ZOOM = "zoom"
+    SLACK = "slack"
+    DISCORD = "discord"
+    WEBEX = "webex"
+
 
 
 class Organization(Base):
@@ -67,7 +75,7 @@ class User(Base):
         cascade="all, delete-orphan",
     )
     integrations = relationship(
-        "UserIntegration", back_populates="user", cascade="all, delete-orphan"
+        "ConnectedAccount", back_populates="user", cascade="all, delete-orphan"
     )
     ai_preference = relationship(
         "AIPreference",
@@ -155,6 +163,19 @@ class Meeting(Base):
     meeting_date = Column(DateTime, server_default=func.now())
     created_at = Column(DateTime, server_default=func.now())
 
+    provider = Column(String(50), nullable=True)  # google_meet, microsoft_teams, zoom, etc.
+    provider_meeting_id = Column(String(255), nullable=True)
+    provider_event_id = Column(String(255), nullable=True)
+    calendar_id = Column(String(255), nullable=True)
+    organizer_email = Column(String(255), nullable=True)
+    sync_status = Column(String(50), nullable=True)
+    last_synced_at = Column(DateTime, nullable=True)
+    join_status = Column(String(50), default="Scheduled", server_default="Scheduled")
+    token_reference = Column(String(255), nullable=True)
+    description = Column(Text, nullable=True)
+    attendees = Column(JSON, nullable=True)
+
+
     # Summary and AI Insights cached fields
     executive_summary = Column(Text, nullable=True)
     one_minute_read = Column(Text, nullable=True)
@@ -193,6 +214,14 @@ class Meeting(Base):
     chat_sessions = relationship(
         "ChatSession", back_populates="meeting", cascade="all, delete-orphan"
     )
+    chunks = relationship(
+        "MeetingChunk",
+        back_populates="meeting",
+        cascade="all, delete-orphan",
+        order_by="MeetingChunk.chunk_index",
+    )
+
+
 
 
 class MeetingSpeaker(Base):
@@ -261,6 +290,24 @@ class Transcript(Base):
     @property
     def end_ms(self) -> int:
         return int(self.end_time * 1000)
+
+
+class MeetingChunk(Base):
+    __tablename__ = "meeting_chunks"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    meeting_id = Column(
+        String(36), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False
+    )
+    chunk_index = Column(Integer, nullable=False)
+    chunk_text = Column(Text, nullable=False)
+    embedding = Column(Vector(384), nullable=True)  # 384 dimensions for bge-small-en-v1.5
+    speaker = Column(String(255), nullable=True)
+    timestamp_start = Column(Float, nullable=True)  # in seconds
+    timestamp_end = Column(Float, nullable=True)    # in seconds
+    created_at = Column(DateTime, server_default=func.now())
+
+    meeting = relationship("Meeting", back_populates="chunks")
 
 
 class ActionItem(Base):
@@ -441,7 +488,7 @@ class ChatSession(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     meeting_id = Column(
-        String(36), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False
+        String(36), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=True
     )
     user_id = Column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
@@ -466,7 +513,7 @@ class ChatMessage(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     meeting_id = Column(
-        String(36), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False
+        String(36), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=True
     )
     user_id = Column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
@@ -510,8 +557,8 @@ class UserProfile(Base):
     user = relationship("User", back_populates="profile")
 
 
-class UserIntegration(Base):
-    __tablename__ = "user_integrations"
+class ConnectedAccount(Base):
+    __tablename__ = "connected_accounts"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(
@@ -519,12 +566,14 @@ class UserIntegration(Base):
     )
     provider = Column(
         String(50), nullable=False
-    )  # msteams, zoom, googlemeet, googlecalendar, outlook, applecalendar, webex, slack, discord
+    )  # microsoft, google, zoom, etc.
     provider_user_id = Column(String(255), nullable=True)
     email = Column(String(255), nullable=True)
+    display_name = Column(String(255), nullable=True)
     access_token = Column(Text, nullable=True)
     refresh_token = Column(Text, nullable=True)
-    token_expiry = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    token_type = Column(String(50), default="Bearer")
     connection_status = Column(
         String(50), default="Connected"
     )  # Connected, Disconnected, Expired
@@ -535,7 +584,20 @@ class UserIntegration(Base):
     recording_import = Column(Boolean, default=True)
     calendar_sync = Column(Boolean, default=True)
 
+    scope = Column(String(500), nullable=True)
+    connected_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
     user = relationship("User", back_populates="integrations")
+
+    @property
+    def token_expiry(self):
+        return self.expires_at
+
+    @token_expiry.setter
+    def token_expiry(self, value):
+        self.expires_at = value
+
 
 
 class AIPreference(Base):
@@ -837,3 +899,37 @@ class ActivityLog(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", back_populates="activity_logs")
+
+
+
+class CalendarEvent(Base):
+    __tablename__ = "calendar_events"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    provider = Column(String(50), nullable=False)  # "microsoft"
+    provider_event_id = Column(String(255), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=False)
+    timezone = Column(String(100), nullable=True)
+    organizer_email = Column(String(255), nullable=True)
+    join_url = Column(Text, nullable=True)
+    meeting_provider = Column(String(100), nullable=True)
+    is_online_meeting = Column(Boolean, default=False)
+    status = Column(String(50), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", backref="calendar_events")
+
+    __table_args__ = (
+        Index("idx_user_provider_event", "user_id", "provider", "provider_event_id", unique=True),
+    )
+
+

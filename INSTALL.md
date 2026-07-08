@@ -91,7 +91,7 @@ Open `backend/.env` in your preferred editor (e.g., `nano backend/.env`) and adj
 * `OPENROUTER_API_KEY`: Provide your OpenRouter API key for LLM summaries.
 
 ### 5. Setup & Run the Backend API
-Set up the Python virtual environment and run the backend. The startup script will automatically run migrations and seed a default admin user.
+Set up the Python virtual environment and run the backend. Database migrations are managed via Alembic. The startup script will automatically run all pending migrations to apply the schema and seed a default admin user.
 
 ```bash
 cd backend
@@ -103,6 +103,9 @@ source .venv/bin/activate
 # Upgrade pip and install dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
+
+# (Optional) Run migrations manually
+alembic upgrade head
 
 # Run backend server (will run on port 8000)
 python run.py server
@@ -241,6 +244,9 @@ python -m venv .venv
 # Upgrade pip and install requirements
 pip install --upgrade pip
 pip install -r requirements.txt
+
+# (Optional) Run migrations manually
+alembic upgrade head
 
 # Run backend server
 python run.py server

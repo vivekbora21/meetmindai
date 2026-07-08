@@ -16,4 +16,9 @@ from app.models.models import (
     AgentProfile,
     ScheduledMeeting,
     AgentLiveSession,
+    MeetingChunk,
+    ConnectedAccount,
+    Provider,
+    CalendarEvent,
 )
+

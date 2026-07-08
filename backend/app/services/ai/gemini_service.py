@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 class GeminiService:
     # Ordered cascade of free OpenRouter models — best first
     OPENROUTER_MODEL_CASCADE = [
+        m.strip() for m in os.getenv("OPENROUTER_MODELS", "").split(",") if m.strip()
+    ] or [
         "meta-llama/llama-3.3-70b-instruct:free",
         "meta-llama/llama-3-8b-instruct:free",
         "google/gemma-2-9b-it:free",
@@ -30,6 +32,8 @@ class GeminiService:
 
     # Ordered cascade of Groq models
     GROQ_MODEL_CASCADE = [
+        m.strip() for m in os.getenv("GROQ_MODELS", "").split(",") if m.strip()
+    ] or [
         "llama-3.3-70b-versatile",
         "mixtral-8x7b-32768",
         "llama-3.1-8b-instant",
@@ -55,29 +59,31 @@ class GeminiService:
             self._setup_provider("gemini")
 
     def _setup_provider(self, provider_name: str):
-        """Set up the active LLM provider and initialize the clients."""
+        """Set up the active LLM provider and initialize the clients using LLMFactory."""
         self.current_provider = provider_name
         self.use_openrouter = provider_name == "openrouter"
 
+        from app.services.llm.factory import LLMFactory
+        provider_instance = LLMFactory.get_provider(provider_name)
+        
+        self.client = provider_instance.client
+        self.async_client = provider_instance.async_client
+
         if provider_name == "gemini":
-            self.api_key = self.google_key
-            self.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-            self.model_name = ai_config.MODEL_NAME or "gemini-2.5-flash"
+            self.api_key = provider_instance.api_key
+            self.base_url = provider_instance.base_url
+            self.model_name = provider_instance.model_name
         elif provider_name == "groq":
-            self.api_key = self.groq_key
-            self.base_url = "https://api.groq.com/openai/v1"
+            self.api_key = provider_instance.api_key
+            self.base_url = provider_instance.base_url
             self._groq_model_idx = 0
             self.model_name = self.GROQ_MODEL_CASCADE[0]
         elif provider_name == "openrouter":
-            self.api_key = self.openrouter_key
-            self.base_url = "https://openrouter.ai/api/v1"
+            self.api_key = provider_instance.api_key
+            self.base_url = provider_instance.base_url
             self._openrouter_model_idx = 0
             self.model_name = self.OPENROUTER_MODEL_CASCADE[0]
 
-        self.client = OpenAI(api_key=self.api_key or "mock-key", base_url=self.base_url)
-        self.async_client = AsyncOpenAI(
-            api_key=self.api_key or "mock-key", base_url=self.base_url
-        )
         logger.info(
             f"GeminiService | Provider set to: {self.current_provider} | Model: {self.model_name}"
         )
@@ -167,7 +173,9 @@ class GeminiService:
                     system_instruction, user_content, response_format
                 )
 
-                response = self.client.chat.completions.create(
+                from app.services.llm.provider import execute_with_retry
+                response = execute_with_retry(
+                    self.client.chat.completions.create,
                     model=self.model_name,
                     messages=messages,
                     temperature=ai_config.TEMPERATURE,
@@ -272,7 +280,9 @@ class GeminiService:
                     system_instruction, user_content, response_format
                 )
 
-                response = await self.async_client.chat.completions.create(
+                from app.services.llm.provider import execute_async_with_retry
+                response = await execute_async_with_retry(
+                    self.async_client.chat.completions.create,
                     model=self.model_name,
                     messages=messages,
                     temperature=ai_config.TEMPERATURE,
@@ -1055,6 +1065,57 @@ class GeminiService:
         except Exception as e:
             logger.error(f"GeminiService | Diarization failed: {e}")
             return {"speakers": {}, "segment_speakers": []}
+
+    def identify_speaker_names(
+        self, transcript_text: str, current_speakers: List[str], known_members: List[str] = None
+    ) -> Dict[str, str]:
+        """
+        Uses LLM to analyze the transcript and map generic speaker names (e.g., 'Speaker 1')
+        to their actual real names if they introduce themselves or are referred to.
+        """
+        if not transcript_text or not current_speakers:
+            return {}
+
+        known_str = ", ".join(known_members) if known_members else "None"
+        speakers_str = ", ".join(current_speakers)
+
+        system_instruction = (
+            "You are an expert meeting transcription assistant.\n"
+            "Below is a meeting transcript where speakers are labeled with generic tags (like 'Speaker 1', 'Speaker 2', etc.).\n"
+            f"Currently identified generic speakers: {speakers_str}.\n"
+            f"Known organization members: {known_str}.\n\n"
+            "Your task is to analyze the conversation to identify the real names of the speakers who have these generic tags.\n"
+            "Guidelines:\n"
+            "1. Look for introductions: e.g., 'Hi, I'm John' or 'This is Alice'.\n"
+            "2. Look for addressable context: e.g., 'Speaker 1: Hey Bob' -> 'Speaker 2: Yes?' implies Speaker 2 is Bob.\n"
+            "3. If a known organization member name closely matches the identified name, map it to the full name from the known organization members list.\n"
+            "4. Only map a speaker if you are highly confident. If not, do not include them in the mapping.\n"
+            "5. Return ONLY a JSON object mapping the generic speaker label to their real name.\n"
+            "Example output format:\n"
+            "{\n"
+            '  "Speaker 1": "John Doe",\n'
+            '  "Speaker 2": "Alice Smith"\n'
+            "}\n"
+            "CRITICAL: Output ONLY a valid JSON. Do not include markdown blocks or any other explanation."
+        )
+
+        user_content = f"Transcript:\n{transcript_text[:20000]}"
+
+        try:
+            res = self._execute_with_retry(
+                system_instruction, user_content, response_format="json"
+            )
+            parsed = self._parse_json(res)
+            if isinstance(parsed, dict):
+                cleaned = {}
+                for k, v in parsed.items():
+                    if k in current_speakers and isinstance(v, str) and v.strip() and v.lower() != "unknown" and "speaker" not in v.lower():
+                        cleaned[k] = v.strip()
+                return cleaned
+            return {}
+        except Exception as e:
+            logger.error(f"GeminiService | identify_speaker_names failed: {e}")
+            return {}
 
     def _get_ultimate_fallback_data(self, transcript: str = "") -> Dict[str, Any]:
         import re

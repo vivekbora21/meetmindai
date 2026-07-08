@@ -1,111 +1,197 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Brain, LayoutDashboard, Network, BarChart3, Settings, HelpCircle, LogOut, ChevronDown } from "lucide-react";
+import { 
+  LayoutDashboard, 
+  Network, 
+  BarChart3, 
+  Settings, 
+  HelpCircle, 
+  LogOut, 
+  ChevronDown,
+  Video,
+  Sparkles,
+  Calendar,
+  CheckSquare
+} from "lucide-react";
 
 interface SidebarProps {
   userName: string;
   userRole: string;
   loading: boolean;
   onLogout: () => Promise<void> | void;
+  isCollapsed?: boolean;
 }
 
-export default function Sidebar({ userName, userRole, loading, onLogout }: SidebarProps) {
+export default function Sidebar({ 
+  userName, 
+  userRole, 
+  loading, 
+  onLogout,
+  isCollapsed = false 
+}: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
 
   const isDashboardActive = pathname === "/dashboard";
+  const isMeetingsActive = pathname.startsWith("/meetings");
+  const isAIWorkspaceActive = pathname.startsWith("/ai-workspace");
   const isKnowledgeActive = pathname.startsWith("/knowledge");
   const isAnalyticsActive = pathname.startsWith("/analytics");
   const isSettingsActive = pathname.startsWith("/settings");
+  const isCalendarActive = pathname.startsWith("/calendar");
 
   return (
-    <aside className="w-72 border-r border-[#e2e8f0] flex flex-col justify-between p-6 h-screen sticky top-0 bg-white">
-      <div className="flex flex-col gap-8">
-        {/* Logo Section */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#0f766e] rounded-xl flex items-center justify-center shadow-sm">
-            <Brain className="w-6 h-6 text-white" />
-          </div>
-          <span className="font-bold tracking-tight font-outfit text-[#0f172a] text-lg">MeetingMind AI</span>
-        </div>
-
+    <aside className={`border-r border-[#e2e8f0] flex flex-col justify-between bg-white transition-all duration-300 ease-in-out h-full ${
+      isCollapsed ? "w-20 p-3" : "w-72 p-6"
+    }`}>
+      <div className="flex flex-col gap-6">
         {/* Navigation Section */}
-        <nav className="flex flex-col gap-1.5">
+        <nav className="flex flex-col gap-1.5 pt-2">
           <button 
             onClick={() => router.push("/dashboard")}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            title="Dashboard"
+            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
               isDashboardActive 
                 ? "bg-[#e6f4f1] text-[#0f766e]" 
                 : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
             }`}
           >
-            <LayoutDashboard className={`w-4 h-4 ${isDashboardActive ? "text-[#0f766e]" : "text-[#64748b]"}`} /> Dashboard
+            <LayoutDashboard className={`w-5 h-5 flex-shrink-0 ${isDashboardActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {!isCollapsed && <span className="truncate">Dashboard</span>}
           </button>
+          
+          <button 
+            onClick={() => router.push("/meetings")}
+            title="Meetings"
+            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
+              isMeetingsActive 
+                ? "bg-[#e6f4f1] text-[#0f766e]" 
+                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
+            }`}
+          >
+            <Video className={`w-5 h-5 flex-shrink-0 ${isMeetingsActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {!isCollapsed && <span className="truncate">Meetings</span>}
+          </button>
+
+          <button 
+            onClick={() => router.push("/calendar")}
+            title="Calendar"
+            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
+              isCalendarActive 
+                ? "bg-[#e6f4f1] text-[#0f766e]" 
+                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
+            }`}
+          >
+            <Calendar className={`w-5 h-5 flex-shrink-0 ${isCalendarActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {!isCollapsed && <span className="truncate">Calendar</span>}
+          </button>
+
+          <button 
+            onClick={() => {}} 
+            title="Tasks (Coming Soon)"
+            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium text-[#cbd5e1] cursor-not-allowed opacity-50 text-left w-full`}
+            disabled
+          >
+            <CheckSquare className="w-5 h-5 flex-shrink-0 text-[#cbd5e1]" />
+            {!isCollapsed && <span className="truncate">Tasks</span>}
+          </button>
+
+          <button 
+            onClick={() => router.push("/ai-workspace")}
+            title="AI Workspace"
+            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
+              isAIWorkspaceActive 
+                ? "bg-[#e6f4f1] text-[#0f766e]" 
+                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
+            }`}
+          >
+            <Sparkles className={`w-5 h-5 flex-shrink-0 ${isAIWorkspaceActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {!isCollapsed && <span className="truncate">AI Workspace</span>}
+          </button>
+
           <button 
             onClick={() => router.push("/knowledge")}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            title="Knowledge Graph"
+            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
               isKnowledgeActive 
                 ? "bg-[#e6f4f1] text-[#0f766e]" 
                 : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
             }`}
           >
-            <Network className={`w-4 h-4 ${isKnowledgeActive ? "text-[#0f766e]" : "text-[#64748b]"}`} /> Knowledge Graph
+            <Network className={`w-5 h-5 flex-shrink-0 ${isKnowledgeActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {!isCollapsed && <span className="truncate">Knowledge Graph</span>}
           </button>
+          
           <button 
             onClick={() => router.push("/analytics")}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            title="Analytics"
+            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
               isAnalyticsActive 
                 ? "bg-[#e6f4f1] text-[#0f766e]" 
                 : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
             }`}
           >
-            <BarChart3 className={`w-4 h-4 ${isAnalyticsActive ? "text-[#0f766e]" : "text-[#64748b]"}`} /> Analytics
+            <BarChart3 className={`w-5 h-5 flex-shrink-0 ${isAnalyticsActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {!isCollapsed && <span className="truncate">Analytics</span>}
           </button>
+          
           <button 
             onClick={() => router.push("/settings")}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            title="Settings"
+            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
               isSettingsActive 
                 ? "bg-[#e6f4f1] text-[#0f766e]" 
                 : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
             }`}
           >
-            <Settings className={`w-4 h-4 ${isSettingsActive ? "text-[#0f766e]" : "text-[#64748b]"}`} /> Settings
+            <Settings className={`w-5 h-5 flex-shrink-0 ${isSettingsActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {!isCollapsed && <span className="truncate">Settings</span>}
           </button>
         </nav>
       </div>
 
       <div className="flex flex-col gap-4">
-        {/* Brain network illustration from the theme image */}
-        <div className="relative w-full aspect-square max-h-[160px] rounded-2xl overflow-hidden flex items-center justify-center p-2">
-          <img 
-            src="/brain_illustration.png" 
-            alt="AI Brain Illustration" 
-            className="w-full h-full object-contain mix-blend-multiply opacity-90" 
-          />
-        </div>
+        {/* Brain network illustration (only when expanded) */}
+        {!isCollapsed && (
+          <div className="relative w-full aspect-square max-h-[140px] rounded-2xl overflow-hidden flex items-center justify-center p-2 bg-slate-50/50 border border-slate-100">
+            <img 
+              src="/brain_illustration.png" 
+              alt="AI Brain Illustration" 
+              className="w-full h-full object-contain mix-blend-multiply opacity-90" 
+            />
+          </div>
+        )}
 
         {/* Profile Card / User section */}
         {loading ? (
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white border border-[#e2e8f0] animate-pulse">
-            <div className="w-9 h-9 rounded-full bg-slate-100" />
-            <div className="flex flex-col gap-1.5 flex-1">
-              <div className="h-3 bg-slate-100 rounded w-20" />
-              <div className="h-2.5 bg-slate-100 rounded w-12" />
-            </div>
+          <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3 py-2.5"} rounded-xl bg-white border border-[#e2e8f0] animate-pulse`}>
+            <div className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0" />
+            {!isCollapsed && (
+              <div className="flex flex-col gap-1.5 flex-1">
+                <div className="h-3 bg-slate-100 rounded w-20" />
+                <div className="h-2.5 bg-slate-100 rounded w-12" />
+              </div>
+            )}
           </div>
         ) : (
-          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white border border-[#e2e8f0] hover:bg-slate-50 transition-colors cursor-pointer group">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[#0f766e] flex items-center justify-center text-xs font-bold text-white uppercase shadow-sm">
-                {userName ? userName.split(" ").map((n: string) => n[0]).join("").slice(0, 2) : "VS"}
+          <div 
+            title={`${userName} (${userRole})`}
+            onClick={() => router.push("/settings")}
+            className={`flex items-center ${isCollapsed ? "justify-center w-12 h-12 mx-auto" : "justify-between px-3 py-2.5"} rounded-xl bg-white border border-[#e2e8f0] hover:bg-slate-50 transition-all duration-200 cursor-pointer group`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-[#0f766e] flex items-center justify-center text-xs font-bold text-white uppercase shadow-sm flex-shrink-0">
+                {userName ? userName.split(" ").map((n) => n[0]).join("").slice(0, 2) : "VS"}
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-[#0f172a] truncate max-w-[110px]">{userName}</span>
-                <span className="text-[10px] text-[#64748b] capitalize">{userRole}</span>
-              </div>
+              {!isCollapsed && (
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-[#0f172a] truncate max-w-[110px]">{userName}</span>
+                  <span className="text-[10px] text-[#64748b] capitalize">{userRole}</span>
+                </div>
+              )}
             </div>
-            <ChevronDown className="w-4 h-4 text-[#64748b] group-hover:text-[#0f172a] transition-colors" />
+            {!isCollapsed && <ChevronDown className="w-4 h-4 text-[#64748b] group-hover:text-[#0f172a] transition-colors flex-shrink-0" />}
           </div>
         )}
 
@@ -113,18 +199,23 @@ export default function Sidebar({ userName, userRole, loading, onLogout }: Sideb
         <div className="flex flex-col gap-1">
           <button 
             onClick={() => router.push("/help")}
-            className="flex items-center gap-3 px-4 py-2 rounded-xl text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50 text-sm font-medium transition-colors w-full text-left"
+            title="Help & Support"
+            className={`flex items-center ${isCollapsed ? "justify-center w-12 h-11 mx-auto" : "gap-3 px-4 py-2"} rounded-xl text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50 text-sm font-medium transition-all duration-200 w-full text-left`}
           >
-            <HelpCircle className="w-4 h-4" /> Help & Support
+            <HelpCircle className="w-5 h-5 flex-shrink-0" /> 
+            {!isCollapsed && <span className="truncate">Help & Support</span>}
           </button>
           <button 
             onClick={onLogout}
-            className="flex items-center gap-3 px-4 py-2 rounded-xl text-[#64748b] hover:text-red-600 hover:bg-red-50/50 text-sm font-medium transition-colors w-full text-left"
+            title="Sign Out"
+            className={`flex items-center ${isCollapsed ? "justify-center w-12 h-11 mx-auto" : "gap-3 px-4 py-2"} rounded-xl text-[#64748b] hover:text-red-600 hover:bg-red-50/50 text-sm font-medium transition-all duration-200 w-full text-left`}
           >
-            <LogOut className="w-4 h-4" /> Sign Out
+            <LogOut className="w-5 h-5 flex-shrink-0" /> 
+            {!isCollapsed && <span className="truncate">Sign Out</span>}
           </button>
         </div>
       </div>
     </aside>
   );
 }
+
