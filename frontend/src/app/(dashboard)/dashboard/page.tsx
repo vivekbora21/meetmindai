@@ -158,6 +158,8 @@ export default function Dashboard() {
     return matchesSearch && !isTerminal;
   });
 
+  const displayedMeetings = filteredMeetings.slice(0, 5);
+
   const getMeetingSummaryText = (m: any) => {
     const actionsCount = m.action_items?.length || 0;
     const decisionsCount = m.decisions?.length || 0;
@@ -328,7 +330,7 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-            {filteredMeetings.map((meeting, index) => {
+            {displayedMeetings.map((meeting, index) => {
               const statusNorm = (meeting.status || "").toUpperCase();
               const isCompleted = statusNorm === "COMPLETED";
               const isFailed = statusNorm === "FAILED" || statusNorm === "ERROR";
@@ -341,7 +343,7 @@ export default function Dashboard() {
                     router.push(`/meetings/${meeting.id}`);
                   }}
                   className={`p-5 flex justify-between items-center gap-4 cursor-pointer hover:bg-slate-50/50 transition-all ${
-                    index < filteredMeetings.length - 1 ? "border-b border-slate-100" : ""
+                    index < displayedMeetings.length - 1 ? "border-b border-slate-100" : ""
                   }`}
                 >
                   <div className="flex items-center gap-4 min-w-0">
@@ -424,15 +426,17 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* View All Meetings Centered */}
-          <div className="flex justify-center mt-2">
-            <button 
-              onClick={() => router.push("/meetings")}
-              className="flex items-center gap-1 text-[#0f766e] hover:text-[#0d9488] text-xs font-bold transition-all"
-            >
-              View all meetings <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
-            </button>
-          </div>
+          {/* View More Meetings Centered */}
+          {filteredMeetings.length > 5 && (
+            <div className="flex justify-center mt-2">
+              <button 
+                onClick={() => router.push("/meetings")}
+                className="flex items-center gap-1 text-[#0f766e] hover:text-[#0d9488] text-xs font-bold transition-all"
+              >
+                View more <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Right column: Ingest Meeting & AI Suggestions */}

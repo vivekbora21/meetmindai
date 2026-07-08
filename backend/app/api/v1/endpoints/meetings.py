@@ -1,20 +1,22 @@
 import uuid
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 
+logger = logging.getLogger(__name__)
 from app.database.connection import get_db
 from app.models.models import (
     Meeting,
     User,
-    TranscriptSegment,
+    Transcript,
     ActionItem,
     Decision,
     Risk,
     Question,
-    Speaker,
+    MeetingSpeaker,
     ScheduledMeeting,
     AgentLiveSession,
 )
@@ -32,17 +34,28 @@ class MeetingCreate(BaseModel):
 
 
 class SpeakerOut(BaseModel):
+    id: str
+    speaker_number: int
     speaker_tag: str
     display_name: str
+    is_confirmed: bool
+    confidence: Optional[float] = None
+    contribution_percentage: Optional[float] = None
+    has_conflict: Optional[bool] = False
+    conflict_details: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 
 class TranscriptSegmentOut(BaseModel):
+    id: str
+    speaker_id: Optional[str] = None
+    speaker_tag: str
+    start_time: float
+    end_time: float
     start_ms: int
     end_ms: int
-    speaker_tag: str
     text: str
 
     class Config:
@@ -96,6 +109,8 @@ class MeetingListOut(BaseModel):
     status: str
     ai_status: str
     embedding_status: str
+    speaker_status: Optional[str] = None
+    kg_status: Optional[str] = None
     platform: str
     duration_seconds: int
     meeting_date: datetime
@@ -116,6 +131,8 @@ class MeetingDetailOut(BaseModel):
     status: str
     ai_status: str
     embedding_status: str
+    speaker_status: Optional[str] = None
+    kg_status: Optional[str] = None
     platform: str
     recording_url: Optional[str]
     meeting_url: Optional[str]
@@ -136,6 +153,10 @@ class MeetingDetailOut(BaseModel):
     questions: List[QuestionOut]
     agenda_items: Optional[List[dict]] = None
     technical_context: Optional[dict] = None
+    language: Optional[str] = None
+    key_themes: Optional[List[str]] = None
+    main_takeaways: Optional[List[str]] = None
+    important_quotes: Optional[List[dict]] = None
 
     class Config:
         from_attributes = True
@@ -145,6 +166,49 @@ class MeetingDetailOut(BaseModel):
 def get_meetings(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
+    # Automatically clean up stuck meetings (older than 15 minutes in non-terminal states)
+    try:
+        stale_threshold = datetime.utcnow() - timedelta(minutes=15)
+        stuck_meetings = (
+            db.query(Meeting)
+            .filter(
+                Meeting.organization_id == current_user.organization_id,
+                Meeting.status.in_(
+                    [
+                        "UPLOADED",
+                        "PROCESSING",
+                        "TRANSCRIBED",
+                        "ANALYZING",
+                        "Uploaded",
+                        "Processing",
+                        "Transcribed",
+                        "Analyzing",
+                        "uploaded",
+                        "processing",
+                        "transcribed",
+                        "analyzing",
+                    ]
+                ),
+                Meeting.created_at < stale_threshold,
+            )
+            .all()
+        )
+        if stuck_meetings:
+            for m in stuck_meetings:
+                m.status = "FAILED"
+                if m.ai_status in ["RUNNING", "PENDING"]:
+                    m.ai_status = "FAILED"
+                if m.embedding_status in ["RUNNING", "PENDING"]:
+                    m.embedding_status = "FAILED"
+                if m.speaker_status in ["RUNNING", "PENDING"]:
+                    m.speaker_status = "FAILED"
+                if m.kg_status in ["RUNNING", "PENDING"]:
+                    m.kg_status = "FAILED"
+            db.commit()
+    except Exception as e:
+        logger.error(f"Error cleaning up stuck meetings: {e}")
+        db.rollback()
+
     meetings = (
         db.query(Meeting)
         .filter(Meeting.organization_id == current_user.organization_id)
@@ -172,6 +236,43 @@ def get_meeting(
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
+    # Automatically clean up if stuck
+    try:
+        stale_threshold = datetime.utcnow() - timedelta(minutes=15)
+        if (
+            meeting.status
+            in [
+                "UPLOADED",
+                "PROCESSING",
+                "TRANSCRIBED",
+                "ANALYZING",
+                "Uploaded",
+                "Processing",
+                "Transcribed",
+                "Analyzing",
+                "uploaded",
+                "processing",
+                "transcribed",
+                "analyzing",
+            ]
+            and meeting.created_at < stale_threshold
+        ):
+            meeting.status = "FAILED"
+            if meeting.ai_status in ["RUNNING", "PENDING"]:
+                meeting.ai_status = "FAILED"
+            if meeting.embedding_status in ["RUNNING", "PENDING"]:
+                meeting.embedding_status = "FAILED"
+            if meeting.speaker_status in ["RUNNING", "PENDING"]:
+                meeting.speaker_status = "FAILED"
+            if meeting.kg_status in ["RUNNING", "PENDING"]:
+                meeting.kg_status = "FAILED"
+            db.commit()
+            db.refresh(meeting)
+    except Exception as e:
+        logger.error(f"Error cleaning up single stuck meeting: {e}")
+        db.rollback()
+
+    logger.info(f"Frontend response sent | Meeting ID: {meeting_id}")
     return meeting
 
 
@@ -217,11 +318,10 @@ def upload_meeting(
         raise HTTPException(
             status_code=500, detail=f"Failed to save uploaded file: {save_err}"
         )
-
     try:
-        from app.tasks.meeting_tasks import process_meeting_audio
+        from app.services.pipeline.pipeline_manager import PipelineManager
 
-        process_meeting_audio.delay(meeting.id, saved_file_path)
+        PipelineManager.trigger_pipeline(db, meeting.id, saved_file_path)
     except Exception as e:
         print(f"Failed to queue Celery processing: {e}")
 
@@ -330,11 +430,10 @@ def upload_meeting_media(
         raise HTTPException(
             status_code=500, detail=f"Failed to save uploaded file: {save_err}"
         )
-
     try:
-        from app.tasks.meeting_tasks import process_meeting_audio
+        from app.services.pipeline.pipeline_manager import PipelineManager
 
-        process_meeting_audio.delay(meeting.id, saved_file_path)
+        PipelineManager.trigger_pipeline(db, meeting.id, saved_file_path)
     except Exception as e:
         print(f"Failed to queue Celery processing: {e}")
 
@@ -368,12 +467,86 @@ def transcribe_meeting(
     meeting.status = "PROCESSING"
     db.commit()
     MeetingContextCache.invalidate(meeting_id)
-
     try:
-        from app.tasks.meeting_tasks import process_meeting_audio
+        from app.services.pipeline.pipeline_manager import PipelineManager
 
-        process_meeting_audio.delay(meeting.id, saved_file_path)
+        PipelineManager.trigger_pipeline(db, meeting.id, saved_file_path)
     except Exception as e:
         print(f"Failed to queue Celery processing: {e}")
 
+    return meeting
+
+
+class RenameSpeakerRequest(BaseModel):
+    display_name: str
+
+
+@router.put("/{meeting_id}/speakers/{speaker_id}", response_model=MeetingDetailOut)
+def rename_speaker(
+    meeting_id: str,
+    speaker_id: str,
+    request: RenameSpeakerRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    meeting = (
+        db.query(Meeting)
+        .filter(
+            Meeting.id == meeting_id,
+            Meeting.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    speaker = (
+        db.query(MeetingSpeaker)
+        .filter(
+            MeetingSpeaker.id == speaker_id,
+            MeetingSpeaker.meeting_id == meeting_id,
+        )
+        .first()
+    )
+    if not speaker:
+        raise HTTPException(status_code=404, detail="Speaker not found")
+
+    # Rename
+    speaker.display_name = request.display_name
+    speaker.is_confirmed = True
+
+    db.commit()
+    db.refresh(meeting)
+
+    # Invalidate RAG and detail cache
+    MeetingContextCache.invalidate(meeting_id)
+
+    return meeting
+
+
+@router.post("/{meeting_id}/retry", response_model=MeetingDetailOut)
+def retry_meeting_stage(
+    meeting_id: str,
+    stage: str,  # "transcription", "diarization", "embedding", "analysis", "knowledge_graph"
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    meeting = (
+        db.query(Meeting)
+        .filter(
+            Meeting.id == meeting_id,
+            Meeting.organization_id == current_user.organization_id,
+        )
+        .first()
+    )
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    from app.services.pipeline.pipeline_manager import PipelineManager
+
+    success = PipelineManager.retry_stage(db, meeting_id, stage)
+    if not success:
+        raise HTTPException(status_code=400, detail=f"Failed to retry stage: {stage}")
+
+    db.refresh(meeting)
     return meeting

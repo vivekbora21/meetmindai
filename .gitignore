@@ -10,3 +10,9 @@ frontend/node_modules/
 .venv/
 **/.venv/
 
+# Uploaded files
+backend/app/uploads/
+
+# Optional
+*.mp3
+*.wav

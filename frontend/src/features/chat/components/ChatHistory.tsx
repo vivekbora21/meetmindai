@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, Lock } from "lucide-react";
+import { Plus, MessageSquare, Lock } from "lucide-react";
 import { ChatSession } from "../types/chat";
 
 interface ChatHistoryProps {
@@ -16,18 +16,88 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
   onNewChat
 }) => {
   return (
-    <div className="w-36 flex-shrink-0 flex flex-col gap-2 border-r border-slate-200 pr-2.5">
+    <div
+      style={{
+        width: "220px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
+        height: "100%",
+        userSelect: "none",
+      }}
+    >
+      {/* New Chat Button */}
       <button
         onClick={onNewChat}
-        className="w-full py-1.5 px-2 rounded-xl bg-[#0f766e] hover:bg-[#0d9488] text-white text-[10px] font-bold transition-all flex items-center justify-center gap-1 shadow-sm shadow-[#0f766e]/10 hover:shadow-md"
+        style={{
+          width: "100%",
+          padding: "10px 14px",
+          borderRadius: "12px",
+          background: "linear-gradient(135deg, #0f766e 0%, #0d9488 100%)",
+          color: "#ffffff",
+          fontSize: "12px",
+          fontWeight: 650,
+          border: "none",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          boxShadow: "0 2px 8px rgba(15, 118, 110, 0.2)",
+          transition: "all 0.2s ease",
+          fontFamily: "'Inter', sans-serif",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "translateY(-1px)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 118, 110, 0.3)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "none";
+          e.currentTarget.style.boxShadow = "0 2px 8px rgba(15, 118, 110, 0.2)";
+        }}
       >
-        <Plus className="w-3 h-3" /> New Chat
+        <Plus size={14} strokeWidth={2.5} />
+        New Chat
       </button>
 
-      <div className="flex-grow overflow-y-auto flex flex-col gap-1.5 select-none scrollbar">
-        <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-450 mt-1 pl-1">Recent Chats</span>
+      {/* Sessions List */}
+      <div
+        className="scrollbar"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px",
+          flex: 1,
+          overflowY: "auto",
+          paddingRight: "4px",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "10px",
+            fontWeight: 700,
+            color: "#94a3b8",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            paddingLeft: "8px",
+            marginBottom: "4px",
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          Recent Chats
+        </span>
         {sessions.length === 0 ? (
-          <span className="text-[10px] text-slate-450 italic pl-1">No chats yet</span>
+          <span
+            style={{
+              fontSize: "11px",
+              color: "#94a3b8",
+              fontStyle: "italic",
+              paddingLeft: "8px",
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            No chats yet
+          </span>
         ) : (
           sessions.map((sess) => {
             const isActive = sess.id === activeSessionId;
@@ -35,14 +105,64 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
               <button
                 key={sess.id}
                 onClick={() => onSelectSession(sess.id, sess)}
-                className={`w-full text-left px-2 py-1.5 rounded-lg text-[10px] font-semibold transition-all truncate flex items-center justify-between gap-1 group ${
-                  isActive
-                    ? "bg-[#e6f4f1] text-[#0f766e] border border-teal-100 font-bold"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-[#0f172a]"
-                }`}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "9px 12px",
+                  borderRadius: "10px",
+                  fontSize: "12px",
+                  fontWeight: isActive ? 600 : 500,
+                  background: isActive ? "#f0fdfa" : "transparent",
+                  color: isActive ? "#0f766e" : "#475569",
+                  border: isActive ? "1px solid #ccfbf1" : "1px solid transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "8px",
+                  transition: "all 0.15s ease",
+                  fontFamily: "'Inter', sans-serif",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = "#f8fafc";
+                    e.currentTarget.style.color = "#0f172a";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "#475569";
+                  }
+                }}
               >
-                <span className="truncate flex-1">{sess.title}</span>
-                {sess.is_archived && <Lock className="w-2.5 h-2.5 text-slate-400 flex-shrink-0" />}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    overflow: "hidden",
+                    flex: 1,
+                  }}
+                >
+                  <MessageSquare
+                    size={13}
+                    style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6 }}
+                  />
+                  <span
+                    style={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      flex: 1,
+                    }}
+                  >
+                    {sess.title}
+                  </span>
+                </div>
+                {sess.is_archived && (
+                  <Lock size={11} style={{ flexShrink: 0, color: "#94a3b8" }} />
+                )}
               </button>
             );
           })

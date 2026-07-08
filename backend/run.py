@@ -146,6 +146,16 @@ def check_and_setup_db():
                     )
                     conn.execute(
                         text(
+                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS speaker_status VARCHAR(50) DEFAULT 'PENDING';"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS kg_status VARCHAR(50) DEFAULT 'PENDING';"
+                        )
+                    )
+                    conn.execute(
+                        text(
                             "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS agenda_items JSON NULL;"
                         )
                     )
@@ -154,18 +164,53 @@ def check_and_setup_db():
                             "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS technical_context JSON NULL;"
                         )
                     )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS language VARCHAR(50) NULL;"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS key_themes JSON NULL;"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS main_takeaways JSON NULL;"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE meetings ADD COLUMN IF NOT EXISTS important_quotes JSON NULL;"
+                        )
+                    )
                     conn.commit()
                     print("Creating new tables if any...")
                     Base.metadata.create_all(bind=engine)
-                    
+
                     conn.execute(
                         text(
                             "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS session_id VARCHAR(36) NULL REFERENCES chat_sessions(id) ON DELETE CASCADE;"
                         )
                     )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE meeting_speakers ADD COLUMN IF NOT EXISTS contribution_percentage FLOAT NULL;"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE meeting_speakers ADD COLUMN IF NOT EXISTS has_conflict BOOLEAN DEFAULT FALSE;"
+                        )
+                    )
+                    conn.execute(
+                        text(
+                            "ALTER TABLE meeting_speakers ADD COLUMN IF NOT EXISTS conflict_details VARCHAR(255) NULL;"
+                        )
+                    )
                     conn.commit()
                     print(
-                        "Checked and updated meetings and chat_messages table schema columns successfully."
+                        "Checked and updated meetings and chat_messages and meeting_speakers table schema columns successfully."
                     )
                 except Exception as alter_err:
                     print(

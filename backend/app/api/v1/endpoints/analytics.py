@@ -4,7 +4,15 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.database.connection import get_db
-from app.models.models import Meeting, ActionItem, Decision, Risk, User
+from app.models.models import (
+    Meeting,
+    ActionItem,
+    Decision,
+    Risk,
+    User,
+    MeetingSpeaker,
+    Transcript,
+)
 from app.api.v1.endpoints.auth import get_current_user
 
 router = APIRouter()
@@ -109,35 +117,35 @@ def get_speaker_analytics(
     if not meeting_ids:
         return []
 
-    segments = (
-        db.query(TranscriptSegment)
-        .filter(TranscriptSegment.meeting_id.in_(meeting_ids))
-        .all()
-    )
+    segments = db.query(Transcript).filter(Transcript.meeting_id.in_(meeting_ids)).all()
     if not segments:
         return []
 
     # Calculate spoken duration per speaker
     from collections import defaultdict
 
-    speaker_time_ms = defaultdict(int)
-    total_time_ms = 0
+    speaker_time_sec = defaultdict(float)
+    total_time_sec = 0.0
     for seg in segments:
-        duration = seg.end_ms - seg.start_ms
-        speaker_time_ms[seg.speaker_tag] += duration
-        total_time_ms += duration
+        duration = max(0.0, seg.end_time - seg.start_time)
+        speaker_time_sec[seg.speaker_id] += duration
+        total_time_sec += duration
 
     # Get speaker display names
-    speakers = db.query(Speaker).filter(Speaker.meeting_id.in_(meeting_ids)).all()
+    speakers = (
+        db.query(MeetingSpeaker)
+        .filter(MeetingSpeaker.meeting_id.in_(meeting_ids))
+        .all()
+    )
     speaker_names = {}
     for s in speakers:
-        speaker_names[s.speaker_tag] = s.display_name
+        speaker_names[s.id] = s.display_name
 
     results = []
-    for tag, ms in speaker_time_ms.items():
-        minutes = round(ms / 60000.0, 1)
-        pct = round((ms / total_time_ms) * 100.0, 1) if total_time_ms > 0 else 0.0
-        name = speaker_names.get(tag, tag)
+    for spk_id, secs in speaker_time_sec.items():
+        minutes = round(secs / 60.0, 1)
+        pct = round((secs / total_time_sec) * 100.0, 1) if total_time_sec > 0 else 0.0
+        name = speaker_names.get(spk_id, f"Speaker {spk_id}")
         results.append(SpeakerMetric(name=name, minutes_spoken=minutes, percentage=pct))
 
     results.sort(key=lambda x: x.minutes_spoken, reverse=True)
@@ -159,11 +167,7 @@ def get_topic_distribution(
     if not meeting_ids:
         return []
 
-    segments = (
-        db.query(TranscriptSegment)
-        .filter(TranscriptSegment.meeting_id.in_(meeting_ids))
-        .all()
-    )
+    segments = db.query(Transcript).filter(Transcript.meeting_id.in_(meeting_ids)).all()
 
     import spacy
     from collections import Counter

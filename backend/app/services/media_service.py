@@ -18,7 +18,6 @@ class MediaService:
         )
         return os.path.join(base_dir, "app", "uploads")
 
-
     def verify_recording_exists(self, db: Session, meeting_id: str) -> Optional[str]:
         """
         Verifies if a recording file exists for the meeting.

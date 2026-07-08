@@ -52,8 +52,74 @@ class User(Base):
 
     organization = relationship("Organization", back_populates="users")
     action_items = relationship("ActionItem", back_populates="assigned_user")
-    chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
-    chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
+    chat_messages = relationship(
+        "ChatMessage", back_populates="user", cascade="all, delete-orphan"
+    )
+    chat_sessions = relationship(
+        "ChatSession", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    # New Profile & Account Settings Relationships
+    profile = relationship(
+        "UserProfile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    integrations = relationship(
+        "UserIntegration", back_populates="user", cascade="all, delete-orphan"
+    )
+    ai_preference = relationship(
+        "AIPreference",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    meeting_preference = relationship(
+        "MeetingPreference",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    notification_setting = relationship(
+        "NotificationSetting",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    security_setting = relationship(
+        "UserSecuritySetting",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    sessions = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan"
+    )
+    api_keys = relationship(
+        "APIKey", back_populates="user", cascade="all, delete-orphan"
+    )
+    storage_usage = relationship(
+        "StorageUsage",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    personalization = relationship(
+        "PersonalizationSetting",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    privacy_setting = relationship(
+        "PrivacySetting",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    activity_logs = relationship(
+        "ActivityLog", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Meeting(Base):
@@ -79,6 +145,12 @@ class Meeting(Base):
     embedding_status = Column(
         String(50), default="PENDING", server_default="PENDING"
     )  # PENDING, RUNNING, SUCCESS, FAILED
+    speaker_status = Column(
+        String(50), default="PENDING", server_default="PENDING"
+    )  # PENDING, RUNNING, COMPLETED, FAILED, SKIPPED
+    kg_status = Column(
+        String(50), default="PENDING", server_default="PENDING"
+    )  # PENDING, RUNNING, COMPLETED, FAILED, SKIPPED
     platform = Column(String(50), default="Upload")  # Upload, Google Meet, Teams, Jira
     meeting_date = Column(DateTime, server_default=func.now())
     created_at = Column(DateTime, server_default=func.now())
@@ -90,13 +162,17 @@ class Meeting(Base):
     sentiment_summary = Column(Text, nullable=True)
     agenda_items = Column(JSON, nullable=True)
     technical_context = Column(JSON, nullable=True)
+    language = Column(String(50), nullable=True)
+    key_themes = Column(JSON, nullable=True)
+    main_takeaways = Column(JSON, nullable=True)
+    important_quotes = Column(JSON, nullable=True)
 
     organization = relationship("Organization", back_populates="meetings")
     transcripts = relationship(
-        "TranscriptSegment",
+        "Transcript",
         back_populates="meeting",
         cascade="all, delete-orphan",
-        order_by="TranscriptSegment.start_ms",
+        order_by="Transcript.start_time",
     )
     action_items = relationship(
         "ActionItem", back_populates="meeting", cascade="all, delete-orphan"
@@ -109,7 +185,7 @@ class Meeting(Base):
         "Question", back_populates="meeting", cascade="all, delete-orphan"
     )
     speakers = relationship(
-        "Speaker", back_populates="meeting", cascade="all, delete-orphan"
+        "MeetingSpeaker", back_populates="meeting", cascade="all, delete-orphan"
     )
     chat_messages = relationship(
         "ChatMessage", back_populates="meeting", cascade="all, delete-orphan"
@@ -119,39 +195,72 @@ class Meeting(Base):
     )
 
 
-class Speaker(Base):
-    __tablename__ = "speakers"
+class MeetingSpeaker(Base):
+    __tablename__ = "meeting_speakers"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     meeting_id = Column(
         String(36), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False
     )
-    speaker_tag = Column(String(50), nullable=False)  # e.g. "SPEAKER_00", "SPEAKER_01"
+    speaker_number = Column(Integer, nullable=False)  # 1, 2, 3...
     display_name = Column(String(255), nullable=False)
+    voice_embedding = Column(JSON, nullable=True)  # List of floats (192-dim)
+    confidence = Column(Float, nullable=True)
+    is_confirmed = Column(Boolean, default=False)
+    contribution_percentage = Column(Float, nullable=True)
+    has_conflict = Column(Boolean, default=False)
+    conflict_details = Column(String(255), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     meeting = relationship("Meeting", back_populates="speakers")
+    transcripts = relationship(
+        "Transcript", back_populates="speaker", cascade="all, delete-orphan"
+    )
+
+    @property
+    def speaker_tag(self) -> str:
+        return f"SPEAKER_{self.speaker_number:02d}"
 
     __table_args__ = (
-        Index("idx_meeting_speaker", "meeting_id", "speaker_tag", unique=True),
+        Index("idx_meeting_speaker_num", "meeting_id", "speaker_number", unique=True),
     )
 
 
-class TranscriptSegment(Base):
-    __tablename__ = "transcript_segments"
+class Transcript(Base):
+    __tablename__ = "transcripts"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     meeting_id = Column(
         String(36), ForeignKey("meetings.id", ondelete="CASCADE"), nullable=False
     )
-    start_ms = Column(Integer, nullable=False)
-    end_ms = Column(Integer, nullable=False)
-    speaker_tag = Column(String(50), nullable=False)
+    speaker_id = Column(
+        String(36),
+        ForeignKey("meeting_speakers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    start_time = Column(Float, nullable=False)  # in seconds
+    end_time = Column(Float, nullable=False)  # in seconds
     text = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
 
-    # 1536 dimension vector for OpenAI text-embedding-3-small or text-embedding-ada-002
+    # 1536 dimension vector for RAG
     embedding = Column(Vector(1536), nullable=True)
 
     meeting = relationship("Meeting", back_populates="transcripts")
+    speaker = relationship("MeetingSpeaker", back_populates="transcripts")
+
+    @property
+    def speaker_tag(self) -> str:
+        return self.speaker.speaker_tag if self.speaker else "UNKNOWN"
+
+    @property
+    def start_ms(self) -> int:
+        return int(self.start_time * 1000)
+
+    @property
+    def end_ms(self) -> int:
+        return int(self.end_time * 1000)
 
 
 class ActionItem(Base):
@@ -345,7 +454,10 @@ class ChatSession(Base):
     meeting = relationship("Meeting", back_populates="chat_sessions")
     user = relationship("User", back_populates="chat_sessions")
     messages = relationship(
-        "ChatMessage", back_populates="session", cascade="all, delete-orphan", order_by="ChatMessage.created_at"
+        "ChatMessage",
+        back_populates="session",
+        cascade="all, delete-orphan",
+        order_by="ChatMessage.created_at",
     )
 
 
@@ -369,3 +481,359 @@ class ChatMessage(Base):
     meeting = relationship("Meeting", back_populates="chat_messages")
     user = relationship("User", back_populates="chat_messages")
     session = relationship("ChatSession", back_populates="messages")
+
+
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    profile_picture = Column(String(255), nullable=True)
+    username = Column(String(255), unique=True, index=True, nullable=True)
+    phone_number = Column(String(50), nullable=True)
+    job_title = Column(String(255), nullable=True)
+    company_name = Column(String(255), nullable=True)
+    department = Column(String(255), nullable=True)
+    country = Column(String(100), nullable=True)
+    time_zone = Column(String(100), default="UTC")
+    preferred_language = Column(String(50), default="en")
+    last_login = Column(DateTime, nullable=True)
+    account_status = Column(String(50), default="Active")
+    subscription_plan = Column(String(50), default="Free")
+    email_verified = Column(Boolean, default=False)
+
+    user = relationship("User", back_populates="profile")
+
+
+class UserIntegration(Base):
+    __tablename__ = "user_integrations"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    provider = Column(
+        String(50), nullable=False
+    )  # msteams, zoom, googlemeet, googlecalendar, outlook, applecalendar, webex, slack, discord
+    provider_user_id = Column(String(255), nullable=True)
+    email = Column(String(255), nullable=True)
+    access_token = Column(Text, nullable=True)
+    refresh_token = Column(Text, nullable=True)
+    token_expiry = Column(DateTime, nullable=True)
+    connection_status = Column(
+        String(50), default="Connected"
+    )  # Connected, Disconnected, Expired
+    last_sync = Column(DateTime, nullable=True)
+    sync_errors = Column(Text, nullable=True)
+
+    auto_sync = Column(Boolean, default=True)
+    recording_import = Column(Boolean, default=True)
+    calendar_sync = Column(Boolean, default=True)
+
+    user = relationship("User", back_populates="integrations")
+
+
+class AIPreference(Base):
+    __tablename__ = "ai_preferences"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    preferred_provider = Column(
+        String(50), default="Gemini"
+    )  # OpenAI, Gemini, Groq, Claude
+    fallback_provider = Column(String(50), default="OpenAI")
+    preferred_model = Column(String(100), default="gemini-1.5-flash")
+    temperature = Column(Float, default=0.7)
+    summary_length = Column(String(50), default="Medium")  # Short, Medium, Detailed
+    response_style = Column(
+        String(50), default="Professional"
+    )  # Executive, Professional, Technical, Developer, Simple
+
+    enable_chat_memory = Column(Boolean, default=True)
+    enable_semantic_search = Column(Boolean, default=True)
+    enable_context_retrieval = Column(Boolean, default=True)
+    enable_kg_generation = Column(Boolean, default=True)
+    enable_speaker_intelligence = Column(Boolean, default=True)
+    enable_automatic_insights = Column(Boolean, default=True)
+
+    user = relationship("User", back_populates="ai_preference")
+
+
+class MeetingPreference(Base):
+    __tablename__ = "meeting_preferences"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+
+    default_language = Column(String(50), default="en")
+    enable_speaker_id = Column(Boolean, default=True)
+    enable_translation = Column(Boolean, default=False)
+    enable_subtitles = Column(Boolean, default=False)
+    transcript_format = Column(String(50), default="TXT")  # TXT, VTT, SRT
+    default_category = Column(String(100), default="General")
+    recording_retention_days = Column(Integer, default=30)
+    auto_delete_recordings = Column(Boolean, default=False)
+    meeting_privacy = Column(String(50), default="Private")
+    default_share_settings = Column(JSON, nullable=True)
+
+    auto_import_meetings = Column(Boolean, default=True)
+    auto_import_recordings = Column(Boolean, default=True)
+    auto_generate_transcript = Column(Boolean, default=True)
+    auto_generate_summary = Column(Boolean, default=True)
+    auto_create_action_items = Column(Boolean, default=True)
+    auto_create_risks = Column(Boolean, default=True)
+    auto_create_kg = Column(Boolean, default=True)
+    auto_create_tech_analysis = Column(Boolean, default=True)
+    auto_create_decisions = Column(Boolean, default=True)
+
+    calendar_sync_frequency = Column(String(50), default="Every 15 Minutes")
+    recording_preference = Column(String(50), default="Ask Before Import")
+
+    user = relationship("User", back_populates="meeting_preference")
+
+
+class NotificationSetting(Base):
+    __tablename__ = "notification_settings"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+
+    meeting_uploaded = Column(
+        JSON,
+        default=lambda: {
+            "email": True,
+            "browser": True,
+            "push": False,
+            "slack": False,
+            "teams": False,
+        },
+    )
+    transcript_ready = Column(
+        JSON,
+        default=lambda: {
+            "email": False,
+            "browser": True,
+            "push": False,
+            "slack": False,
+            "teams": False,
+        },
+    )
+    ai_summary_ready = Column(
+        JSON,
+        default=lambda: {
+            "email": True,
+            "browser": True,
+            "push": True,
+            "slack": False,
+            "teams": False,
+        },
+    )
+    kg_ready = Column(
+        JSON,
+        default=lambda: {
+            "email": False,
+            "browser": True,
+            "push": False,
+            "slack": False,
+            "teams": False,
+        },
+    )
+    action_items_ready = Column(
+        JSON,
+        default=lambda: {
+            "email": True,
+            "browser": True,
+            "push": True,
+            "slack": False,
+            "teams": False,
+        },
+    )
+    failed_processing = Column(
+        JSON,
+        default=lambda: {
+            "email": True,
+            "browser": True,
+            "push": False,
+            "slack": False,
+            "teams": False,
+        },
+    )
+    calendar_sync = Column(
+        JSON,
+        default=lambda: {
+            "email": False,
+            "browser": False,
+            "push": False,
+            "slack": False,
+            "teams": False,
+        },
+    )
+    oauth_expired = Column(
+        JSON,
+        default=lambda: {
+            "email": True,
+            "browser": True,
+            "push": False,
+            "slack": False,
+            "teams": False,
+        },
+    )
+    weekly_reports = Column(
+        JSON,
+        default=lambda: {
+            "email": True,
+            "browser": False,
+            "push": False,
+            "slack": False,
+            "teams": False,
+        },
+    )
+
+    user = relationship("User", back_populates="notification_setting")
+
+
+class UserSecuritySetting(Base):
+    __tablename__ = "user_security_settings"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    two_factor_enabled = Column(Boolean, default=False)
+    two_factor_secret = Column(String(255), nullable=True)
+    backup_codes = Column(JSON, nullable=True)
+    security_notifications = Column(Boolean, default=True)
+
+    user = relationship("User", back_populates="security_setting")
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    session_token = Column(String(255), unique=True, index=True, nullable=False)
+    device = Column(String(255), nullable=True)
+    ip_address = Column(String(100), nullable=True)
+    location = Column(String(255), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+    user = relationship("User", back_populates="sessions")
+
+
+class APIKey(Base):
+    __tablename__ = "api_keys"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    name = Column(String(100), nullable=False)
+    key_hash = Column(String(255), unique=True, index=True, nullable=False)
+    key_prefix = Column(String(8), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    expires_at = Column(DateTime, nullable=True)
+    last_used_at = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=True)
+
+    user = relationship("User", back_populates="api_keys")
+
+
+class StorageUsage(Base):
+    __tablename__ = "storage_usage"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    recordings_bytes = Column(Float, default=0.0)
+    transcripts_bytes = Column(Float, default=0.0)
+    kg_bytes = Column(Float, default=0.0)
+    embeddings_bytes = Column(Float, default=0.0)
+    reports_bytes = Column(Float, default=0.0)
+    chat_bytes = Column(Float, default=0.0)
+    total_limit_bytes = Column(Float, default=10.0 * 1024 * 1024 * 1024)  # 10 GB
+
+    user = relationship("User", back_populates="storage_usage")
+
+
+class PersonalizationSetting(Base):
+    __tablename__ = "personalization_settings"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    theme = Column(String(50), default="System Theme")
+    accent_color = Column(String(50), default="Teal")
+    compact_mode = Column(Boolean, default=False)
+    date_format = Column(String(50), default="YYYY-MM-DD")
+    time_format = Column(String(50), default="12h")
+    default_landing_page = Column(String(100), default="Dashboard")
+    sidebar_expanded = Column(Boolean, default=True)
+
+    user = relationship("User", back_populates="personalization")
+
+
+class PrivacySetting(Base):
+    __tablename__ = "privacy_settings"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    data_retention_days = Column(Integer, default=365)
+    ai_training_opt_out = Column(Boolean, default=True)
+
+    user = relationship("User", back_populates="privacy_setting")
+
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    action = Column(String(255), nullable=False)
+    details = Column(Text, nullable=True)
+    ip_address = Column(String(100), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("User", back_populates="activity_logs")

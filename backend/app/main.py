@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     analytics,
     agent_events,
     teams_bot,
+    profile,
 )
 
 app = FastAPI(
@@ -53,6 +54,7 @@ def healthcheck():
 
 # Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(profile.router, prefix="/api/v1/profile", tags=["profile"])
 app.include_router(meetings.router, prefix="/api/v1/meetings", tags=["meetings"])
 app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
 app.include_router(knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"])

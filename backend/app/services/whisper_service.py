@@ -23,7 +23,9 @@ class WhisperService:
             )
         return self._model
 
-    def transcribe(self, audio_path: str) -> List[Dict[str, Any]]:
+    def transcribe(
+        self, audio_path: str, forced_language: str = None
+    ) -> List[Dict[str, Any]]:
         """
         Transcribes the audio file using faster-whisper with Silero VAD filter.
         Returns a list of segment dictionaries with start_ms, end_ms, speaker_tag, and text.
@@ -35,9 +37,15 @@ class WhisperService:
             )
 
         try:
+            lang_param = (
+                forced_language
+                if forced_language and forced_language.lower() != "auto"
+                else None
+            )
             # Transcribe with VAD filter active
             segments, info = self.model.transcribe(
                 audio_path,
+                language=lang_param,
                 vad_filter=True,
                 vad_parameters=dict(min_speech_duration_ms=250),
             )
@@ -63,8 +71,10 @@ class WhisperService:
                 # Switch speaker on significant pause, but not too frequently
                 gap = segment.start - last_end if last_end > 0 else 0
                 time_since_last_switch = segment.start - last_switch_end
-                if (gap > min_gap_for_switch and
-                        time_since_last_switch > min_gap_between_switches):
+                if (
+                    gap > min_gap_for_switch
+                    and time_since_last_switch > min_gap_between_switches
+                ):
                     current_speaker_idx = (current_speaker_idx + 1) % len(speaker_slots)
                     last_switch_end = segment.start
 
@@ -91,3 +101,62 @@ class WhisperService:
         except Exception as e:
             print(f"[Whisper] Transcription failed: {e}")
             raise e
+
+    def transcribe_stream(
+        self, audio_path: str, forced_language: str = None, info_container: dict = None
+    ):
+        """
+        Transcribes the audio file and yields each segment as it is produced.
+        Optionally populates info_container with transcription metadata.
+        """
+        print(f"[Whisper] Transcribing incrementally {audio_path}...")
+        if not os.path.exists(audio_path):
+            raise FileNotFoundError(
+                f"Audio file not found for transcription: {audio_path}"
+            )
+
+        lang_param = (
+            forced_language
+            if forced_language and forced_language.lower() != "auto"
+            else None
+        )
+        segments, info = self.model.transcribe(
+            audio_path,
+            language=lang_param,
+            vad_filter=True,
+            vad_parameters=dict(min_speech_duration_ms=250),
+        )
+
+        if info_container is not None:
+            info_container["language"] = info.language
+            info_container["language_probability"] = info.language_probability
+            info_container["duration"] = info.duration
+
+        speaker_slots = ["SPEAKER_00", "SPEAKER_01", "SPEAKER_02", "SPEAKER_03"]
+        current_speaker_idx = 0
+        last_end = 0.0
+        min_gap_for_switch = 0.8
+        last_switch_end = 0.0
+        min_gap_between_switches = 3.0
+
+        for segment in segments:
+            start_ms = int(segment.start * 1000)
+            end_ms = int(segment.end * 1000)
+
+            gap = segment.start - last_end if last_end > 0 else 0
+            time_since_last_switch = segment.start - last_switch_end
+            if (
+                gap > min_gap_for_switch
+                and time_since_last_switch > min_gap_between_switches
+            ):
+                current_speaker_idx = (current_speaker_idx + 1) % len(speaker_slots)
+                last_switch_end = segment.start
+
+            seg_dict = {
+                "start_ms": start_ms,
+                "end_ms": end_ms,
+                "speaker_tag": speaker_slots[current_speaker_idx],
+                "text": segment.text.strip(),
+            }
+            last_end = segment.end
+            yield seg_dict

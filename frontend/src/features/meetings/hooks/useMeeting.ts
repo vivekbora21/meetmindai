@@ -4,7 +4,7 @@ import { MeetingDetail } from "../types/meeting";
 
 export function useMeeting(meetingId: string) {
   const [meetingDetail, setMeetingDetail] = useState<MeetingDetail | null>(null);
-  const [activeTab, setActiveTab] = useState<"summary" | "timeline" | "actions" | "decisions" | "risks" | "technical">("summary");
+  const [activeTab, setActiveTab] = useState<"summary" | "timeline" | "actions" | "decisions" | "risks" | "technical" | "participants" | "decisions_risks">("summary");
   
   // Jira sync simulation state
   const [jiraSyncing, setJiraSyncing] = useState<Record<string, boolean>>({});
@@ -14,6 +14,7 @@ export function useMeeting(meetingId: string) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [runningAiAnalysis, setRunningAiAnalysis] = useState(false);
 
   // Audio playing state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -100,6 +101,21 @@ export function useMeeting(meetingId: string) {
     }, 1200);
   };
 
+  const handleRunAiAnalysis = async () => {
+    setRunningAiAnalysis(true);
+    try {
+      await meetingService.triggerAiAnalysis(meetingId);
+      // Start polling by briefly flipping status so polling effect re-runs
+      setMeetingDetail(prev => prev ? { ...prev, ai_status: "RUNNING" } : prev);
+      await fetchMeetingDetailSilent();
+    } catch (e) {
+      console.error("AI analysis trigger error", e);
+      alert("Error triggering AI analysis. Please try again.");
+    } finally {
+      setRunningAiAnalysis(false);
+    }
+  };
+
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -142,15 +158,18 @@ export function useMeeting(meetingId: string) {
     setSelectedFile,
     uploadingFile,
     transcribing,
+    runningAiAnalysis,
     isPlaying,
     currentTime,
     activeDuration,
     audioRef,
     jiraSyncing,
     jiraStatus,
+    setMeetingDetail,
     fetchMeetingDetail,
     handleMediaUpload,
     handleTranscribe,
+    handleRunAiAnalysis,
     handleJiraSync,
     togglePlay,
     handleTimeUpdate,

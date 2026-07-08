@@ -2,7 +2,7 @@ import requests
 import logging
 from typing import List
 from sqlalchemy.orm import Session
-from app.models.models import TranscriptSegment, Meeting
+from app.models.models import Transcript, Meeting
 from app.config.settings import get_env
 
 logger = logging.getLogger(__name__)
@@ -89,9 +89,7 @@ class EmbeddingService:
         """
         try:
             segments = (
-                db.query(TranscriptSegment)
-                .filter(TranscriptSegment.meeting_id == meeting_id)
-                .all()
+                db.query(Transcript).filter(Transcript.meeting_id == meeting_id).all()
             )
             logger.info(
                 f"EmbeddingService | Meeting ID: {meeting_id} | Seeding embeddings for {len(segments)} segments..."

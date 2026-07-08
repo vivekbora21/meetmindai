@@ -4,9 +4,7 @@ import { ChatMessage, ChatSession } from "../types/chat";
 
 export function useChat(meetingId: string) {
   const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: "assistant", text: "Hi! I am the meeting intelligence assistant. Ask me anything about this discussion." }
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatStatus, setChatStatus] = useState<"idle" | "thinking" | "searching" | "generating">("idle");
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -23,9 +21,7 @@ export function useChat(meetingId: string) {
       if (data.messages && data.messages.length > 0) {
         setChatMessages(data.messages.map((m: any) => ({ role: m.role, text: m.text })));
       } else {
-        setChatMessages([
-          { role: "assistant", text: "Hi! I am the meeting intelligence assistant. Ask me anything about this discussion." }
-        ]);
+        setChatMessages([]);
       }
     } catch (e) {
       console.error("Failed to fetch session messages", e);
@@ -59,9 +55,7 @@ export function useChat(meetingId: string) {
         setSessions([newData]);
         setActiveSessionId(newData.id);
         setActiveSession(newData);
-        setChatMessages([
-          { role: "assistant", text: "Hi! I am the meeting intelligence assistant. Ask me anything about this discussion." }
-        ]);
+        setChatMessages([]);
       }
     } catch (e) {
       console.error("Initialization of sessions failed:", e);
@@ -80,9 +74,7 @@ export function useChat(meetingId: string) {
       setSessions(prev => [data, ...prev]);
       setActiveSessionId(data.id);
       setActiveSession(data);
-      setChatMessages([
-        { role: "assistant", text: "Hi! I am the meeting intelligence assistant. Ask me anything about this discussion." }
-      ]);
+      setChatMessages([]);
     } catch (e) {
       console.error("Failed to create new chat session", e);
     }
@@ -94,9 +86,7 @@ export function useChat(meetingId: string) {
     try {
       const ok = await chatService.clearSessionMessages(activeSessionId);
       if (ok) {
-        setChatMessages([
-          { role: "assistant", text: "Hi! I am the meeting intelligence assistant. Ask me anything about this discussion." }
-        ]);
+        setChatMessages([]);
       }
     } catch (e) {
       console.error("Failed to clear chat messages", e);

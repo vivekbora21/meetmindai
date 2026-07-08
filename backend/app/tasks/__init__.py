@@ -1,7 +1,10 @@
 from app.tasks.meeting_tasks import (
-    process_meeting_audio,
-    analyze_transcript_ai,
+    transcribe_audio,
+    speaker_diarization,
     generate_embeddings,
-    update_knowledge_graph,
+    generate_statistics,
+    generate_cache,
+    generate_ai_analysis,
+    generate_knowledge_graph,
     join_scheduled_meeting,
 )

@@ -48,7 +48,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
   }, [chatMessages, chatLoading]);
 
   const statusNorm = (status || "").toUpperCase();
-  const isCompleted = statusNorm === "COMPLETED";
+  const isReadyForChat = statusNorm === "COMPLETED" || statusNorm === "TRANSCRIBED" || statusNorm === "ANALYZING";
   const isFailed = statusNorm === "FAILED" || statusNorm === "ERROR";
 
   const placeholderStyles: React.CSSProperties = {
@@ -87,7 +87,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
     );
   }
 
-  if (!isCompleted) {
+  if (!isReadyForChat) {
     return (
       <section className="lg:col-span-5" style={placeholderStyles}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: "16px", textAlign: "center" }}>
@@ -153,7 +153,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
         {/* Body: sidebar + messages */}
         <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
           {/* Sidebar */}
-          <div style={{ padding: "12px 0 12px 12px", flexShrink: 0, borderRight: "1px solid #f1f5f9" }}>
+          <div
+            style={{
+              width: "244px",
+              minWidth: "244px",
+              padding: "16px 12px 16px 16px",
+              flexShrink: 0,
+              borderRight: "1px solid #e2e8f0",
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+            }}
+          >
             <ChatHistory
               sessions={sessions}
               activeSessionId={activeSessionId}
@@ -173,10 +185,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
               style={{
                 flex: 1,
                 overflowY: "auto",
-                padding: "16px 16px 8px 16px",
+                padding: "20px 20px 8px 20px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "2px",
+                gap: "16px",
               }}
             >
               {/* Empty state */}
@@ -189,7 +201,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                       <span style={{ fontSize: "9px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'Inter', sans-serif" }}>MeetMind AI</span>
-                      <div style={{ position: "relative", background: "#fff", border: "1px solid #e2e8f0", padding: "12px 16px", borderRadius: "18px 18px 18px 4px", fontSize: "13px", color: "#334155", lineHeight: 1.6, fontWeight: 450, fontFamily: "'Inter', sans-serif", boxShadow: "0 1px 6px rgba(15,23,42,0.06)", overflow: "hidden", maxWidth: 260 }}>
+                      <div style={{ position: "relative", background: "#fff", border: "1px solid #e2e8f0", padding: "12px 16px", borderRadius: "18px 18px 18px 4px", fontSize: "13px", color: "#334155", lineHeight: 1.6, fontWeight: 450, fontFamily: "'Inter', sans-serif", boxShadow: "0 1px 6px rgba(15,23,42,0.06)", overflow: "hidden", maxWidth: "78%" }}>
                         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, #0f766e, #5eead4)" }} />
                         <p style={{ margin: 0 }}>👋 Hi! I've read through the meeting. Ask me anything or pick a suggested question below.</p>
                       </div>

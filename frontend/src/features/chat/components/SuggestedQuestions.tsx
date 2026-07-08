@@ -12,21 +12,75 @@ export const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({ onQuesti
     "What action items were assigned?",
     "What decisions were made?",
     "What risks were discussed?",
-    "What deadlines exist?"
   ];
 
   return (
-    <div className="flex flex-col gap-2 my-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <span className="text-[9px] uppercase font-bold tracking-wider text-slate-400 pl-1">Suggested Questions</span>
-      <div className="flex flex-col gap-1.5">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        marginTop: "12px",
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      <span
+        style={{
+          fontSize: "10px",
+          fontWeight: 700,
+          color: "#94a3b8",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          paddingLeft: "4px",
+          fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        Suggested Questions
+      </span>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "8px",
+        }}
+      >
         {questions.map((q, idx) => (
           <button
             key={idx}
             onClick={() => onQuestionClick(q)}
-            className="text-left text-[11px] p-2.5 rounded-xl border border-slate-200 bg-white/60 hover:bg-slate-50 text-[#0f766e] hover:text-[#0f172a] font-semibold transition-all shadow-sm flex items-center justify-between group hover:border-[#0f766e]/50"
+            style={{
+              textAlign: "left",
+              fontSize: "11px",
+              padding: "8px 14px",
+              borderRadius: "99px",
+              border: "1px solid #e2e8f0",
+              background: "#ffffff",
+              color: "#0f766e",
+              fontWeight: 550,
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              boxShadow: "0 1px 2px rgba(15,23,42,0.03)",
+              fontFamily: "'Inter', sans-serif",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f0fdfa";
+              e.currentTarget.style.borderColor = "#99f6e4";
+              e.currentTarget.style.color = "#0d9488";
+              e.currentTarget.style.transform = "translateY(-0.5px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#ffffff";
+              e.currentTarget.style.borderColor = "#e2e8f0";
+              e.currentTarget.style.color = "#0f766e";
+              e.currentTarget.style.transform = "none";
+            }}
           >
+            <Sparkles size={11} style={{ opacity: 0.8 }} />
             <span>{q}</span>
-            <Sparkles className="w-3.5 h-3.5 text-[#0f766e] opacity-0 group-hover:opacity-100 transition-opacity" />
           </button>
         ))}
       </div>

@@ -9,10 +9,10 @@ export const MeetingTabs: React.FC<MeetingTabsProps> = ({ activeTab, setActiveTa
   const tabs = [
     { id: "summary", label: "Summary" },
     { id: "timeline", label: "Timeline" },
+    { id: "participants", label: "Participants" },
     { id: "actions", label: "Action Items" },
-    { id: "decisions", label: "Decisions" },
-    { id: "risks", label: "Risks" },
-    { id: "technical", label: "Technical" }
+    { id: "decisions_risks", label: "Decisions & Risks" },
+    { id: "technical", label: "Technical Analysis" }
   ];
 
   return (

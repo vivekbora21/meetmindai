@@ -1,0 +1,4 @@
+from app.services.transcription.voice_embedding import VoiceEmbeddingService
+from app.services.transcription.speaker_diarization import SpeakerDiarizationService
+from app.services.transcription.speaker_mapping import SpeakerMappingService
+from app.services.transcription.speaker_statistics import SpeakerStatisticsService
