@@ -1,12 +1,12 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 import httpx
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.models import ConnectedAccount, Meeting, Provider, ScheduledMeeting
-from app.services.google_oauth import GoogleOAuthService
+from app.integrations.registry import get_provider
 from app.utils.encryption import decrypt_value
 
 logger = logging.getLogger(__name__)
@@ -14,20 +14,35 @@ logger = logging.getLogger(__name__)
 
 def parse_google_datetime(dt_str: str) -> datetime:
     """
-    Parses ISO datetime strings returned by Google Calendar API.
+    Parses ISO datetime strings returned by Google Calendar API and converts to UTC naive.
     """
     if not dt_str:
         return datetime.utcnow()
-    # Google dates can be in format YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS+HH:MM
-    # We will strip timezone offsets for simple db storage or handle trailing Z
+    
+    # Handle YYYY-MM-DD all-day events
+    if len(dt_str) == 10 and "-" in dt_str:
+        try:
+            return datetime.fromisoformat(dt_str)
+        except Exception:
+            return datetime.utcnow()
+
+    # Normalize Z to +00:00
     if dt_str.endswith("Z"):
-        dt_str = dt_str[:-1]
-    if "+" in dt_str:
-        dt_str = dt_str.split("+")[0]
+        dt_str = dt_str[:-1] + "+00:00"
+        
     try:
-        return datetime.fromisoformat(dt_str)
+        dt = datetime.fromisoformat(dt_str)
+        if dt.tzinfo is not None:
+            return dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
     except Exception:
-        return datetime.utcnow()
+        try:
+            # Strip timezone offsets if parsing failed
+            if "+" in dt_str:
+                dt_str = dt_str.split("+")[0]
+            return datetime.fromisoformat(dt_str)
+        except Exception:
+            return datetime.utcnow()
 
 
 class GoogleCalendarService:
@@ -37,7 +52,7 @@ class GoogleCalendarService:
     """
 
     def __init__(self):
-        self.oauth_service = GoogleOAuthService()
+        self._provider = get_provider("google")
 
     async def sync_calendar_events(self, db: Session, user_id: str) -> List[Meeting]:
         """
@@ -76,7 +91,7 @@ class GoogleCalendarService:
                 )
 
             try:
-                new_tokens = await self.oauth_service.refresh_tokens(account.refresh_token)
+                new_tokens = await self._provider.refresh_access_token(account.refresh_token)
                 from app.utils.encryption import encrypt_value
                 account.access_token = encrypt_value(new_tokens["access_token"])
                 if new_tokens.get("refresh_token"):

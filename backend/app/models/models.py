@@ -221,6 +221,15 @@ class Meeting(Base):
         order_by="MeetingChunk.chunk_index",
     )
 
+    @property
+    def action_items_count(self) -> int:
+        return len(self.action_items) if self.action_items else 0
+
+    @property
+    def decisions_count(self) -> int:
+        return len(self.decisions) if self.decisions else 0
+
+
 
 
 
@@ -923,6 +932,7 @@ class CalendarEvent(Base):
     meeting_provider = Column(String(100), nullable=True)
     is_online_meeting = Column(Boolean, default=False)
     status = Column(String(50), nullable=True)
+    attendees = Column(JSON, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

@@ -188,7 +188,7 @@ export default function LiveMeeting({ params }: { params: Promise<{ id: string }
       </header>
 
       {/* Main Layout */}
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-8 max-w-7xl w-full mx-auto overflow-hidden">
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-8 max-w-9xl w-full mx-auto overflow-hidden">
         {/* Left Area: Live Transcript & Bot Monitor */}
         <section className="lg:col-span-8 flex flex-col gap-6 h-full overflow-hidden justify-between">
           

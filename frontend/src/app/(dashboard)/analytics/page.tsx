@@ -182,13 +182,13 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-7xl w-full mx-auto flex flex-col min-h-full text-[#0f172a]">
+      <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#0f172a]">
         <header className="w-full flex items-center justify-between border-b border-slate-200 pb-6 mb-8">
           <div className="h-7 w-52 bg-slate-200 rounded animate-pulse" />
           <div className="h-8 w-44 bg-slate-200 rounded-full animate-pulse" />
         </header>
 
-        <main className="max-w-7xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 flex-grow">
+        <main className="max-w-9xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 flex-grow">
           {/* Stats Skeletons */}
           <section className="md:col-span-12 grid grid-cols-1 sm:grid-cols-4 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (

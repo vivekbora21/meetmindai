@@ -1,6 +1,6 @@
 import uuid
 import logging
-from typing import List, Optional
+from typing import List, Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -120,6 +120,13 @@ class MeetingListOut(BaseModel):
     original_filename: Optional[str] = None
     file_size: Optional[int] = None
     content_type: Optional[str] = None
+    
+    # Detailed fields for dashboard/calendar
+    executive_summary: Optional[str] = None
+    description: Optional[str] = None
+    action_items_count: Optional[int] = 0
+    decisions_count: Optional[int] = 0
+    attendees: Optional[List[Any]] = None
 
     class Config:
         from_attributes = True
@@ -164,7 +171,9 @@ class MeetingDetailOut(BaseModel):
 
 @router.get("/", response_model=List[MeetingListOut])
 def get_meetings(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    include_future: bool = False,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     # Automatically clean up stuck meetings (older than 15 minutes in non-terminal states)
     try:
@@ -173,23 +182,27 @@ def get_meetings(
             db.query(Meeting)
             .filter(
                 Meeting.organization_id == current_user.organization_id,
-                Meeting.status.in_(
-                    [
-                        "UPLOADED",
-                        "PROCESSING",
-                        "TRANSCRIBED",
-                        "ANALYZING",
-                        "Uploaded",
-                        "Processing",
-                        "Transcribed",
-                        "Analyzing",
-                        "uploaded",
-                        "processing",
-                        "transcribed",
-                        "analyzing",
-                    ]
-                ),
                 Meeting.created_at < stale_threshold,
+                # Either it's actively processing/transcribing/analyzing OR it's uploaded and has a recording file
+                (
+                    Meeting.status.in_(
+                        [
+                            "PROCESSING",
+                            "TRANSCRIBED",
+                            "ANALYZING",
+                            "Processing",
+                            "Transcribed",
+                            "Analyzing",
+                            "processing",
+                            "transcribed",
+                            "analyzing",
+                        ]
+                    )
+                    | (
+                        Meeting.status.in_(["UPLOADED", "Uploaded", "uploaded"])
+                        & Meeting.recording_url.isnot(None)
+                    )
+                )
             )
             .all()
         )
@@ -209,12 +222,17 @@ def get_meetings(
         logger.error(f"Error cleaning up stuck meetings: {e}")
         db.rollback()
 
-    meetings = (
-        db.query(Meeting)
-        .filter(Meeting.organization_id == current_user.organization_id)
-        .order_by(Meeting.meeting_date.desc())
-        .all()
-    )
+    query = db.query(Meeting).filter(Meeting.organization_id == current_user.organization_id)
+    if not include_future:
+        now = datetime.utcnow()
+        # Exclude meetings that are scheduled for the future and have not started (no recording and UPLOADED)
+        query = query.filter(
+            (Meeting.meeting_date <= now) |
+            (Meeting.status.notin_(["UPLOADED", "Uploaded", "uploaded"])) |
+            (Meeting.recording_url.isnot(None))
+        )
+
+    meetings = query.order_by(Meeting.meeting_date.desc()).all()
     return meetings
 
 
@@ -239,24 +257,26 @@ def get_meeting(
     # Automatically clean up if stuck
     try:
         stale_threshold = datetime.utcnow() - timedelta(minutes=15)
-        if (
-            meeting.status
-            in [
-                "UPLOADED",
-                "PROCESSING",
-                "TRANSCRIBED",
-                "ANALYZING",
-                "Uploaded",
-                "Processing",
-                "Transcribed",
-                "Analyzing",
-                "uploaded",
-                "processing",
-                "transcribed",
-                "analyzing",
-            ]
-            and meeting.created_at < stale_threshold
-        ):
+        is_stuck_processing = (
+            meeting.status.in_(
+                [
+                    "PROCESSING",
+                    "TRANSCRIBED",
+                    "ANALYZING",
+                    "Processing",
+                    "Transcribed",
+                    "Analyzing",
+                    "processing",
+                    "transcribed",
+                    "analyzing",
+                ]
+            )
+            or (
+                meeting.status in ["UPLOADED", "Uploaded", "uploaded"]
+                and meeting.recording_url is not None
+            )
+        )
+        if is_stuck_processing and meeting.created_at < stale_threshold:
             meeting.status = "FAILED"
             if meeting.ai_status in ["RUNNING", "PENDING"]:
                 meeting.ai_status = "FAILED"

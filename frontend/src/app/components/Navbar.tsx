@@ -49,7 +49,7 @@ export default function Navbar({
   }, []);
 
   return (
-    <header className="h-16 border-b border-[#e2e8f0] bg-white sticky top-0 z-50 flex items-center justify-between px-6 select-none">
+    <header className="h-16 border-b border-[#e2e8f0] bg-white w-full flex-shrink-0 z-50 flex items-center justify-between px-6 select-none">
       {/* Left side: Logo, Company name, Sidebar Toggle */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3">

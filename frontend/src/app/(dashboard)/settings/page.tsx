@@ -95,6 +95,7 @@ interface IntegrationItem {
   provider: string;
   email: string;
   connection_status: string;
+  reconnect_required: boolean;
   last_sync: string | null;
   sync_errors: string | null;
   auto_sync: boolean;
@@ -632,7 +633,27 @@ export default function SettingsPage() {
     }
   };
 
-  // Integration connect logic
+  // Generic OAuth connect — maps virtual provider keys to real OAuth providers.
+  // Adding a new provider only requires updating this map.
+  const PROVIDER_OAUTH_MAP: Record<string, string> = {
+    msteams: "microsoft",
+    outlook: "microsoft",
+    googlemeet: "google",
+    googlecalendar: "google",
+    zoom: "zoom",
+  };
+
+  const connect = (providerKey: string) => {
+    const oauthProvider = PROVIDER_OAUTH_MAP[providerKey];
+    if (oauthProvider) {
+      window.location.href = getApiUrl(`/api/auth/${oauthProvider}/login`);
+    } else {
+      // Non-OAuth providers (future or demo) fall back to the modal flow
+      setConnectProvider(providerKey);
+    }
+  };
+
+  // Integration connect logic (non-OAuth fallback modal)
   const handleConnectIntegration = async () => {
     if (!connectEmail) {
       showToast("Please enter an email account", "error");
@@ -871,7 +892,7 @@ export default function SettingsPage() {
   });
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 font-outfit text-slate-800">
+    <div className="flex flex-col min-h-full bg-slate-50 font-outfit text-slate-800 relative">
       
       {/* Toast Notification */}
       {toast && (
@@ -904,7 +925,7 @@ export default function SettingsPage() {
       </header>
 
       {/* Main Settings Panel */}
-      <div className="flex-1 flex flex-col lg:flex-row p-8 gap-8 max-w-7xl mx-auto w-full mb-24">
+      <div className="flex-1 flex flex-col lg:flex-row p-8 gap-8 max-w-9xl mx-auto w-full mb-24">
         
         {/* Settings Sidebar Navigation */}
         <aside className="w-full lg:w-64 shrink-0 flex flex-col gap-1">
@@ -1212,8 +1233,13 @@ export default function SettingsPage() {
                       )}
                     ].map(platform => {
                       const conn = integrations.find(item => item.provider === platform.key);
+                      const needsReconnect = conn?.reconnect_required || conn?.connection_status === "needs_reauthorization";
                       return (
-                        <div key={platform.key} className="border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all space-y-4">
+                        <div key={platform.key} className={`border rounded-2xl p-5 hover:shadow-md transition-all space-y-4 ${
+                          needsReconnect
+                            ? "border-amber-300 bg-amber-50/40"
+                            : "border-slate-200"
+                        }`}>
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">
                               <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${platform.bg}`}>
@@ -1222,9 +1248,13 @@ export default function SettingsPage() {
                               <div>
                                 <h3 className="text-sm font-bold text-slate-800">{platform.name}</h3>
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  conn ? "bg-teal-50 text-teal-800 border border-teal-100" : "bg-slate-100 text-slate-500 border border-slate-200"
+                                  needsReconnect
+                                    ? "bg-amber-100 text-amber-800 border border-amber-200"
+                                    : conn
+                                      ? "bg-teal-50 text-teal-800 border border-teal-100"
+                                      : "bg-slate-100 text-slate-500 border border-slate-200"
                                 }`}>
-                                  {conn ? "Connected" : "Disconnected"}
+                                  {needsReconnect ? "⚠ Needs Reconnect" : conn ? "Connected" : "Disconnected"}
                                 </span>
                               </div>
                             </div>
@@ -1237,24 +1267,32 @@ export default function SettingsPage() {
                               </button>
                             ) : (
                               <button 
-                                onClick={() => {
-                                  if (platform.key === "msteams" || platform.key === "outlook") {
-                                    window.location.href = getApiUrl("/api/auth/microsoft/login");
-                                  } else if (platform.key === "googlemeet" || platform.key === "googlecalendar") {
-                                    window.location.href = getApiUrl("/api/auth/google/login");
-                                  } else {
-                                    setConnectProvider(platform.key);
-                                  }
-                                }}
+                                onClick={() => connect(platform.key)}
                                 className="px-3 py-1 bg-teal-800 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition-colors"
                               >
                                 Connect
                               </button>
-
                             )}
                           </div>
 
-                          {conn && (
+                          {/* Reauthorization warning banner */}
+                          {needsReconnect && (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 space-y-1.5">
+                              <p className="font-semibold">⚠ Action required: reconnect your account</p>
+                              <p className="text-amber-700 leading-relaxed">
+                                The access token for this integration is missing required permissions.
+                                Please reconnect to grant the necessary access.
+                              </p>
+                              <button
+                                onClick={() => connect(platform.key)}
+                                className="mt-1 w-full px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold rounded-lg transition-colors text-center block"
+                              >
+                                Reconnect {platform.name}
+                              </button>
+                            </div>
+                          )}
+
+                          {conn && !needsReconnect && (
                             <div className="border-t border-slate-100 pt-3 space-y-2 text-xs text-slate-500">
                               <div className="flex justify-between">
                                 <span>Account email:</span>
@@ -2131,7 +2169,7 @@ export default function SettingsPage() {
 
       {/* Sticky Save Changes Bar */}
       {isDirty && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-4 px-8 flex items-center justify-between shadow-2xl z-30 animate-slide-up">
+        <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 py-4 px-8 flex items-center justify-between shadow-[0_-8px_30px_rgba(0,0,0,0.06)] z-30 animate-slide-up w-full mt-auto">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-50 rounded-xl border border-amber-200 text-amber-800">
               <ShieldAlert className="w-4 h-4" />

@@ -108,7 +108,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen flex flex-col selection:bg-[#0f766e] selection:text-white text-[#0f172a] bg-slate-50 overflow-hidden">
+    <div className="h-screen flex flex-col selection:bg-[#0f766e] selection:text-white text-[#0f172a] bg-slate-50 overflow-hidden">
       {/* Top Navbar */}
       <Navbar 
         userName={userName} 

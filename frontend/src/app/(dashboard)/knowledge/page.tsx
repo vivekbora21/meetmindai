@@ -26,7 +26,7 @@ export default function KnowledgeGraph() {
   });
 
   return (
-    <div className="p-8 max-w-7xl w-full mx-auto flex flex-col min-h-full text-[#0f172a]">
+    <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#0f172a]">
       <header className="w-full flex items-center justify-between border-b border-slate-200 pb-6 mb-8">
         <h1 className="text-lg font-bold font-outfit text-[#0f172a]">Organizational Knowledge Graph</h1>
         <span className="text-xs text-[#0f766e] font-bold flex items-center gap-1.5 bg-teal-50 px-3 py-1.5 rounded-full border border-teal-100 shadow-sm">

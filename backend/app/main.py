@@ -18,6 +18,10 @@ from app.api.v1.endpoints import (
     calendar,
 )
 
+# Generic provider-agnostic OAuth router (replaces per-provider microsoft_router,
+# google_router, zoom_router that previously lived inside auth.py)
+from app.integrations.router import router as integrations_router
+
 app = FastAPI(
     title="MeetingMind AI API",
     description="Enterprise-grade Organizational Memory Platform API",
@@ -54,11 +58,16 @@ def healthcheck():
     return {"status": "healthy", "timestamp": time.time()}
 
 
-# Include routers
+# -------------------------------------------------------------------------
+# Core API Routers
+# -------------------------------------------------------------------------
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
-app.include_router(auth.microsoft_router, tags=["microsoft-auth"])
-app.include_router(auth.google_router, tags=["google-auth"])
 app.include_router(calendar.router, tags=["calendar"])
+
+# Generic provider-agnostic OAuth flow
+# Routes: /api/auth/{provider}/login  and  /api/auth/{provider}/callback
+# Supported providers: microsoft, google, zoom (see app/integrations/registry.py)
+app.include_router(integrations_router, tags=["integrations-oauth"])
 
 app.include_router(profile.router, prefix="/api/v1/profile", tags=["profile"])
 app.include_router(meetings.router, prefix="/api/v1/meetings", tags=["meetings"])
@@ -76,5 +85,3 @@ async def startup_event():
     import asyncio
     from app.services.scheduler import start_scheduler
     asyncio.create_task(start_scheduler())
-
-

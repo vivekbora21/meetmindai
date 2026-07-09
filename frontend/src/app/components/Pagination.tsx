@@ -20,7 +20,7 @@ export default function Pagination({
   itemsPerPage,
   className = "",
 }: PaginationProps) {
-  if (totalPages <= 1) return null;
+  if (totalItems === 0) return null;
 
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);

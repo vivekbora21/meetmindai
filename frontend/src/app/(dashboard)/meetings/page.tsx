@@ -3,10 +3,97 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Search, Brain, ShieldAlert, Loader2, ChevronRight, Sparkles 
+  Search, Brain, ShieldAlert, Loader2, ChevronRight, Sparkles, Calendar, Clock, Video 
 } from "lucide-react";
 import { getApiUrl } from "../../config";
-import Pagination from "../../../components/Pagination";
+import Pagination from "../../components/Pagination";
+
+const getMeetingStatusInfo = (m: any) => {
+  const now = new Date();
+  const meetingDate = new Date(m.meeting_date);
+  const statusNorm = (m.status || "").toUpperCase();
+  const isCompleted = statusNorm === "COMPLETED";
+  const isFailed = statusNorm === "FAILED" || statusNorm === "ERROR";
+
+  // Check if media file has been uploaded
+  const hasMedia = !!(m.recording_url || m.original_filename);
+
+  // If completed or failed, return that directly
+  if (isCompleted) {
+    return {
+      statusLabel: "Completed",
+      badgeClass: "bg-teal-50/50 text-[#0f766e] border-teal-100",
+      iconClass: "bg-teal-50 text-[#0f766e]",
+      showProcessing: false,
+      summaryText: "insights ready",
+      hasMedia
+    };
+  }
+  if (isFailed) {
+    return {
+      statusLabel: "Failed",
+      badgeClass: "bg-rose-50/50 text-rose-650 border-rose-100",
+      iconClass: "bg-rose-50 text-rose-600",
+      showProcessing: false,
+      summaryText: m.error_message || "Processing failed — audio file corrupted",
+      hasMedia
+    };
+  }
+
+  // If backend status is actively processing (not UPLOADED)
+  const isActivelyProcessingInBackend = ["PROCESSING", "TRANSCRIBED", "ANALYZING"].includes(statusNorm);
+
+  if (isActivelyProcessingInBackend || (statusNorm === "UPLOADED" && hasMedia)) {
+    return {
+      statusLabel: "Processing",
+      badgeClass: "bg-amber-50/50 text-amber-600 border-amber-100 animate-pulse",
+      iconClass: "bg-amber-50 text-amber-600",
+      showProcessing: true,
+      summaryText: "Processing transcription and insights...",
+      hasMedia
+    };
+  }
+
+  // At this point, the meeting status in backend is UPLOADED (or similar) and hasMedia is false.
+  // This means it's a scheduled meeting from calendar sync or manually entered link.
+  const isFuture = meetingDate > now;
+  
+  if (isFuture) {
+    return {
+      statusLabel: "Scheduled",
+      badgeClass: "bg-blue-50/50 text-blue-600 border-blue-100",
+      iconClass: "bg-blue-50 text-blue-500",
+      showProcessing: false,
+      summaryText: "Meeting scheduled",
+      hasMedia
+    };
+  } else {
+    // Current time is past meeting start time, but no media uploaded yet.
+    // Check if it is ongoing (within 1 hour duration or duration_seconds)
+    const duration = m.duration_seconds || 3600; // default 1 hour
+    const hasEnded = now.getTime() > meetingDate.getTime() + duration * 1000;
+
+    if (hasEnded) {
+      return {
+        statusLabel: "Ended",
+        badgeClass: "bg-slate-50 text-slate-500 border-slate-200",
+        iconClass: "bg-slate-50 text-slate-500",
+        showProcessing: false,
+        summaryText: "Meeting ended — awaiting recording upload",
+        hasMedia
+      };
+    } else {
+      return {
+        statusLabel: "Ongoing",
+        badgeClass: "bg-emerald-50/50 text-emerald-600 border-emerald-100 animate-pulse",
+        iconClass: "bg-emerald-50 text-emerald-600",
+        showProcessing: false,
+        summaryText: "Ongoing meeting",
+        hasMedia
+      };
+    }
+  }
+};
 
 export default function MeetingsPage() {
   const router = useRouter();
@@ -54,15 +141,15 @@ export default function MeetingsPage() {
     const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
 
-    const statusNorm = (m.status || "").toUpperCase();
-    const isCompleted = statusNorm === "COMPLETED";
-    const isFailed = statusNorm === "FAILED" || statusNorm === "ERROR";
-    const isProcessing = !isCompleted && !isFailed;
+    const statusInfo = getMeetingStatusInfo(m);
+    
+    // Scheduled meetings are hidden from the meetings list
+    if (statusInfo.statusLabel === "Scheduled") return false;
 
     if (activeTab === "all") return true;
-    if (activeTab === "completed") return isCompleted;
-    if (activeTab === "processing") return isProcessing;
-    if (activeTab === "failed") return isFailed;
+    if (activeTab === "completed") return statusInfo.statusLabel === "Completed";
+    if (activeTab === "processing") return statusInfo.showProcessing;
+    if (activeTab === "failed") return statusInfo.statusLabel === "Failed";
     return true;
   });
 
@@ -73,7 +160,7 @@ export default function MeetingsPage() {
   const paginatedMeetings = filteredMeetings.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className="p-8 max-w-7xl w-full mx-auto flex flex-col min-h-full text-[#0f172a]">
+    <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#0f172a]">
       {/* Page Header */}
       <header className="w-full flex items-center justify-between border-b border-slate-200 pb-6 mb-8">
         <div>
@@ -127,10 +214,13 @@ export default function MeetingsPage() {
       {/* Meetings List */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm mb-6">
         {paginatedMeetings.map((meeting, index) => {
-          const statusNorm = (meeting.status || "").toUpperCase();
-          const isCompleted = statusNorm === "COMPLETED";
-          const isFailed = statusNorm === "FAILED" || statusNorm === "ERROR";
-          const isProcessing = !isCompleted && !isFailed;
+          const statusInfo = getMeetingStatusInfo(meeting);
+          const isCompleted = statusInfo.statusLabel === "Completed";
+          const isFailed = statusInfo.statusLabel === "Failed";
+          const isProcessing = statusInfo.statusLabel === "Processing";
+          const isOngoing = statusInfo.statusLabel === "Ongoing";
+          const isScheduled = statusInfo.statusLabel === "Scheduled";
+          const isEnded = statusInfo.statusLabel === "Ended";
 
           return (
             <div 
@@ -144,14 +234,13 @@ export default function MeetingsPage() {
             >
               <div className="flex items-center gap-4 min-w-0">
                 {/* Status Circle Icon */}
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  isCompleted ? "bg-teal-50 text-[#0f766e]" :
-                  isFailed ? "bg-rose-50 text-rose-600" :
-                  "bg-amber-50 text-amber-600"
-                }`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${statusInfo.iconClass}`}>
                   {isCompleted && <Brain className="w-5 h-5" />}
                   {isFailed && <ShieldAlert className="w-5 h-5" />}
                   {isProcessing && <Loader2 className="w-5 h-5 animate-spin" />}
+                  {isOngoing && <Video className="w-5 h-5 text-emerald-600" />}
+                  {isScheduled && <Calendar className="w-5 h-5 text-blue-500" />}
+                  {isEnded && <Clock className="w-5 h-5 text-slate-500" />}
                 </div>
 
                 <div className="flex flex-col min-w-0">
@@ -188,11 +277,19 @@ export default function MeetingsPage() {
                       </span>
                     ) : isFailed ? (
                       <span className="text-rose-600 flex items-center gap-1.5 font-semibold">
-                        <span className="font-extrabold text-xs">⊗</span> {meeting.error_message || "Processing failed — audio file corrupted"}
+                        <span className="font-extrabold text-xs">⊗</span> {statusInfo.summaryText}
+                      </span>
+                    ) : isProcessing ? (
+                      <span className="text-slate-400 flex items-center gap-1.5 font-semibold">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0f766e]" /> {statusInfo.summaryText}
+                      </span>
+                    ) : isOngoing ? (
+                      <span className="text-emerald-600 flex items-center gap-1.5 font-semibold animate-pulse">
+                        <Video className="w-3.5 h-3.5 text-emerald-600" /> Ongoing meeting...
                       </span>
                     ) : (
                       <span className="text-slate-400 flex items-center gap-1.5 font-semibold">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0f766e]" /> Processing transcription and insights...
+                        <Clock className="w-3.5 h-3.5 text-slate-450" /> {statusInfo.summaryText}
                       </span>
                     )}
                   </div>
@@ -201,12 +298,8 @@ export default function MeetingsPage() {
 
               <div className="flex items-center gap-3 flex-shrink-0">
                 {/* Status Pill */}
-                <span className={`text-[10px] px-2.5 py-0.5 rounded-lg font-bold border capitalize ${
-                  isCompleted ? "bg-teal-50/50 text-[#0f766e] border-teal-100" : 
-                  isFailed ? "bg-rose-50/50 text-rose-650 border-rose-100" : 
-                  "bg-amber-50/50 text-amber-600 border-amber-100"
-                }`}>
-                  {meeting.status}
+                <span className={`text-[10px] px-2.5 py-0.5 rounded-lg font-bold border capitalize ${statusInfo.badgeClass}`}>
+                  {statusInfo.statusLabel}
                 </span>
 
                 <ChevronRight className="w-4 h-4 text-slate-300" />

@@ -167,7 +167,7 @@ export default function Home() {
       <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-gradient-to-t from-teal-50/30 to-transparent rounded-full blur-2xl pointer-events-none -z-10" />
 
       {/* Header */}
-      <header className="w-full max-w-7xl px-6 py-6 flex items-center justify-between border-b border-slate-200/80 z-10">
+      <header className="w-full max-w-9xl px-6 py-6 flex items-center justify-between border-b border-slate-200/80 z-10">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-xl flex items-center justify-center bg-[#0f766e] shadow-lg shadow-[#0f766e]/20">
             <Brain className="w-6 h-6 text-white" />
@@ -183,7 +183,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <main className="w-full max-w-7xl px-6 py-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center flex-grow z-10">
+      <main className="w-full max-w-9xl px-6 py-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center flex-grow z-10">
         {/* Left Side: Product description */}
         <div className="lg:col-span-7 flex flex-col gap-6 text-left">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-[#0f766e] text-xs font-bold w-fit shadow-sm">
@@ -310,7 +310,7 @@ export default function Home() {
 
       {/* Feature Grid */}
       <section id="features" className="w-full py-20 flex justify-center z-10">
-        <div className="w-full max-w-7xl px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="w-full max-w-9xl px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
             <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
               <MessageSquare className="w-5 h-5 text-[#0f766e]" />
@@ -342,7 +342,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="w-full max-w-7xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between text-slate-400 text-xs border-t border-slate-200 gap-4 z-10">
+      <footer className="w-full max-w-9xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between text-slate-400 text-xs border-t border-slate-200 gap-4 z-10">
         <span>© 2026 MeetingMind AI. All rights reserved.</span>
         <div className="flex gap-4 font-semibold">
           <a href="#" className="hover:text-[#0f766e]">Privacy Policy</a>

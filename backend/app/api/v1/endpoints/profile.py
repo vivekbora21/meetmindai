@@ -498,47 +498,34 @@ def list_integrations(
         .filter(ConnectedAccount.user_id == current_user.id)
         .all()
     )
+
+    def _build_entry(acc, virtual_provider: str) -> dict:
+        needs_reauth = acc.connection_status == "needs_reauthorization"
+        return {
+            "id": acc.id,
+            "provider": virtual_provider,
+            "email": acc.email,
+            "connection_status": acc.connection_status,
+            # Convenience flag the frontend can use to show a "Reconnect" button.
+            "reconnect_required": needs_reauth,
+            "last_sync": acc.last_sync.isoformat() if acc.last_sync else None,
+            "sync_errors": acc.sync_errors,
+            "auto_sync": acc.auto_sync,
+            "recording_import": acc.recording_import,
+            "calendar_sync": acc.calendar_sync,
+        }
+
     # Project microsoft into msteams and outlook for frontend compatibility
     projected = []
     for acc in accounts:
         if acc.provider == Provider.MICROSOFT:
             for virtual_provider in ["msteams", "outlook"]:
-                projected.append({
-                    "id": acc.id,
-                    "provider": virtual_provider,
-                    "email": acc.email,
-                    "connection_status": acc.connection_status,
-                    "last_sync": acc.last_sync.isoformat() if acc.last_sync else None,
-                    "sync_errors": acc.sync_errors,
-                    "auto_sync": acc.auto_sync,
-                    "recording_import": acc.recording_import,
-                    "calendar_sync": acc.calendar_sync,
-                })
+                projected.append(_build_entry(acc, virtual_provider))
         elif acc.provider == Provider.GOOGLE or acc.provider == "google":
             for virtual_provider in ["googlemeet", "googlecalendar"]:
-                projected.append({
-                    "id": acc.id,
-                    "provider": virtual_provider,
-                    "email": acc.email,
-                    "connection_status": acc.connection_status,
-                    "last_sync": acc.last_sync.isoformat() if acc.last_sync else None,
-                    "sync_errors": acc.sync_errors,
-                    "auto_sync": acc.auto_sync,
-                    "recording_import": acc.recording_import,
-                    "calendar_sync": acc.calendar_sync,
-                })
+                projected.append(_build_entry(acc, virtual_provider))
         else:
-            projected.append({
-                "id": acc.id,
-                "provider": acc.provider,
-                "email": acc.email,
-                "connection_status": acc.connection_status,
-                "last_sync": acc.last_sync.isoformat() if acc.last_sync else None,
-                "sync_errors": acc.sync_errors,
-                "auto_sync": acc.auto_sync,
-                "recording_import": acc.recording_import,
-                "calendar_sync": acc.calendar_sync,
-            })
+            projected.append(_build_entry(acc, acc.provider))
     return projected
 
 
@@ -549,10 +536,10 @@ def connect_integration(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if data.provider in ["msteams", "outlook", "microsoft", "googlemeet", "googlecalendar", "google"]:
+    if data.provider in ["msteams", "outlook", "microsoft", "googlemeet", "googlecalendar", "google", "zoom"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Microsoft and Google integrations must be connected via the secure OAuth flow."
+            detail="Microsoft, Google, and Zoom integrations must be connected via the secure OAuth flow."
         )
 
 
@@ -613,22 +600,8 @@ async def sync_integration(
     if not integration:
         raise HTTPException(status_code=404, detail="Integration not found")
 
-    if integration.provider == Provider.MICROSOFT:
-        from app.services.microsoft_calendar import MicrosoftCalendarService
-        service = MicrosoftCalendarService()
-        await service.sync_calendar_events(db, current_user.id)
-    elif integration.provider == Provider.GOOGLE or integration.provider == "google":
-        from app.services.google_calendar import GoogleCalendarService
-        service = GoogleCalendarService()
-        await service.sync_calendar_events(db, current_user.id)
-    else:
-        # Check expiry simulator
-        if integration.expires_at and integration.expires_at < datetime.utcnow():
-            # Auto refresh token simulator
-            integration.access_token = f"mock_refreshed_access_token_{uuid.uuid4().hex}"
-            integration.expires_at = datetime.utcnow() + timedelta(hours=1)
-            integration.connection_status = "Connected"
-
+    from app.integrations.service import IntegrationService
+    await IntegrationService().sync_integration(db, integration, current_user.id)
 
     integration.last_sync = datetime.utcnow()
     integration.sync_errors = None
@@ -644,6 +617,7 @@ async def sync_integration(
         "message": "Synchronized integration successfully",
         "last_sync": integration.last_sync.isoformat(),
     }
+
 
 
 @router.post("/integrations/{id}/disconnect")
