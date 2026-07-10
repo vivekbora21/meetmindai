@@ -23,8 +23,8 @@ const getMeetingStatusInfo = (m: any) => {
   if (isCompleted) {
     return {
       statusLabel: "Completed",
-      badgeClass: "bg-teal-50/50 text-[#0f766e] border-teal-100",
-      iconClass: "bg-teal-50 text-[#0f766e]",
+      badgeClass: "bg-teal-50/50 text-[#113229] border-teal-100",
+      iconClass: "bg-teal-50 text-[#113229]",
       showProcessing: false,
       summaryText: "insights ready",
       hasMedia
@@ -77,8 +77,8 @@ const getMeetingStatusInfo = (m: any) => {
     if (hasEnded) {
       return {
         statusLabel: "Ended",
-        badgeClass: "bg-slate-50 text-slate-500 border-slate-200",
-        iconClass: "bg-slate-50 text-slate-500",
+        badgeClass: "bg-[#F9F8F6] text-slate-500 border-slate-200",
+        iconClass: "bg-[#F9F8F6] text-slate-500",
         showProcessing: false,
         summaryText: "Meeting ended — awaiting recording upload",
         hasMedia
@@ -261,7 +261,7 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="p-8 flex flex-col gap-8 max-w-9xl mx-auto text-[#0f172a]">
+    <main className="p-8 flex flex-col gap-8 max-w-9xl mx-auto text-[#102C23]">
       {/* Top Bar */}
       <div className="flex justify-between items-center gap-4">
         {/* Search Bar */}
@@ -272,7 +272,7 @@ export default function Dashboard() {
             placeholder="Search meetings, decisions, or action items..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-white border border-slate-200 text-sm focus:outline-none focus:border-[#0f766e] text-slate-800 shadow-sm"
+            className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-white border border-slate-200 text-sm focus:outline-none focus:border-[#113229] text-slate-800 shadow-sm"
           />
           <kbd className="text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 select-none absolute right-3 top-3">
             ⌘ K
@@ -368,14 +368,14 @@ export default function Dashboard() {
         {/* Left column: Recent Meetings */}
         <section className="lg:col-span-8 flex flex-col gap-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-bold font-outfit text-[#0f172a]">Recent meetings</h2>
+            <h2 className="text-lg font-bold font-outfit text-[#102C23]">Recent meetings</h2>
             <div className="flex bg-slate-100/80 p-1 rounded-full gap-1 border border-slate-200">
               <button 
                 onClick={() => setActiveTab("all")}
                 className={`text-xs px-4 py-1.5 rounded-full font-bold transition-colors ${
                   activeTab === "all" 
-                    ? "bg-[#0f766e] text-white shadow-sm" 
-                    : "text-slate-500 hover:text-[#0f172a]"
+                    ? "bg-[#113229] text-white shadow-sm" 
+                    : "text-slate-500 hover:text-[#102C23]"
                 }`}
               >
                 All
@@ -384,8 +384,8 @@ export default function Dashboard() {
                 onClick={() => setActiveTab("processing")}
                 className={`text-xs px-4 py-1.5 rounded-full font-bold transition-colors ${
                   activeTab === "processing" 
-                    ? "bg-[#0f766e] text-white shadow-sm" 
-                    : "text-slate-500 hover:text-[#0f172a]"
+                    ? "bg-[#113229] text-white shadow-sm" 
+                    : "text-slate-500 hover:text-[#102C23]"
                 }`}
               >
                 Processing
@@ -409,7 +409,7 @@ export default function Dashboard() {
                   onClick={() => {
                     router.push(`/meetings/${meeting.id}`);
                   }}
-                  className={`p-5 flex justify-between items-center gap-4 cursor-pointer hover:bg-slate-50/50 transition-all ${
+                  className={`p-5 flex justify-between items-center gap-4 cursor-pointer hover:bg-[#F9F8F6]/50 transition-all ${
                     index < displayedMeetings.length - 1 ? "border-b border-slate-100" : ""
                   }`}
                 >
@@ -425,7 +425,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="flex flex-col min-w-0">
-                      <h3 className="font-bold text-[#0f172a] text-[13.5px] leading-tight truncate">
+                      <h3 className="font-bold text-[#102C23] text-[13.5px] leading-tight truncate">
                         {meeting.title}
                       </h3>
                       
@@ -453,7 +453,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-1 text-[11px] font-bold mt-2">
                         {isCompleted ? (
                           <span className="text-slate-500 flex items-center gap-1.5">
-                            <span className="text-[#0f766e] font-extrabold text-xs">✓</span>{" "}
+                            <span className="text-[#113229] font-extrabold text-xs">✓</span>{" "}
                             {getMeetingSummaryText(meeting)}
                           </span>
                         ) : isFailed ? (
@@ -462,7 +462,7 @@ export default function Dashboard() {
                           </span>
                         ) : isProcessing ? (
                           <span className="text-slate-400 flex items-center gap-1.5 font-semibold">
-                            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0f766e]" /> {statusInfo.summaryText}
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#113229]" /> {statusInfo.summaryText}
                           </span>
                         ) : isOngoing ? (
                           <span className="text-emerald-600 flex items-center gap-1.5 font-semibold animate-pulse">
@@ -501,7 +501,7 @@ export default function Dashboard() {
             <div className="flex justify-center mt-2">
               <button 
                 onClick={() => router.push("/meetings")}
-                className="flex items-center gap-1 text-[#0f766e] hover:text-[#0d9488] text-xs font-bold transition-all"
+                className="flex items-center gap-1 text-[#113229] hover:text-[#0D241E] text-xs font-bold transition-all"
               >
                 View more <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
               </button>
@@ -513,8 +513,8 @@ export default function Dashboard() {
         <section className="lg:col-span-4 flex flex-col gap-6">
           {/* Ingest Meeting Card */}
           <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-            <h3 className="font-bold text-sm text-[#0f172a] flex items-center gap-2">
-              <Download className="w-4 h-4 text-[#0f766e] transform rotate-180" /> Ingest meeting
+            <h3 className="font-bold text-sm text-[#102C23] flex items-center gap-2">
+              <Download className="w-4 h-4 text-[#113229] transform rotate-180" /> Ingest meeting
             </h3>
             
             <form onSubmit={handleUpload} className="flex flex-col gap-4">
@@ -525,7 +525,7 @@ export default function Dashboard() {
                   placeholder="API gateway sync"
                   value={meetingTitle}
                   onChange={(e) => setMeetingTitle(e.target.value)}
-                  className="px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs focus:outline-none focus:border-[#0f766e] text-[#0f172a] shadow-sm w-full"
+                  className="px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs focus:outline-none focus:border-[#113229] text-[#102C23] shadow-sm w-full"
                   required
                 />
               </div>
@@ -535,7 +535,7 @@ export default function Dashboard() {
                 <select
                   value={platform}
                   onChange={(e) => setPlatform(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs focus:outline-none focus:border-[#0f766e] text-[#0f172a] cursor-pointer shadow-sm"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs focus:outline-none focus:border-[#113229] text-[#102C23] cursor-pointer shadow-sm"
                 >
                   <option value="Upload">Upload file (audio / video)</option>
                   <option value="Google Meet">Google Meet Sync</option>
@@ -552,14 +552,14 @@ export default function Dashboard() {
                     placeholder={platform === "Teams" ? "e.g., https://teams.microsoft.com/l/meetup-join/..." : "e.g., https://meet.google.com/abc-defg-hij"}
                     value={meetingUrl}
                     onChange={(e) => setMeetingUrl(e.target.value)}
-                    className="px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs focus:outline-none focus:border-[#0f766e] text-[#0f172a] shadow-sm"
+                    className="px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs focus:outline-none focus:border-[#113229] text-[#102C23] shadow-sm"
                     required
                   />
                 </div>
               ) : (
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border border-dashed border-slate-250 hover:border-[#0f766e]/50 rounded-2xl p-6 flex flex-col items-center justify-center gap-2.5 cursor-pointer transition-all bg-slate-50/50 hover:bg-slate-50"
+                  className="border border-dashed border-slate-250 hover:border-[#113229]/50 rounded-2xl p-6 flex flex-col items-center justify-center gap-2.5 cursor-pointer transition-all bg-[#F9F8F6]/50 hover:bg-[#F9F8F6]"
                 >
                   <input 
                     type="file"
@@ -572,9 +572,9 @@ export default function Dashboard() {
                     accept="audio/*,video/*"
                     className="hidden"
                   />
-                  <Upload className="w-5 h-5 text-[#0f766e]" />
+                  <Upload className="w-5 h-5 text-[#113229]" />
                   {selectedFile ? (
-                    <span className="text-[10px] text-[#0f766e] font-semibold truncate max-w-full">
+                    <span className="text-[10px] text-[#113229] font-semibold truncate max-w-full">
                       Selected: {selectedFile.name}
                     </span>
                   ) : (
@@ -593,7 +593,7 @@ export default function Dashboard() {
                     type="datetime-local"
                     value={scheduledStart}
                     onChange={(e) => setScheduledStart(e.target.value)}
-                    className="px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs focus:outline-none focus:border-[#0f766e] text-[#0f172a] shadow-sm"
+                    className="px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs focus:outline-none focus:border-[#113229] text-[#102C23] shadow-sm"
                   />
                 </div>
               )}
@@ -601,7 +601,7 @@ export default function Dashboard() {
               <button 
                 type="submit" 
                 disabled={uploading}
-                className="w-full py-2.5 rounded-xl bg-[#0f766e] hover:bg-[#0d9488] text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
+                className="w-full py-2.5 rounded-xl bg-[#113229] hover:bg-[#0D241E] text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
               >
                 {uploading ? (
                   <>
@@ -618,8 +618,8 @@ export default function Dashboard() {
 
           {/* AI Suggestions Card */}
           <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-5 shadow-sm">
-            <h3 className="font-bold text-sm text-[#0f172a] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#0f766e]" /> AI suggestions
+            <h3 className="font-bold text-sm text-[#102C23] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#113229]" /> AI suggestions
             </h3>
             
             <div className="flex flex-col gap-4">
@@ -629,7 +629,7 @@ export default function Dashboard() {
                   <AlertTriangle className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col gap-1 text-xs">
-                  <span className="font-bold text-[#0f172a] font-outfit">Authentication blocker</span>
+                  <span className="font-bold text-[#102C23] font-outfit">Authentication blocker</span>
                   <p className="text-slate-500 leading-relaxed font-medium text-[11px]">
                     Vivek needs to approve database schemas before Friday to unblock the OAuth migration.
                   </p>
@@ -642,7 +642,7 @@ export default function Dashboard() {
                   <AlertTriangle className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col gap-1 text-xs">
-                  <span className="font-bold text-[#0f172a] font-outfit">Payment gateway risk</span>
+                  <span className="font-bold text-[#102C23] font-outfit">Payment gateway risk</span>
                   <p className="text-slate-500 leading-relaxed font-medium text-[11px]">
                     A ledger consistency check was mentioned with no owner assigned. Consider opening a Jira ticket.
                   </p>
@@ -654,7 +654,7 @@ export default function Dashboard() {
             <div className="flex justify-center mt-2">
               <button 
                 onClick={() => router.push("/suggestions")}
-                className="flex items-center gap-1 text-[#0f766e] hover:text-[#0d9488] text-xs font-bold transition-all"
+                className="flex items-center gap-1 text-[#113229] hover:text-[#0D241E] text-xs font-bold transition-all"
               >
                 View all suggestions <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
               </button>

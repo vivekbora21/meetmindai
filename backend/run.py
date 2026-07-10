@@ -77,6 +77,7 @@ def check_and_setup_db():
         print("Running database migrations...")
         from alembic.config import Config
         from alembic import command
+
         alembic_cfg = Config("alembic.ini")
         command.upgrade(alembic_cfg, "head")
         print("Database migrations applied successfully.")
@@ -112,7 +113,6 @@ def check_and_setup_db():
             db.close()
     except Exception as e:
         print(f"Error during database initialization: {e}")
-
 
 
 def start_server():
@@ -172,9 +172,12 @@ if __name__ == "__main__":
     # Validate LLM provider settings on startup
     try:
         from app.services.llm.factory import LLMFactory
+
         print("Validating LLM configuration...")
         provider_instance = LLMFactory.get_provider()
-        print(f"LLM Configuration validated successfully. Active Provider: '{provider_instance.provider_name}' | Model: '{provider_instance.model_name}'")
+        print(
+            f"LLM Configuration validated successfully. Active Provider: '{provider_instance.provider_name}' | Model: '{provider_instance.model_name}'"
+        )
     except Exception as e:
         print(f"CRITICAL CONFIGURATION ERROR: {e}", file=sys.stderr)
         sys.exit(1)

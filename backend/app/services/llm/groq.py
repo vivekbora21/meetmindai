@@ -1,6 +1,7 @@
 import os
 from app.services.llm.provider import LLMProvider
 
+
 class GroqProvider(LLMProvider):
     def __init__(self):
         api_key = os.getenv("GROQ_API_KEY", "").strip()
@@ -10,7 +11,7 @@ class GroqProvider(LLMProvider):
             provider_name="groq",
             model_name=model_name,
             api_key=api_key,
-            base_url=base_url
+            base_url=base_url,
         )
 
     def validate(self) -> None:

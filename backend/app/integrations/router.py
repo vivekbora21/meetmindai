@@ -44,6 +44,7 @@ router = APIRouter()
 # Connect (Login / Initiate OAuth)
 # ---------------------------------------------------------------------------
 
+
 @router.get("/api/auth/{provider}/login")
 def provider_login(
     provider: str,
@@ -85,6 +86,7 @@ def provider_login(
 # ---------------------------------------------------------------------------
 # Callback (Code Exchange)
 # ---------------------------------------------------------------------------
+
 
 @router.get("/api/auth/{provider}/callback")
 async def provider_callback(
@@ -178,9 +180,7 @@ async def provider_callback(
             logger.error(
                 f"[IntegrationRouter] Missing provider_user_id | provider={provider}"
             )
-            return _error_redirect(
-                f"Failed to retrieve user profile from {provider}."
-            )
+            return _error_redirect(f"Failed to retrieve user profile from {provider}.")
 
         # Step 6 — persist
         oauth_provider.save_or_update_account(

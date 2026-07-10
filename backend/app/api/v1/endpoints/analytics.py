@@ -173,6 +173,7 @@ def get_topic_distribution(
 
     try:
         import spacy
+
         nlp = spacy.load("en_core_web_sm")
     except Exception:
         nlp = None
@@ -201,11 +202,47 @@ def get_topic_distribution(
             for word in seg.text.split():
                 clean_word = "".join(c for c in word if c.isalnum()).title()
                 if len(clean_word) > 4 and clean_word not in (
-                    "About", "There", "Their", "Would", "Could", "Which", "Thats", "Think", "Ensure",
-                    "Going", "Maybe", "Should", "Really", "Using", "Where", "These", "Those", "Every",
-                    "Other", "Because", "Through", "Under", "Before", "After", "Still", "Always",
-                    "Never", "Something", "Anything", "Someone", "Anyone", "First", "Second", "Third",
-                    "Right", "People", "Things", "Doing", "Table", "Query", "Field"
+                    "About",
+                    "There",
+                    "Their",
+                    "Would",
+                    "Could",
+                    "Which",
+                    "Thats",
+                    "Think",
+                    "Ensure",
+                    "Going",
+                    "Maybe",
+                    "Should",
+                    "Really",
+                    "Using",
+                    "Where",
+                    "These",
+                    "Those",
+                    "Every",
+                    "Other",
+                    "Because",
+                    "Through",
+                    "Under",
+                    "Before",
+                    "After",
+                    "Still",
+                    "Always",
+                    "Never",
+                    "Something",
+                    "Anything",
+                    "Someone",
+                    "Anyone",
+                    "First",
+                    "Second",
+                    "Third",
+                    "Right",
+                    "People",
+                    "Things",
+                    "Doing",
+                    "Table",
+                    "Query",
+                    "Field",
                 ):
                     candidates.append(clean_word)
 

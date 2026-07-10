@@ -120,7 +120,7 @@ class MeetingListOut(BaseModel):
     original_filename: Optional[str] = None
     file_size: Optional[int] = None
     content_type: Optional[str] = None
-    
+
     # Detailed fields for dashboard/calendar
     executive_summary: Optional[str] = None
     description: Optional[str] = None
@@ -173,7 +173,7 @@ class MeetingDetailOut(BaseModel):
 def get_meetings(
     include_future: bool = False,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     # Automatically clean up stuck meetings (older than 15 minutes in non-terminal states)
     try:
@@ -202,7 +202,7 @@ def get_meetings(
                         Meeting.status.in_(["UPLOADED", "Uploaded", "uploaded"])
                         & Meeting.recording_url.isnot(None)
                     )
-                )
+                ),
             )
             .all()
         )
@@ -222,14 +222,16 @@ def get_meetings(
         logger.error(f"Error cleaning up stuck meetings: {e}")
         db.rollback()
 
-    query = db.query(Meeting).filter(Meeting.organization_id == current_user.organization_id)
+    query = db.query(Meeting).filter(
+        Meeting.organization_id == current_user.organization_id
+    )
     if not include_future:
         now = datetime.utcnow()
         # Exclude meetings that are scheduled for the future and have not started (no recording and UPLOADED)
         query = query.filter(
-            (Meeting.meeting_date <= now) |
-            (Meeting.status.notin_(["UPLOADED", "Uploaded", "uploaded"])) |
-            (Meeting.recording_url.isnot(None))
+            (Meeting.meeting_date <= now)
+            | (Meeting.status.notin_(["UPLOADED", "Uploaded", "uploaded"]))
+            | (Meeting.recording_url.isnot(None))
         )
 
     meetings = query.order_by(Meeting.meeting_date.desc()).all()
@@ -257,24 +259,21 @@ def get_meeting(
     # Automatically clean up if stuck
     try:
         stale_threshold = datetime.utcnow() - timedelta(minutes=15)
-        is_stuck_processing = (
-            meeting.status.in_(
-                [
-                    "PROCESSING",
-                    "TRANSCRIBED",
-                    "ANALYZING",
-                    "Processing",
-                    "Transcribed",
-                    "Analyzing",
-                    "processing",
-                    "transcribed",
-                    "analyzing",
-                ]
-            )
-            or (
-                meeting.status in ["UPLOADED", "Uploaded", "uploaded"]
-                and meeting.recording_url is not None
-            )
+        is_stuck_processing = meeting.status.in_(
+            [
+                "PROCESSING",
+                "TRANSCRIBED",
+                "ANALYZING",
+                "Processing",
+                "Transcribed",
+                "Analyzing",
+                "processing",
+                "transcribed",
+                "analyzing",
+            ]
+        ) or (
+            meeting.status in ["UPLOADED", "Uploaded", "uploaded"]
+            and meeting.recording_url is not None
         )
         if is_stuck_processing and meeting.created_at < stale_threshold:
             meeting.status = "FAILED"

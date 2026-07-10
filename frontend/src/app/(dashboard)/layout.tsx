@@ -93,12 +93,12 @@ export default function DashboardLayout({
 
   if (isAuthenticated !== true) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
-        <div className="p-3 bg-[#0f766e] rounded-2xl shadow-lg shadow-[#0f766e]/15 animate-bounce">
+      <div className="min-h-screen bg-[#F9F8F6] flex flex-col items-center justify-center gap-4">
+        <div className="p-3 bg-[#113229] rounded-2xl shadow-lg shadow-[#113229]/15 animate-bounce">
           <Brain className="w-8 h-8 text-white" />
         </div>
         <div className="flex items-center gap-2">
-          <Loader2 className="w-5 h-5 text-[#0f766e] animate-spin" />
+          <Loader2 className="w-5 h-5 text-[#113229] animate-spin" />
           <span className="font-outfit text-sm font-medium text-slate-500">
             {isAuthenticated === false ? "Redirecting to login..." : "Verifying session..."}
           </span>
@@ -108,7 +108,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="h-screen flex flex-col selection:bg-[#0f766e] selection:text-white text-[#0f172a] bg-slate-50 overflow-hidden">
+    <div className="h-screen flex flex-col selection:bg-[#113229] selection:text-white text-[#102C23] bg-[#F9F8F6] overflow-hidden">
       {/* Top Navbar */}
       <Navbar 
         userName={userName} 
@@ -130,7 +130,7 @@ export default function DashboardLayout({
         />
 
         {/* Main Workspace - Controlled height and independent scrolling */}
-        <div className="flex-1 overflow-y-auto h-full bg-slate-50">
+        <div className="flex-1 overflow-y-auto h-full bg-[#F9F8F6]">
           {children}
         </div>
       </div>

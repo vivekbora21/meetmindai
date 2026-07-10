@@ -27,9 +27,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         </span>
         <button
           onClick={onReopen}
-          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", background: "#fff", fontSize: "11px", fontWeight: 700, color: "#0f766e", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}
+          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", background: "#fff", fontSize: "11px", fontWeight: 700, color: "#113229", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}
         >
-          <Unlock size={12} color="#0f766e" />
+          <Unlock size={12} color="#113229" />
           Reopen Session
         </button>
       </div>
@@ -64,14 +64,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           border: "none",
           outline: "none",
           fontSize: "13px",
-          color: "#0f172a",
+          color: "#102C23",
           fontFamily: "'Inter', sans-serif",
           fontWeight: 450,
         }}
         onFocus={(e) => {
           const form = e.currentTarget.closest("form");
           if (form) {
-            (form as HTMLElement).style.borderColor = "#0f766e";
+            (form as HTMLElement).style.borderColor = "#113229";
             (form as HTMLElement).style.background = "#fff";
           }
         }}
@@ -89,7 +89,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         style={{
           padding: "7px",
           borderRadius: "10px",
-          background: chatLoading || !chatInput.trim() ? "#94a3b8" : "linear-gradient(135deg, #0f766e, #0d9488)",
+          background: chatLoading || !chatInput.trim() ? "#94a3b8" : "linear-gradient(135deg, #113229, #0D241E)",
           border: "none",
           cursor: chatLoading || !chatInput.trim() ? "not-allowed" : "pointer",
           display: "flex",

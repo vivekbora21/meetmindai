@@ -33,7 +33,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
           width: "100%",
           padding: "10px 14px",
           borderRadius: "12px",
-          background: "linear-gradient(135deg, #0f766e 0%, #0d9488 100%)",
+          background: "linear-gradient(135deg, #113229 0%, #0D241E 100%)",
           color: "#ffffff",
           fontSize: "12px",
           fontWeight: 650,
@@ -113,7 +113,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                   fontSize: "12px",
                   fontWeight: isActive ? 600 : 500,
                   background: isActive ? "#f0fdfa" : "transparent",
-                  color: isActive ? "#0f766e" : "#475569",
+                  color: isActive ? "#113229" : "#475569",
                   border: isActive ? "1px solid #ccfbf1" : "1px solid transparent",
                   cursor: "pointer",
                   display: "flex",
@@ -126,7 +126,7 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
                 onMouseEnter={(e) => {
                   if (!isActive) {
                     e.currentTarget.style.background = "#f8fafc";
-                    e.currentTarget.style.color = "#0f172a";
+                    e.currentTarget.style.color = "#102C23";
                   }
                 }}
                 onMouseLeave={(e) => {

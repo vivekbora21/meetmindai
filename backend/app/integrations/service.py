@@ -54,14 +54,17 @@ class IntegrationService:
 
         if provider_name == "microsoft":
             from app.services.microsoft_calendar import MicrosoftCalendarService
+
             await MicrosoftCalendarService().sync_calendar_events(db, user_id)
 
         elif provider_name == "google":
             from app.services.google_calendar import GoogleCalendarService
+
             await GoogleCalendarService().sync_calendar_events(db, user_id)
 
         elif provider_name == "zoom":
             from app.services.zoom_calendar import ZoomCalendarService
+
             await ZoomCalendarService().sync_calendar_events(db, user_id)
 
         else:

@@ -9,7 +9,7 @@ interface MeetingHeaderProps {
 export const MeetingHeader: React.FC<MeetingHeaderProps> = ({ detail }) => {
   return (
     <div className="flex flex-col gap-2">
-      <h1 className="text-3xl font-bold font-outfit text-[#0f172a] tracking-tight">{detail.title}</h1>
+      <h1 className="text-3xl font-bold font-outfit text-[#102C23] tracking-tight">{detail.title}</h1>
       <div className="flex items-center gap-4 text-xs text-slate-500 font-medium">
         <span className="flex items-center gap-1">
           <Calendar className="w-3.5 h-3.5" />
@@ -19,7 +19,7 @@ export const MeetingHeader: React.FC<MeetingHeaderProps> = ({ detail }) => {
           <Clock className="w-3.5 h-3.5" />
           {Math.floor((detail.duration_seconds || 0) / 60)} Mins {Math.floor((detail.duration_seconds || 0) % 60)} Secs
         </span>
-        <span className="px-2.5 py-0.5 rounded-full bg-[#e6f4f1] border border-teal-150 text-[#0f766e] font-semibold text-[10px] shadow-sm">
+        <span className="px-2.5 py-0.5 rounded-full bg-[#e6f4f1] border border-teal-150 text-[#113229] font-semibold text-[10px] shadow-sm">
           {detail.platform || "Upload"}
         </span>
       </div>

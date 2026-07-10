@@ -24,6 +24,7 @@ def _is_permission_error(exc: Exception) -> bool:
     Transient errors (502, 500, network timeouts) return False and will be retried.
     """
     from fastapi import HTTPException as _HTTPException
+
     if isinstance(exc, _HTTPException):
         return exc.status_code in (401, 403)
     msg = str(exc).lower()
@@ -90,51 +91,76 @@ class BackgroundSchedulerService:
     async def refresh_expired_tokens(self):
         """Refreshes tokens that are expired or expiring in the next 5 minutes."""
         expiry_threshold = datetime.utcnow() + timedelta(minutes=5)
-        expiring_accounts = self.db.query(ConnectedAccount).filter(
-            ConnectedAccount.connection_status == "Connected",
-            ConnectedAccount.expires_at <= expiry_threshold
-        ).all()
+        expiring_accounts = (
+            self.db.query(ConnectedAccount)
+            .filter(
+                ConnectedAccount.connection_status == "Connected",
+                ConnectedAccount.expires_at <= expiry_threshold,
+            )
+            .all()
+        )
 
-        logger.info(f"Scheduler | Found {len(expiring_accounts)} accounts needing token refresh.")
+        logger.info(
+            f"Scheduler | Found {len(expiring_accounts)} accounts needing token refresh."
+        )
         for acc in expiring_accounts:
             try:
-                logger.info(f"Scheduler | Refreshing tokens for {acc.provider} account: {acc.email}")
+                logger.info(
+                    f"Scheduler | Refreshing tokens for {acc.provider} account: {acc.email}"
+                )
                 provider_name = (
                     acc.provider.value
                     if hasattr(acc.provider, "value")
                     else str(acc.provider)
                 )
                 oauth_provider = get_provider(provider_name)
-                new_tokens = await oauth_provider.refresh_access_token(acc.refresh_token)
+                new_tokens = await oauth_provider.refresh_access_token(
+                    acc.refresh_token
+                )
                 from app.utils.encryption import encrypt_value
+
                 acc.access_token = encrypt_value(new_tokens["access_token"])
                 if new_tokens.get("refresh_token"):
                     acc.refresh_token = encrypt_value(new_tokens["refresh_token"])
-                acc.expires_at = datetime.utcnow() + timedelta(seconds=new_tokens.get("expires_in", 3600))
+                acc.expires_at = datetime.utcnow() + timedelta(
+                    seconds=new_tokens.get("expires_in", 3600)
+                )
                 acc.connection_status = "Connected"
                 self.db.commit()
             except Exception as e:
                 self.db.rollback()
-                logger.error(f"Scheduler | Failed to refresh token for connected account {acc.id}: {e}")
+                logger.error(
+                    f"Scheduler | Failed to refresh token for connected account {acc.id}: {e}"
+                )
                 acc.connection_status = "Expired"
                 acc.sync_errors = f"Token refresh failed: {str(e)}"
                 self.db.commit()
 
     async def sync_calendars(self):
         """Synchronizes calendars for connected accounts configured with auto_sync."""
-        accounts = self.db.query(ConnectedAccount).filter(
-            ConnectedAccount.connection_status == "Connected",
-            ConnectedAccount.auto_sync == True
-        ).all()
+        accounts = (
+            self.db.query(ConnectedAccount)
+            .filter(
+                ConnectedAccount.connection_status == "Connected",
+                ConnectedAccount.auto_sync == True,
+            )
+            .all()
+        )
 
         logger.info(f"Scheduler | Syncing calendars for {len(accounts)} accounts.")
         for acc in accounts:
             try:
-                logger.info(f"Scheduler | Triggering auto calendar sync for {acc.provider} - {acc.email}")
+                logger.info(
+                    f"Scheduler | Triggering auto calendar sync for {acc.provider} - {acc.email}"
+                )
                 if acc.provider == Provider.GOOGLE:
-                    await self.google_calendar.sync_calendar_events(self.db, acc.user_id)
+                    await self.google_calendar.sync_calendar_events(
+                        self.db, acc.user_id
+                    )
                 elif acc.provider == Provider.MICROSOFT:
-                    await self.microsoft_calendar.sync_calendar_events(self.db, acc.user_id)
+                    await self.microsoft_calendar.sync_calendar_events(
+                        self.db, acc.user_id
+                    )
                 elif acc.provider == Provider.ZOOM or acc.provider == "zoom":
                     await self.zoom_calendar.sync_calendar_events(self.db, acc.user_id)
             except Exception as e:
@@ -178,55 +204,69 @@ class BackgroundSchedulerService:
         window_start = now + timedelta(minutes=2)
         window_end = now + timedelta(minutes=5)
 
-        upcoming_meetings = self.db.query(Meeting).filter(
-            Meeting.meeting_date >= window_start,
-            Meeting.meeting_date <= window_end,
-            Meeting.provider.isnot(None),
-            Meeting.join_status == "Scheduled"
-        ).all()
+        upcoming_meetings = (
+            self.db.query(Meeting)
+            .filter(
+                Meeting.meeting_date >= window_start,
+                Meeting.meeting_date <= window_end,
+                Meeting.provider.isnot(None),
+                Meeting.join_status == "Scheduled",
+            )
+            .all()
+        )
 
-        logger.info(f"Scheduler | Preparing {len(upcoming_meetings)} upcoming meetings for bot joining.")
+        logger.info(
+            f"Scheduler | Preparing {len(upcoming_meetings)} upcoming meetings for bot joining."
+        )
         for m in upcoming_meetings:
             try:
-                logger.info(f"Scheduler | Setting meeting '{m.title}' to 'Ready to Join' status.")
+                logger.info(
+                    f"Scheduler | Setting meeting '{m.title}' to 'Ready to Join' status."
+                )
                 m.join_status = "Ready to Join"
                 # Keep status in sync as well
                 m.status = "PROCESSING"  # Set to PROCESSING so frontend knows it's actively ingestion-ready
                 self.db.commit()
             except Exception as e:
                 self.db.rollback()
-                logger.error(f"Scheduler | Failed to prepare meeting {m.id} for joining: {e}")
+                logger.error(
+                    f"Scheduler | Failed to prepare meeting {m.id} for joining: {e}"
+                )
 
     async def cleanup_duplicate_meetings(self):
         """Cleans up duplicate meetings in the database (same provider + provider_event_id)."""
-        duplicates = self.db.execute(
-            text(
-                """
+        duplicates = self.db.execute(text("""
                 SELECT provider, provider_event_id, organization_id, COUNT(*)
                 FROM meetings
                 WHERE provider IS NOT NULL AND provider_event_id IS NOT NULL
                 GROUP BY provider, provider_event_id, organization_id
                 HAVING COUNT(*) > 1
-                """
-            )
-        ).fetchall()
-
+                """)).fetchall()
 
         if duplicates:
-            logger.info(f"Scheduler | Found {len(duplicates)} duplicate group records. Cleaning up...")
+            logger.info(
+                f"Scheduler | Found {len(duplicates)} duplicate group records. Cleaning up..."
+            )
             for dup in duplicates:
                 prov, ev_id, org_id, _ = dup
                 # Fetch all meetings matching these fields, ordered by last_synced_at desc
-                meetings = self.db.query(Meeting).filter(
-                    Meeting.provider == prov,
-                    Meeting.provider_event_id == ev_id,
-                    Meeting.organization_id == org_id
-                ).order_by(Meeting.last_synced_at.desc()).all()
+                meetings = (
+                    self.db.query(Meeting)
+                    .filter(
+                        Meeting.provider == prov,
+                        Meeting.provider_event_id == ev_id,
+                        Meeting.organization_id == org_id,
+                    )
+                    .order_by(Meeting.last_synced_at.desc())
+                    .all()
+                )
 
                 # Keep the first, delete the rest
                 primary = meetings[0]
                 for m in meetings[1:]:
-                    logger.info(f"Scheduler | Deleting duplicate meeting record ID: {m.id}")
+                    logger.info(
+                        f"Scheduler | Deleting duplicate meeting record ID: {m.id}"
+                    )
                     self.db.delete(m)
             self.db.commit()
 
@@ -234,19 +274,32 @@ class BackgroundSchedulerService:
         """Retries calendar synchronization for accounts with transient sync errors.
         Accounts in 'needs_reauthorization' status are deliberately excluded.
         """
-        failed_accounts = self.db.query(ConnectedAccount).filter(
-            ConnectedAccount.connection_status == "Connected",  # excludes needs_reauthorization
-            ConnectedAccount.sync_errors.isnot(None)
-        ).all()
+        failed_accounts = (
+            self.db.query(ConnectedAccount)
+            .filter(
+                ConnectedAccount.connection_status
+                == "Connected",  # excludes needs_reauthorization
+                ConnectedAccount.sync_errors.isnot(None),
+            )
+            .all()
+        )
 
-        logger.info(f"Scheduler | Retrying {len(failed_accounts)} accounts with transient sync errors.")
+        logger.info(
+            f"Scheduler | Retrying {len(failed_accounts)} accounts with transient sync errors."
+        )
         for acc in failed_accounts:
             try:
-                logger.info(f"Scheduler | Retrying calendar sync for {acc.provider} - {acc.email}")
+                logger.info(
+                    f"Scheduler | Retrying calendar sync for {acc.provider} - {acc.email}"
+                )
                 if acc.provider == Provider.GOOGLE:
-                    await self.google_calendar.sync_calendar_events(self.db, acc.user_id)
+                    await self.google_calendar.sync_calendar_events(
+                        self.db, acc.user_id
+                    )
                 elif acc.provider == Provider.MICROSOFT:
-                    await self.microsoft_calendar.sync_calendar_events(self.db, acc.user_id)
+                    await self.microsoft_calendar.sync_calendar_events(
+                        self.db, acc.user_id
+                    )
                 elif acc.provider == Provider.ZOOM or acc.provider == "zoom":
                     await self.zoom_calendar.sync_calendar_events(self.db, acc.user_id)
                 acc.sync_errors = None

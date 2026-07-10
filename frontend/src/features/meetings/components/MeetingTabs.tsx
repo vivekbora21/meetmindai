@@ -23,8 +23,8 @@ export const MeetingTabs: React.FC<MeetingTabsProps> = ({ activeTab, setActiveTa
           onClick={() => setActiveTab(tab.id)}
           className={`px-4 py-2 text-xs font-bold font-outfit rounded-t-xl transition-all whitespace-nowrap ${
             activeTab === tab.id
-              ? "bg-white border-t border-x border-slate-200 text-[#0f766e] -mb-[1px]"
-              : "text-slate-500 hover:text-[#0f172a] hover:bg-white/40"
+              ? "bg-white border-t border-x border-slate-200 text-[#113229] -mb-[1px]"
+              : "text-slate-500 hover:text-[#102C23] hover:bg-white/40"
           }`}
         >
           {tab.label}

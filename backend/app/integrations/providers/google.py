@@ -101,8 +101,14 @@ class GoogleOAuthProvider(AbstractOAuthProvider):
 
                 if response.status_code != 200:
                     err = response.json()
-                    msg = err.get("error_description") or err.get("error") or "Token exchange error"
-                    logger.error(f"[Google] Token exchange failed: {response.status_code} {msg}")
+                    msg = (
+                        err.get("error_description")
+                        or err.get("error")
+                        or "Token exchange error"
+                    )
+                    logger.error(
+                        f"[Google] Token exchange failed: {response.status_code} {msg}"
+                    )
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Google token exchange failed: {msg}",
@@ -140,7 +146,9 @@ class GoogleOAuthProvider(AbstractOAuthProvider):
                 )
 
                 if response.status_code != 200:
-                    logger.error(f"[Google] Profile fetch failed: {response.status_code} {response.text}")
+                    logger.error(
+                        f"[Google] Profile fetch failed: {response.status_code} {response.text}"
+                    )
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Failed to retrieve Google user profile details.",
@@ -196,8 +204,14 @@ class GoogleOAuthProvider(AbstractOAuthProvider):
 
                 if response.status_code != 200:
                     err = response.json()
-                    msg = err.get("error_description") or err.get("error") or "Token refresh error"
-                    logger.error(f"[Google] Token refresh failed: {response.status_code} {msg}")
+                    msg = (
+                        err.get("error_description")
+                        or err.get("error")
+                        or "Token refresh error"
+                    )
+                    logger.error(
+                        f"[Google] Token refresh failed: {response.status_code} {msg}"
+                    )
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail=f"Google refresh token failed: {msg}",

@@ -48,7 +48,9 @@ class ZoomOAuthProvider(AbstractOAuthProvider):
 
     def _basic_auth_header(self) -> str:
         """Returns the Base64-encoded Basic auth header value for Zoom's token endpoint."""
-        b64 = base64.b64encode(f"{self.client_id}:{self.client_secret}".encode()).decode()
+        b64 = base64.b64encode(
+            f"{self.client_id}:{self.client_secret}".encode()
+        ).decode()
         return f"Basic {b64}"
 
     # ------------------------------------------------------------------
@@ -99,22 +101,32 @@ class ZoomOAuthProvider(AbstractOAuthProvider):
         async with httpx.AsyncClient() as client:
             try:
                 logger.info("[Zoom] Exchanging authorization code for tokens.")
-                response = await client.post(self.token_url, data=data, headers=headers, timeout=10.0)
+                response = await client.post(
+                    self.token_url, data=data, headers=headers, timeout=10.0
+                )
 
                 if response.status_code != 200:
                     try:
                         err = response.json()
-                        msg = err.get("reason") or err.get("error") or "Token exchange error"
+                        msg = (
+                            err.get("reason")
+                            or err.get("error")
+                            or "Token exchange error"
+                        )
                     except Exception:
                         msg = response.text or "Token exchange error"
-                    logger.error(f"[Zoom] Token exchange failed: {response.status_code} {msg}")
+                    logger.error(
+                        f"[Zoom] Token exchange failed: {response.status_code} {msg}"
+                    )
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Zoom token exchange failed: {msg}",
                     )
 
                 tokens = response.json()
-                logger.info(f"[Zoom] Token exchange successful | granted_scopes='{tokens.get('scope')}'")
+                logger.info(
+                    f"[Zoom] Token exchange successful | granted_scopes='{tokens.get('scope')}'"
+                )
                 return {
                     "access_token": tokens.get("access_token"),
                     "refresh_token": tokens.get("refresh_token"),
@@ -145,7 +157,9 @@ class ZoomOAuthProvider(AbstractOAuthProvider):
                 )
 
                 if response.status_code != 200:
-                    logger.error(f"[Zoom] Profile fetch failed: {response.status_code} {response.text}")
+                    logger.error(
+                        f"[Zoom] Profile fetch failed: {response.status_code} {response.text}"
+                    )
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Failed to retrieve Zoom user profile details.",
@@ -196,12 +210,16 @@ class ZoomOAuthProvider(AbstractOAuthProvider):
         async with httpx.AsyncClient() as client:
             try:
                 logger.info("[Zoom] Refreshing access token.")
-                response = await client.post(self.token_url, data=data, headers=headers, timeout=10.0)
+                response = await client.post(
+                    self.token_url, data=data, headers=headers, timeout=10.0
+                )
 
                 if response.status_code != 200:
                     err = response.json()
                     msg = err.get("reason") or err.get("error") or "Token refresh error"
-                    logger.error(f"[Zoom] Token refresh failed: {response.status_code} {msg}")
+                    logger.error(
+                        f"[Zoom] Token refresh failed: {response.status_code} {msg}"
+                    )
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail=f"Zoom refresh token failed: {msg}",

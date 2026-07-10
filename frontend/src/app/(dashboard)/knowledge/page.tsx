@@ -26,18 +26,18 @@ export default function KnowledgeGraph() {
   });
 
   return (
-    <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#0f172a]">
+    <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#102C23]">
       <header className="w-full flex items-center justify-between border-b border-slate-200 pb-6 mb-8">
-        <h1 className="text-lg font-bold font-outfit text-[#0f172a]">Organizational Knowledge Graph</h1>
-        <span className="text-xs text-[#0f766e] font-bold flex items-center gap-1.5 bg-teal-50 px-3 py-1.5 rounded-full border border-teal-100 shadow-sm">
-          <Network className="w-4 h-4 text-[#0f766e]" /> Knowledge Graph
+        <h1 className="text-lg font-bold font-outfit text-[#102C23]">Organizational Knowledge Graph</h1>
+        <span className="text-xs text-[#113229] font-bold flex items-center gap-1.5 bg-teal-50 px-3 py-1.5 rounded-full border border-teal-100 shadow-sm">
+          <Network className="w-4 h-4 text-[#113229]" /> Knowledge Graph
         </span>
       </header>
 
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-grow overflow-hidden">
         <section className="lg:col-span-4 flex flex-col gap-6">
           <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-            <h3 className="text-sm font-bold text-[#0f172a]">Graph Controls</h3>
+            <h3 className="text-sm font-bold text-[#102C23]">Graph Controls</h3>
             <div className="relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
               <input
@@ -45,7 +45,7 @@ export default function KnowledgeGraph() {
                 placeholder="Search nodes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-slate-200 text-xs focus:outline-none focus:border-[#0f766e] text-slate-800 shadow-sm"
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-white border border-slate-200 text-xs focus:outline-none focus:border-[#113229] text-slate-800 shadow-sm"
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -55,8 +55,8 @@ export default function KnowledgeGraph() {
                   onClick={() => setFilterType(type)}
                   className={`text-[10px] px-3 py-1.5 rounded-full border capitalize font-semibold transition-colors ${
                     filterType === type
-                      ? "bg-[#0f766e] border-[#0f766e] text-white shadow-sm"
-                      : "bg-white border-slate-200 text-slate-500 hover:text-[#0f172a] hover:border-slate-350"
+                      ? "bg-[#113229] border-[#113229] text-white shadow-sm"
+                      : "bg-white border-slate-200 text-slate-500 hover:text-[#102C23] hover:border-slate-350"
                   }`}
                 >
                   {type}
@@ -69,10 +69,10 @@ export default function KnowledgeGraph() {
             <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-[#0f766e] tracking-wider">{selectedNode.type}</span>
-                  <h4 className="text-base font-bold text-[#0f172a] mt-0.5">{selectedNode.name}</h4>
+                  <span className="text-[10px] uppercase font-bold text-[#113229] tracking-wider">{selectedNode.type}</span>
+                  <h4 className="text-base font-bold text-[#102C23] mt-0.5">{selectedNode.name}</h4>
                 </div>
-                <button onClick={() => setSelectedNode(null)} className="text-xs text-slate-400 hover:text-[#0f172a]">
+                <button onClick={() => setSelectedNode(null)} className="text-xs text-slate-400 hover:text-[#102C23]">
                   Clear
                 </button>
               </div>
@@ -88,7 +88,7 @@ export default function KnowledgeGraph() {
                       <span
                         key={connId}
                         onClick={() => setSelectedNode(connNode)}
-                        className="px-2.5 py-1 bg-slate-50 border border-slate-200 text-[10px] text-slate-600 rounded-full hover:border-[#0f766e]/50 cursor-pointer transition-colors"
+                        className="px-2.5 py-1 bg-[#F9F8F6] border border-slate-200 text-[10px] text-slate-600 rounded-full hover:border-[#113229]/50 cursor-pointer transition-colors"
                       >
                         {connNode.name}
                       </span>
@@ -119,42 +119,42 @@ export default function KnowledgeGraph() {
           <div className="relative w-full h-full min-h-[400px]">
             <div
               onClick={() => setSelectedNode(graphNodes[0])}
-              className="absolute left-[80px] top-[80px] px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#0f766e] cursor-pointer flex items-center gap-2 text-xs transition-all shadow-md hover:scale-105"
+              className="absolute left-[80px] top-[80px] px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#113229] cursor-pointer flex items-center gap-2 text-xs transition-all shadow-md hover:scale-105"
             >
-              <User className="w-3.5 h-3.5 text-[#0f766e]" />
-              <span className="font-semibold text-[#0f172a]">Vivek Singh Bora</span>
+              <User className="w-3.5 h-3.5 text-[#113229]" />
+              <span className="font-semibold text-[#102C23]">Vivek Singh Bora</span>
             </div>
 
             <div
               onClick={() => setSelectedNode(graphNodes[1])}
-              className="absolute left-[380px] top-[90px] px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#0f766e] cursor-pointer flex items-center gap-2 text-xs transition-all shadow-md hover:scale-105"
+              className="absolute left-[380px] top-[90px] px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#113229] cursor-pointer flex items-center gap-2 text-xs transition-all shadow-md hover:scale-105"
             >
-              <User className="w-3.5 h-3.5 text-[#0f766e]" />
-              <span className="font-semibold text-[#0f172a]">Alex Rivera</span>
+              <User className="w-3.5 h-3.5 text-[#113229]" />
+              <span className="font-semibold text-[#102C23]">Alex Rivera</span>
             </div>
 
             <div
               onClick={() => setSelectedNode(graphNodes[2])}
-              className="absolute left-[220px] top-[180px] px-4 py-2.5 rounded-xl bg-white border border-teal-100 hover:border-[#0f766e] cursor-pointer flex items-center gap-2 text-xs transition-all shadow-md hover:scale-105"
+              className="absolute left-[220px] top-[180px] px-4 py-2.5 rounded-xl bg-white border border-teal-100 hover:border-[#113229] cursor-pointer flex items-center gap-2 text-xs transition-all shadow-md hover:scale-105"
             >
-              <FileText className="w-3.5 h-3.5 text-[#0f766e]" />
-              <span className="font-bold text-[#0f766e]">Auth Migration</span>
+              <FileText className="w-3.5 h-3.5 text-[#113229]" />
+              <span className="font-bold text-[#113229]">Auth Migration</span>
             </div>
 
             <div
               onClick={() => setSelectedNode(graphNodes[3])}
-              className="absolute left-[20px] top-[240px] px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#0f766e] cursor-pointer flex items-center gap-2 text-xs transition-all shadow-md hover:scale-105"
+              className="absolute left-[20px] top-[240px] px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#113229] cursor-pointer flex items-center gap-2 text-xs transition-all shadow-md hover:scale-105"
             >
               <FileText className="w-3.5 h-3.5 text-slate-400" />
-              <span className="font-semibold text-[#0f172a]">RecruitEase Pro</span>
+              <span className="font-semibold text-[#102C23]">RecruitEase Pro</span>
             </div>
 
             <div
               onClick={() => setSelectedNode(graphNodes[4])}
-              className="absolute left-[220px] top-[310px] px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#0f766e] cursor-pointer flex items-center gap-2 text-xs transition-all shadow-md hover:scale-105"
+              className="absolute left-[220px] top-[310px] px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#113229] cursor-pointer flex items-center gap-2 text-xs transition-all shadow-md hover:scale-105"
             >
               <Cpu className="w-3.5 h-3.5 text-teal-600" />
-              <span className="font-semibold text-[#0f172a]">PostgreSQL Database</span>
+              <span className="font-semibold text-[#102C23]">PostgreSQL Database</span>
             </div>
           </div>
         </section>

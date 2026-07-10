@@ -56,12 +56,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               onChange={(e) => setNewTitleVal(e.target.value)}
               style={{
                 padding: "4px 8px",
-                border: "1.5px solid #0f766e",
+                border: "1.5px solid #113229",
                 borderRadius: "8px",
                 fontSize: "12px",
                 outline: "none",
                 width: "100%",
-                color: "#0f172a",
+                color: "#102C23",
                 fontFamily: "'Inter', sans-serif",
                 fontWeight: 500,
               }}
@@ -77,7 +77,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                color: "#0f766e",
+                color: "#113229",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -101,7 +101,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 margin: 0,
                 fontWeight: 750,
                 fontSize: "13px",
-                color: "#0f172a",
+                color: "#102C23",
                 fontFamily: "'Outfit', sans-serif",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
@@ -198,7 +198,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "#f8fafc";
-            e.currentTarget.style.color = "#0f172a";
+            e.currentTarget.style.color = "#102C23";
             e.currentTarget.style.borderColor = "#cbd5e1";
           }}
           onMouseLeave={(e) => {
@@ -228,7 +228,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#f0fdfa";
-              e.currentTarget.style.color = "#0f766e";
+              e.currentTarget.style.color = "#113229";
               e.currentTarget.style.borderColor = "#99f6e4";
             }}
             onMouseLeave={(e) => {
@@ -279,7 +279,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "#f8fafc";
-                  e.currentTarget.style.color = "#0f172a";
+                  e.currentTarget.style.color = "#102C23";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "none";
@@ -309,7 +309,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "#f8fafc";
-                  e.currentTarget.style.color = "#0f172a";
+                  e.currentTarget.style.color = "#102C23";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "none";
@@ -339,7 +339,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = "#f8fafc";
-                  e.currentTarget.style.color = "#0f172a";
+                  e.currentTarget.style.color = "#102C23";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = "none";

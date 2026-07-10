@@ -45,8 +45,8 @@ export default function Analytics() {
   const [meetings, setMeetings] = useState<any[]>([]);
 
   // Weekly colors for charts
-  const speakerColors = ["#0f766e", "#0d9488", "#14b8a6", "#2dd4bf", "#99f6e4", "#cbd5e1"];
-  const topicColors = ["#0f766e", "#0d9488", "#14b8a6", "#2dd4bf", "#99f6e4", "#cbd5e1"];
+  const speakerColors = ["#113229", "#0D241E", "#14b8a6", "#2dd4bf", "#99f6e4", "#cbd5e1"];
+  const topicColors = ["#113229", "#0D241E", "#14b8a6", "#2dd4bf", "#99f6e4", "#cbd5e1"];
 
   const calculateWeeklyVelocity = (meetingsList: any[]) => {
     const now = new Date();
@@ -182,7 +182,7 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#0f172a]">
+      <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#102C23]">
         <header className="w-full flex items-center justify-between border-b border-slate-200 pb-6 mb-8">
           <div className="h-7 w-52 bg-slate-200 rounded animate-pulse" />
           <div className="h-8 w-44 bg-slate-200 rounded-full animate-pulse" />
@@ -250,12 +250,12 @@ export default function Analytics() {
   }
 
   return (
-    <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#0f172a]">
+    <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#102C23]">
       {/* Header */}
       <header className="w-full flex items-center justify-between border-b border-slate-200 pb-6 mb-8">
-        <h1 className="text-lg font-bold font-outfit text-[#0f172a]">Organizational Analytics</h1>
-        <span className="text-xs text-[#0f766e] font-bold flex items-center gap-1.5 bg-teal-50 px-3 py-1.5 rounded-full border border-teal-100 shadow-sm">
-          <BarChart3 className="w-4 h-4 text-[#0f766e]" /> Organizational Insights
+        <h1 className="text-lg font-bold font-outfit text-[#102C23]">Organizational Analytics</h1>
+        <span className="text-xs text-[#113229] font-bold flex items-center gap-1.5 bg-teal-50 px-3 py-1.5 rounded-full border border-teal-100 shadow-sm">
+          <BarChart3 className="w-4 h-4 text-[#113229]" /> Organizational Insights
         </span>
       </header>
 
@@ -274,7 +274,7 @@ export default function Analytics() {
           <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-1 shadow-sm hover:shadow-md transition-all group">
             <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Overall Effectiveness</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-extrabold font-outfit text-[#0f172a]">{overview.productivity_score}%</span>
+              <span className="text-3xl font-extrabold font-outfit text-[#102C23]">{overview.productivity_score}%</span>
               {overview.productivity_score > 80 && (
                 <span className="text-xs text-emerald-600 font-bold flex items-center">
                   <TrendingUp className="w-3.5 h-3.5 mr-0.5" /> High
@@ -290,7 +290,7 @@ export default function Analytics() {
               Decision Velocity
             </span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-extrabold font-outfit text-[#0f172a]">{decisionsPerHour} / hr</span>
+              <span className="text-3xl font-extrabold font-outfit text-[#102C23]">{decisionsPerHour} / hr</span>
             </div>
             <p className="text-[10px] text-slate-500 mt-2 font-medium">Avg {overview.decision_velocity} decisions per meeting</p>
           </div>
@@ -299,7 +299,7 @@ export default function Analytics() {
           <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-1 shadow-sm hover:shadow-md transition-all group">
             <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Action Completion Rate</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-extrabold font-outfit text-[#0f172a]">{actionCompletionRate}%</span>
+              <span className="text-3xl font-extrabold font-outfit text-[#102C23]">{actionCompletionRate}%</span>
             </div>
             <p className="text-[10px] text-slate-500 mt-2 font-medium">{overview.completed_action_items} of {totalActionItems} items closed</p>
           </div>
@@ -308,7 +308,7 @@ export default function Analytics() {
           <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-1 shadow-sm hover:shadow-md transition-all group">
             <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Meeting Health Score</span>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-extrabold font-outfit text-[#0f172a]">{healthGrade}</span>
+              <span className="text-3xl font-extrabold font-outfit text-[#102C23]">{healthGrade}</span>
             </div>
             <p className="text-[10px] text-slate-500 mt-2 font-medium">{healthSubtext}</p>
           </div>
@@ -316,8 +316,8 @@ export default function Analytics() {
 
         {/* Speakers Distribution */}
         <section className="md:col-span-6 p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-          <h3 className="text-sm font-bold text-[#0f172a] flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-[#0f766e]" /> Active Speakers Distribution
+          <h3 className="text-sm font-bold text-[#102C23] flex items-center gap-1.5">
+            <Users className="w-4 h-4 text-[#113229]" /> Active Speakers Distribution
           </h3>
 
           <div className="flex flex-col gap-4 mt-2 flex-grow justify-center">
@@ -351,8 +351,8 @@ export default function Analytics() {
 
         {/* Topics Distribution */}
         <section className="md:col-span-6 p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-          <h3 className="text-sm font-bold text-[#0f172a] flex items-center gap-1.5">
-            <Target className="w-4 h-4 text-[#0f766e]" /> Topic Distribution
+          <h3 className="text-sm font-bold text-[#102C23] flex items-center gap-1.5">
+            <Target className="w-4 h-4 text-[#113229]" /> Topic Distribution
           </h3>
 
           <div className="flex flex-col gap-4 mt-2 flex-grow justify-center">
@@ -389,8 +389,8 @@ export default function Analytics() {
 
         {/* Meeting Velocity */}
         <section className="md:col-span-12 p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-          <h3 className="text-sm font-bold text-[#0f172a] flex items-center gap-1.5">
-            <Activity className="w-4 h-4 text-[#0f766e]" /> Meeting Velocity (Weekly)
+          <h3 className="text-sm font-bold text-[#102C23] flex items-center gap-1.5">
+            <Activity className="w-4 h-4 text-[#113229]" /> Meeting Velocity (Weekly)
           </h3>
 
           <div className="h-48 w-full flex items-end justify-between gap-4 mt-4 pt-6 border-b border-slate-200">
@@ -413,7 +413,7 @@ export default function Analytics() {
                       className="w-full rounded-t transition-all duration-300 cursor-pointer hover:opacity-85"
                       style={{ 
                         height: `${heightPct}px`, 
-                        background: "linear-gradient(180deg, #0d9488 0%, #0f766e 100%)" 
+                        background: "linear-gradient(180deg, #0D241E 0%, #113229 100%)" 
                       }}
                     />
                     <span className="text-[10px] text-slate-400 font-bold mt-1">{val.label}</span>

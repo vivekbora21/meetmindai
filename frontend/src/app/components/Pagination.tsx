@@ -51,8 +51,8 @@ export default function Pagination({
     <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-6 bg-white border border-slate-200 rounded-2xl shadow-sm ${className}`}>
       {/* Items status info */}
       <div className="text-xs text-slate-500 font-semibold">
-        Showing <span className="text-[#0f766e] font-bold">{startItem}</span> to{" "}
-        <span className="text-[#0f766e] font-bold">{endItem}</span> of{" "}
+        Showing <span className="text-[#113229] font-bold">{startItem}</span> to{" "}
+        <span className="text-[#113229] font-bold">{endItem}</span> of{" "}
         <span className="text-slate-800 font-extrabold">{totalItems}</span> items
       </div>
 
@@ -62,7 +62,7 @@ export default function Pagination({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-[#0f766e] hover:border-[#0f766e]/30 disabled:opacity-40 disabled:hover:text-slate-500 disabled:hover:border-slate-200 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
+          className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-[#113229] hover:border-[#113229]/30 disabled:opacity-40 disabled:hover:text-slate-500 disabled:hover:border-slate-200 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
           aria-label="Previous Page"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -87,8 +87,8 @@ export default function Pagination({
               onClick={() => onPageChange(pageNum)}
               className={`min-w-[36px] h-9 px-2 rounded-xl text-xs font-bold border transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "bg-[#0f766e] border-[#0f766e] text-white shadow-sm shadow-teal-600/10"
-                  : "bg-white border-slate-200 text-slate-600 hover:text-[#0f766e] hover:border-[#0f766e]/30"
+                  ? "bg-[#113229] border-[#113229] text-white shadow-sm shadow-teal-600/10"
+                  : "bg-white border-slate-200 text-slate-600 hover:text-[#113229] hover:border-[#113229]/30"
               }`}
             >
               {pageNum}
@@ -100,7 +100,7 @@ export default function Pagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-[#0f766e] hover:border-[#0f766e]/30 disabled:opacity-40 disabled:hover:text-slate-500 disabled:hover:border-slate-200 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
+          className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-[#113229] hover:border-[#113229]/30 disabled:opacity-40 disabled:hover:text-slate-500 disabled:hover:border-slate-200 transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
           aria-label="Next Page"
         >
           <ChevronRight className="w-4 h-4" />

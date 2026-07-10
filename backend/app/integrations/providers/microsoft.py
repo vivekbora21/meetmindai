@@ -111,8 +111,14 @@ class MicrosoftOAuthProvider(AbstractOAuthProvider):
 
                 if response.status_code != 200:
                     err = response.json()
-                    msg = err.get("error_description") or err.get("error") or "Token exchange error"
-                    logger.error(f"[Microsoft] Token exchange failed: {response.status_code} {msg}")
+                    msg = (
+                        err.get("error_description")
+                        or err.get("error")
+                        or "Token exchange error"
+                    )
+                    logger.error(
+                        f"[Microsoft] Token exchange failed: {response.status_code} {msg}"
+                    )
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Microsoft token exchange failed: {msg}",
@@ -140,7 +146,10 @@ class MicrosoftOAuthProvider(AbstractOAuthProvider):
     # ------------------------------------------------------------------
 
     async def get_user_profile(self, access_token: str) -> Dict[str, Any]:
-        headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+        }
 
         async with httpx.AsyncClient() as client:
             try:
@@ -153,7 +162,9 @@ class MicrosoftOAuthProvider(AbstractOAuthProvider):
 
                 if response.status_code != 200:
                     msg = response.text or "Graph API error"
-                    logger.error(f"[Microsoft] Graph API profile fetch failed: {response.status_code} {msg}")
+                    logger.error(
+                        f"[Microsoft] Graph API profile fetch failed: {response.status_code} {msg}"
+                    )
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Microsoft Graph API request failed: {msg}",
@@ -209,8 +220,14 @@ class MicrosoftOAuthProvider(AbstractOAuthProvider):
 
                 if response.status_code != 200:
                     err = response.json()
-                    msg = err.get("error_description") or err.get("error") or "Token refresh error"
-                    logger.error(f"[Microsoft] Token refresh failed: {response.status_code} {msg}")
+                    msg = (
+                        err.get("error_description")
+                        or err.get("error")
+                        or "Token refresh error"
+                    )
+                    logger.error(
+                        f"[Microsoft] Token refresh failed: {response.status_code} {msg}"
+                    )
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail=f"Microsoft refresh token failed: {msg}",

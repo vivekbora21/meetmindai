@@ -73,7 +73,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
             <MessageSquare size={22} color="#f43f5e" />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "14px", color: "#0f172a", margin: 0 }}>Chat Unavailable</h3>
+            <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "14px", color: "#102C23", margin: 0 }}>Chat Unavailable</h3>
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "12px", color: "#64748b", maxWidth: 220, lineHeight: 1.6, margin: 0 }}>
               Meeting processing failed. No transcript or insights are available.
             </p>
@@ -92,17 +92,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
       <section className="lg:col-span-5" style={placeholderStyles}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: "16px", textAlign: "center" }}>
           <div style={{ width: 52, height: 52, borderRadius: "14px", background: "#f0fdfb", border: "1px solid #99f6e4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Bot size={22} color="#0f766e" />
+            <Bot size={22} color="#113229" />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "14px", color: "#0f172a", margin: 0 }}>Meeting Chat</h3>
+            <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "14px", color: "#102C23", margin: 0 }}>Meeting Chat</h3>
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "12px", color: "#64748b", maxWidth: 200, lineHeight: 1.6, margin: 0 }}>
               Available once AI finishes processing the transcript.
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#f0fdfb", border: "1px solid #99f6e4", padding: "6px 12px", borderRadius: "99px" }}>
-            <Loader2 size={12} color="#0f766e" className="animate-spin" />
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "10px", fontWeight: 700, color: "#0f766e" }}>AI Pipeline running...</span>
+            <Loader2 size={12} color="#113229" className="animate-spin" />
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "10px", fontWeight: 700, color: "#113229" }}>AI Pipeline running...</span>
           </div>
         </div>
       </section>
@@ -127,7 +127,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
       }}
     >
       {/* Top teal accent */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #0f766e, #5eead4, #0d9488)", zIndex: 10 }} />
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #113229, #5eead4, #0D241E)", zIndex: 10 }} />
 
       <div style={{ display: "flex", flexDirection: "column", height: "100%", paddingTop: "3px", overflow: "hidden" }}>
         {/* Header */}
@@ -202,7 +202,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                       <span style={{ fontSize: "9px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'Inter', sans-serif" }}>MeetMind AI</span>
                       <div style={{ position: "relative", background: "#fff", border: "1px solid #e2e8f0", padding: "12px 16px", borderRadius: "18px 18px 18px 4px", fontSize: "13px", color: "#334155", lineHeight: 1.6, fontWeight: 450, fontFamily: "'Inter', sans-serif", boxShadow: "0 1px 6px rgba(15,23,42,0.06)", overflow: "hidden", maxWidth: "78%" }}>
-                        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, #0f766e, #5eead4)" }} />
+                        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, #113229, #5eead4)" }} />
                         <p style={{ margin: 0 }}>👋 Hi! I've read through the meeting. Ask me anything or pick a suggested question below.</p>
                       </div>
                     </div>
@@ -229,7 +229,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
                         {[0, 150, 300].map((delay, i) => (
                           <span
                             key={i}
-                            style={{ width: 6, height: 6, borderRadius: "50%", background: "#0f766e", display: "inline-block", animationDelay: `${delay}ms` }}
+                            style={{ width: 6, height: 6, borderRadius: "50%", background: "#113229", display: "inline-block", animationDelay: `${delay}ms` }}
                             className="animate-bounce"
                           />
                         ))}

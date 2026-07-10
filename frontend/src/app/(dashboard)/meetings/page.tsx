@@ -22,8 +22,8 @@ const getMeetingStatusInfo = (m: any) => {
   if (isCompleted) {
     return {
       statusLabel: "Completed",
-      badgeClass: "bg-teal-50/50 text-[#0f766e] border-teal-100",
-      iconClass: "bg-teal-50 text-[#0f766e]",
+      badgeClass: "bg-teal-50/50 text-[#113229] border-teal-100",
+      iconClass: "bg-teal-50 text-[#113229]",
       showProcessing: false,
       summaryText: "insights ready",
       hasMedia
@@ -76,8 +76,8 @@ const getMeetingStatusInfo = (m: any) => {
     if (hasEnded) {
       return {
         statusLabel: "Ended",
-        badgeClass: "bg-slate-50 text-slate-500 border-slate-200",
-        iconClass: "bg-slate-50 text-slate-500",
+        badgeClass: "bg-[#F9F8F6] text-slate-500 border-slate-200",
+        iconClass: "bg-[#F9F8F6] text-slate-500",
         showProcessing: false,
         summaryText: "Meeting ended — awaiting recording upload",
         hasMedia
@@ -160,17 +160,17 @@ export default function MeetingsPage() {
   const paginatedMeetings = filteredMeetings.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#0f172a]">
+    <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#102C23]">
       {/* Page Header */}
       <header className="w-full flex items-center justify-between border-b border-slate-200 pb-6 mb-8">
         <div>
-          <h1 className="text-xl font-bold font-outfit text-[#0f172a]">Meetings Archive</h1>
+          <h1 className="text-xl font-bold font-outfit text-[#102C23]">Meetings Archive</h1>
           <p className="text-xs text-slate-400 font-semibold mt-1">
             Browse and search all your analyzed meetings and session transcripts
           </p>
         </div>
-        <span className="text-xs text-[#0f766e] font-bold flex items-center gap-1.5 bg-[#e6f4f1] px-3 py-1.5 rounded-full border border-teal-150 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-[#0f766e]" /> {totalItems} Meetings
+        <span className="text-xs text-[#113229] font-bold flex items-center gap-1.5 bg-[#e6f4f1] px-3 py-1.5 rounded-full border border-teal-150 shadow-sm">
+          <Sparkles className="w-3.5 h-3.5 text-[#113229]" /> {totalItems} Meetings
         </span>
       </header>
 
@@ -184,7 +184,7 @@ export default function MeetingsPage() {
             placeholder="Search meetings by title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm focus:outline-none focus:border-[#0f766e] text-slate-800 shadow-sm"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm focus:outline-none focus:border-[#113229] text-slate-800 shadow-sm"
           />
         </div>
 
@@ -201,8 +201,8 @@ export default function MeetingsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`text-xs px-4 py-1.5 rounded-full font-bold transition-colors ${
                 activeTab === tab.id 
-                  ? "bg-[#0f766e] text-white shadow-sm" 
-                  : "text-slate-500 hover:text-[#0f172a]"
+                  ? "bg-[#113229] text-white shadow-sm" 
+                  : "text-slate-500 hover:text-[#102C23]"
               }`}
             >
               {tab.label}
@@ -228,7 +228,7 @@ export default function MeetingsPage() {
               onClick={() => {
                 router.push(`/meetings/${meeting.id}`);
               }}
-              className={`p-5 flex justify-between items-center gap-4 cursor-pointer hover:bg-slate-50/50 transition-all ${
+              className={`p-5 flex justify-between items-center gap-4 cursor-pointer hover:bg-[#F9F8F6]/50 transition-all ${
                 index < paginatedMeetings.length - 1 ? "border-b border-slate-100" : ""
               }`}
             >
@@ -244,7 +244,7 @@ export default function MeetingsPage() {
                 </div>
 
                 <div className="flex flex-col min-w-0">
-                  <h3 className="font-bold text-[#0f172a] text-[13.5px] leading-tight truncate">
+                  <h3 className="font-bold text-[#102C23] text-[13.5px] leading-tight truncate">
                     {meeting.title}
                   </h3>
                   
@@ -272,7 +272,7 @@ export default function MeetingsPage() {
                   <div className="flex items-center gap-1 text-[11px] font-bold mt-2">
                     {isCompleted ? (
                       <span className="text-slate-500 flex items-center gap-1.5">
-                        <span className="text-[#0f766e] font-extrabold text-xs">✓</span>{" "}
+                        <span className="text-[#113229] font-extrabold text-xs">✓</span>{" "}
                         {getMeetingSummaryText(meeting)}
                       </span>
                     ) : isFailed ? (
@@ -281,7 +281,7 @@ export default function MeetingsPage() {
                       </span>
                     ) : isProcessing ? (
                       <span className="text-slate-400 flex items-center gap-1.5 font-semibold">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0f766e]" /> {statusInfo.summaryText}
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#113229]" /> {statusInfo.summaryText}
                       </span>
                     ) : isOngoing ? (
                       <span className="text-emerald-600 flex items-center gap-1.5 font-semibold animate-pulse">

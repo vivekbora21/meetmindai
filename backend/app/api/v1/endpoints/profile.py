@@ -233,7 +233,9 @@ def get_full_profile(
                         "email": integration.email,
                         "connection_status": integration.connection_status,
                         "last_sync": (
-                            integration.last_sync.isoformat() if integration.last_sync else None
+                            integration.last_sync.isoformat()
+                            if integration.last_sync
+                            else None
                         ),
                         "sync_errors": integration.sync_errors,
                         "auto_sync": integration.auto_sync,
@@ -241,7 +243,9 @@ def get_full_profile(
                         "calendar_sync": integration.calendar_sync,
                     }
                 )
-        elif integration.provider == Provider.GOOGLE or integration.provider == "google":
+        elif (
+            integration.provider == Provider.GOOGLE or integration.provider == "google"
+        ):
             for virtual_provider in ["googlemeet", "googlecalendar"]:
                 user_integrations.append(
                     {
@@ -250,7 +254,9 @@ def get_full_profile(
                         "email": integration.email,
                         "connection_status": integration.connection_status,
                         "last_sync": (
-                            integration.last_sync.isoformat() if integration.last_sync else None
+                            integration.last_sync.isoformat()
+                            if integration.last_sync
+                            else None
                         ),
                         "sync_errors": integration.sync_errors,
                         "auto_sync": integration.auto_sync,
@@ -266,7 +272,9 @@ def get_full_profile(
                     "email": integration.email,
                     "connection_status": integration.connection_status,
                     "last_sync": (
-                        integration.last_sync.isoformat() if integration.last_sync else None
+                        integration.last_sync.isoformat()
+                        if integration.last_sync
+                        else None
                     ),
                     "sync_errors": integration.sync_errors,
                     "auto_sync": integration.auto_sync,
@@ -274,7 +282,6 @@ def get_full_profile(
                     "calendar_sync": integration.calendar_sync,
                 }
             )
-
 
     # Fetch default profile settings
     return {
@@ -529,19 +536,25 @@ def list_integrations(
     return projected
 
 
-
 @router.post("/integrations/connect")
 def connect_integration(
     data: IntegrationConnect,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if data.provider in ["msteams", "outlook", "microsoft", "googlemeet", "googlecalendar", "google", "zoom"]:
+    if data.provider in [
+        "msteams",
+        "outlook",
+        "microsoft",
+        "googlemeet",
+        "googlecalendar",
+        "google",
+        "zoom",
+    ]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Microsoft, Google, and Zoom integrations must be connected via the secure OAuth flow."
+            detail="Microsoft, Google, and Zoom integrations must be connected via the secure OAuth flow.",
         )
-
 
     # Simulates OAuth connection success for non-Microsoft (e.g. other mock/demo apps)
     integration = (
@@ -601,6 +614,7 @@ async def sync_integration(
         raise HTTPException(status_code=404, detail="Integration not found")
 
     from app.integrations.service import IntegrationService
+
     await IntegrationService().sync_integration(db, integration, current_user.id)
 
     integration.last_sync = datetime.utcnow()
@@ -617,7 +631,6 @@ async def sync_integration(
         "message": "Synchronized integration successfully",
         "last_sync": integration.last_sync.isoformat(),
     }
-
 
 
 @router.post("/integrations/{id}/disconnect")

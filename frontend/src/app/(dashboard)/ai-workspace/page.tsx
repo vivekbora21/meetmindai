@@ -571,7 +571,7 @@ export default function AIWorkspacePage() {
       
       if (text.startsWith("**") && text.endsWith("**")) {
         const boldText = text.substring(2, text.length - 2);
-        parts.push(<strong key={`b-${matchIdx}`} className="font-bold text-[#0f172a]">{boldText}</strong>);
+        parts.push(<strong key={`b-${matchIdx}`} className="font-bold text-[#102C23]">{boldText}</strong>);
       } else if (text.startsWith("[") && text.endsWith("]")) {
         const numStr = text.substring(1, text.length - 1);
         const num = parseInt(numStr, 10);
@@ -581,7 +581,7 @@ export default function AIWorkspacePage() {
           <button
             key={`cit-${matchIdx}`}
             onClick={() => source && setActiveSource(source)}
-            className="px-1.5 py-0.5 mx-0.5 rounded bg-[#e6f4f1] text-[#0f766e] text-xs font-bold border border-[#b2e2db]/30 hover:bg-[#0f766e] hover:text-white transition-all cursor-pointer shadow-sm focus:outline-none"
+            className="px-1.5 py-0.5 mx-0.5 rounded bg-[#e6f4f1] text-[#113229] text-xs font-bold border border-[#b2e2db]/30 hover:bg-[#113229] hover:text-white transition-all cursor-pointer shadow-sm focus:outline-none"
             title={source ? `Meeting: ${source.meeting_title}` : `Citation ${num}`}
           >
             [{num}]
@@ -611,7 +611,7 @@ export default function AIWorkspacePage() {
         return <h3 key={idx} className="text-base font-bold text-slate-800 mt-4 mb-2 font-outfit">{renderInlineContent(line.substring(3), sources)}</h3>;
       }
       if (line.startsWith("# ")) {
-        return <h2 key={idx} className="text-lg font-bold text-[#0f766e] mt-4 mb-2 font-outfit">{renderInlineContent(line.substring(2), sources)}</h2>;
+        return <h2 key={idx} className="text-lg font-bold text-[#113229] mt-4 mb-2 font-outfit">{renderInlineContent(line.substring(2), sources)}</h2>;
       }
       if (line.startsWith("- ") || line.startsWith("* ")) {
         return (
@@ -638,7 +638,7 @@ export default function AIWorkspacePage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 relative font-outfit">
+    <div className="flex h-screen overflow-hidden bg-[#F9F8F6] relative font-outfit">
       
       {/* 1. LEFT SIDEBAR: Conversational History */}
       <aside className="w-72 border-r border-[#e2e8f0] bg-white flex flex-col h-full flex-shrink-0">
@@ -647,7 +647,7 @@ export default function AIWorkspacePage() {
         <div className="p-4 border-b border-[#e2e8f0]">
           <button 
             onClick={handleNewChat}
-            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-[#0f766e] to-[#0d9488] hover:from-[#0d9488] hover:to-[#14b8a6] text-white text-xs font-bold shadow-md shadow-[#0f766e]/10 transition-all active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-[#113229] to-[#0D241E] hover:from-[#0D241E] hover:to-[#14b8a6] text-white text-xs font-bold shadow-md shadow-[#113229]/10 transition-all active:scale-[0.98]"
           >
             <Plus size={14} /> New Conversation
           </button>
@@ -677,8 +677,8 @@ export default function AIWorkspacePage() {
                   onClick={() => handleSelectSession(s.id)}
                   className={`w-full flex items-start gap-2.5 p-3 rounded-xl transition-all text-left group ${
                     isActive 
-                      ? "bg-[#e6f4f1] text-[#0f766e]" 
-                      : "text-slate-600 hover:bg-slate-50 hover:text-[#0f172a]"
+                      ? "bg-[#e6f4f1] text-[#113229]" 
+                      : "text-slate-600 hover:bg-[#F9F8F6] hover:text-[#102C23]"
                   }`}
                 >
                   <MessageSquare size={13} className="mt-0.5 flex-shrink-0" />
@@ -696,7 +696,7 @@ export default function AIWorkspacePage() {
 
         {/* Sidebar Footer */}
         {sessions.length > 0 && (
-          <div className="p-3 border-t border-[#e2e8f0] bg-slate-50/50">
+          <div className="p-3 border-t border-[#e2e8f0] bg-[#F9F8F6]/50">
             <button
               onClick={handleClearHistory}
               className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-[11px] font-bold text-red-600 hover:bg-red-50 transition-colors border border-red-200/50"
@@ -708,12 +708,12 @@ export default function AIWorkspacePage() {
       </aside>
 
       {/* 2. MAIN WORKSPACE / CHAT INTERFACE */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50">
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#F9F8F6]">
         
         {/* Chat Title / Action Bar */}
         <header className="h-16 border-b border-[#e2e8f0] bg-white flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 bg-[#e6f4f1] rounded-lg text-[#0f766e]">
+            <div className="p-1.5 bg-[#e6f4f1] rounded-lg text-[#113229]">
               <Sparkles size={16} />
             </div>
             <div>
@@ -729,8 +729,8 @@ export default function AIWorkspacePage() {
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
                 showFilters 
-                  ? "bg-[#e6f4f1] border-[#0f766e] text-[#0f766e]" 
-                  : "bg-white border-[#e2e8f0] text-slate-600 hover:bg-slate-50"
+                  ? "bg-[#e6f4f1] border-[#113229] text-[#113229]" 
+                  : "bg-white border-[#e2e8f0] text-slate-600 hover:bg-[#F9F8F6]"
               }`}
             >
               <SlidersHorizontal size={13} /> 
@@ -745,12 +745,12 @@ export default function AIWorkspacePage() {
           {/* Welcoming state when empty */}
           {messages.length === 0 && (
             <div className="max-w-2xl mx-auto w-full my-auto flex flex-col items-center gap-6">
-              <div className="p-4 bg-gradient-to-br from-[#0f766e] to-[#0d9488] text-white rounded-2xl shadow-lg shadow-[#0f766e]/15 animate-bounce">
+              <div className="p-4 bg-gradient-to-br from-[#113229] to-[#0D241E] text-white rounded-2xl shadow-lg shadow-[#113229]/15 animate-bounce">
                 <Sparkles size={32} />
               </div>
               
               <div className="text-center">
-                <h2 className="text-lg font-bold text-[#0f172a] mb-1 font-outfit">Ask anything about your meetings</h2>
+                <h2 className="text-lg font-bold text-[#102C23] mb-1 font-outfit">Ask anything about your meetings</h2>
                 <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
                   Query project tasks, search decisions, identify risks, and retrieve specific action items across all recorded calls.
                 </p>
@@ -762,9 +762,9 @@ export default function AIWorkspacePage() {
                   <button
                     key={idx}
                     onClick={() => handleSendMessage(s)}
-                    className="p-3 text-left bg-white border border-[#e2e8f0] hover:border-[#0f766e] hover:shadow-md hover:shadow-[#0f766e]/5 rounded-xl transition-all group flex items-start gap-2.5"
+                    className="p-3 text-left bg-white border border-[#e2e8f0] hover:border-[#113229] hover:shadow-md hover:shadow-[#113229]/5 rounded-xl transition-all group flex items-start gap-2.5"
                   >
-                    <ChevronRight size={13} className="text-[#0f766e] mt-0.5 group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight size={13} className="text-[#113229] mt-0.5 group-hover:translate-x-0.5 transition-transform" />
                     <span className="text-[11px] font-bold text-slate-600 leading-normal">{s}</span>
                   </button>
                 ))}
@@ -781,7 +781,7 @@ export default function AIWorkspacePage() {
                 {/* Avatar */}
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${
                   isUser 
-                    ? "bg-gradient-to-br from-[#0f766e] to-[#0d9488] text-white" 
+                    ? "bg-gradient-to-br from-[#113229] to-[#0D241E] text-white" 
                     : "bg-slate-800 text-white"
                 }`}>
                   {isUser ? <User size={13} /> : <Bot size={13} />}
@@ -798,7 +798,7 @@ export default function AIWorkspacePage() {
                     
                     {/* Teal Accent for AI Bubble */}
                     {!isUser && (
-                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#0f766e] to-[#0d9488]" />
+                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#113229] to-[#0D241E]" />
                     )}
 
                     {/* Chat Text */}
@@ -808,7 +808,7 @@ export default function AIWorkspacePage() {
                       <div>
                         {m.isLoading && !m.text ? (
                           <div className="flex items-center gap-2 text-slate-400 py-1">
-                            <Loader2 size={13} className="animate-spin text-[#0f766e]" />
+                            <Loader2 size={13} className="animate-spin text-[#113229]" />
                             <span className="text-[11px] font-bold">Scanning corporate memory...</span>
                           </div>
                         ) : (
@@ -834,7 +834,7 @@ export default function AIWorkspacePage() {
                           {idx === messages.length - 1 && (
                             <button
                               onClick={handleRegenerate}
-                              className="flex items-center gap-1 text-[10px] font-bold text-[#0f766e] hover:text-[#0d9488] transition-colors"
+                              className="flex items-center gap-1 text-[10px] font-bold text-[#113229] hover:text-[#0D241E] transition-colors"
                             >
                               <RefreshCw size={11} />
                               Regenerate
@@ -871,10 +871,10 @@ export default function AIWorkspacePage() {
                           <button
                             key={sIdx}
                             onClick={() => setActiveSource(src)}
-                            className="w-full flex items-center justify-between p-2 rounded-lg bg-white border border-[#e2e8f0] hover:border-[#0f766e] transition-colors text-left"
+                            className="w-full flex items-center justify-between p-2 rounded-lg bg-white border border-[#e2e8f0] hover:border-[#113229] transition-colors text-left"
                           >
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-[10px] font-bold text-[#0f766e] bg-[#e6f4f1] px-1.5 py-0.5 rounded border border-[#b2e2db]/30">
+                              <span className="text-[10px] font-bold text-[#113229] bg-[#e6f4f1] px-1.5 py-0.5 rounded border border-[#b2e2db]/30">
                                 [{sIdx + 1}]
                               </span>
                               <div className="min-w-0">
@@ -901,12 +901,12 @@ export default function AIWorkspacePage() {
 
         {/* Suggested follow-ups on the active session */}
         {messages.length > 0 && !loading && (
-          <div className="px-6 py-2 bg-slate-50 border-t border-[#e2e8f0] flex flex-wrap gap-2 justify-center">
+          <div className="px-6 py-2 bg-[#F9F8F6] border-t border-[#e2e8f0] flex flex-wrap gap-2 justify-center">
             {currentSuggestions.map((s, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSendMessage(s)}
-                className="px-3 py-1 rounded-full bg-white hover:bg-[#e6f4f1] text-[#0f766e] border border-[#e2e8f0] hover:border-[#0f766e] text-[10px] font-bold transition-all shadow-sm active:scale-[0.98]"
+                className="px-3 py-1 rounded-full bg-white hover:bg-[#e6f4f1] text-[#113229] border border-[#e2e8f0] hover:border-[#113229] text-[10px] font-bold transition-all shadow-sm active:scale-[0.98]"
               >
                 {s}
               </button>
@@ -921,7 +921,7 @@ export default function AIWorkspacePage() {
               e.preventDefault();
               handleSendMessage(chatInput);
             }}
-            className="max-w-3xl mx-auto w-full relative flex items-center bg-slate-50 border border-[#e2e8f0] focus-within:border-[#0f766e] focus-within:ring-2 focus-within:ring-[#0f766e]/10 rounded-2xl p-2.5 transition-all"
+            className="max-w-3xl mx-auto w-full relative flex items-center bg-[#F9F8F6] border border-[#e2e8f0] focus-within:border-[#113229] focus-within:ring-2 focus-within:ring-[#113229]/10 rounded-2xl p-2.5 transition-all"
           >
             <input
               type="text"
@@ -935,7 +935,7 @@ export default function AIWorkspacePage() {
             <button
               type="submit"
               disabled={loading || !chatInput.trim()}
-              className="p-2 bg-[#0f766e] hover:bg-[#0d9488] disabled:bg-slate-200 text-white disabled:text-slate-400 rounded-xl transition-all shadow-md active:scale-95"
+              className="p-2 bg-[#113229] hover:bg-[#0D241E] disabled:bg-slate-200 text-white disabled:text-slate-400 rounded-xl transition-all shadow-md active:scale-95"
             >
               {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>
@@ -955,7 +955,7 @@ export default function AIWorkspacePage() {
           {/* Header */}
           <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <SlidersHorizontal size={14} className="text-[#0f766e]" />
+              <SlidersHorizontal size={14} className="text-[#113229]" />
               <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Search Filters</h2>
             </div>
             <button 
@@ -975,7 +975,7 @@ export default function AIWorkspacePage() {
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
-                className="w-full p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                className="w-full p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#113229]"
               >
                 <option value="">All Platforms</option>
                 <option value="Microsoft Teams">Microsoft Teams</option>
@@ -993,13 +993,13 @@ export default function AIWorkspacePage() {
                   type="date"
                   value={dateStart}
                   onChange={(e) => setDateStart(e.target.value)}
-                  className="p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                  className="p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#113229]"
                 />
                 <input
                   type="date"
                   value={dateEnd}
                   onChange={(e) => setDateEnd(e.target.value)}
-                  className="p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                  className="p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#113229]"
                 />
               </div>
             </div>
@@ -1010,7 +1010,7 @@ export default function AIWorkspacePage() {
               <select
                 value={selectedMeetingId}
                 onChange={(e) => setSelectedMeetingId(e.target.value)}
-                className="w-full p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e] max-w-[288px] truncate"
+                className="w-full p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#113229] max-w-[288px] truncate"
               >
                 <option value="">All Meetings</option>
                 {meetings.map(m => (
@@ -1030,7 +1030,7 @@ export default function AIWorkspacePage() {
                   value={participants}
                   onChange={(e) => setParticipants(e.target.value)}
                   placeholder="e.g. Vivek, Rahul"
-                  className="w-full p-2 pl-8 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                  className="w-full p-2 pl-8 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#113229]"
                 />
                 <User size={12} className="absolute left-2.5 top-3 text-slate-400" />
               </div>
@@ -1045,7 +1045,7 @@ export default function AIWorkspacePage() {
                   value={project}
                   onChange={(e) => setProject(e.target.value)}
                   placeholder="e.g. Recruitease, UI Redesign"
-                  className="w-full p-2 pl-8 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                  className="w-full p-2 pl-8 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#113229]"
                 />
                 <Briefcase size={12} className="absolute left-2.5 top-3 text-slate-400" />
               </div>
@@ -1073,7 +1073,7 @@ export default function AIWorkspacePage() {
           {/* 4. MANUAL INDEXING INTERACTIVE UTILITY */}
           <div className="p-4 flex flex-col gap-4">
             <div className="flex items-center gap-1.5">
-              <Layers size={14} className="text-[#0f766e]" />
+              <Layers size={14} className="text-[#113229]" />
               <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Manual Indexing</h2>
             </div>
             
@@ -1085,7 +1085,7 @@ export default function AIWorkspacePage() {
               <select
                 value={indexingMeetingId}
                 onChange={(e) => setIndexingMeetingId(e.target.value)}
-                className="w-full p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                className="w-full p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#113229]"
                 required
               >
                 <option value="">Select Meeting to Index...</option>
@@ -1099,7 +1099,7 @@ export default function AIWorkspacePage() {
               <button
                 type="submit"
                 disabled={indexLoading || !indexingMeetingId}
-                className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-xl bg-[#0f766e] hover:bg-[#0d9488] disabled:bg-slate-200 text-white disabled:text-slate-400 text-xs font-bold transition-all shadow-sm active:scale-95"
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-xl bg-[#113229] hover:bg-[#0D241E] disabled:bg-slate-200 text-white disabled:text-slate-400 text-xs font-bold transition-all shadow-sm active:scale-95"
               >
                 {indexLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
                 Trigger Manual Indexing
@@ -1129,12 +1129,12 @@ export default function AIWorkspacePage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-[#e2e8f0] flex flex-col max-h-[85vh] relative animate-in fade-in zoom-in-95 duration-250">
             
             {/* Top Teal Accent */}
-            <div className="h-1 bg-gradient-to-r from-[#0f766e] to-[#0d9488]" />
+            <div className="h-1 bg-gradient-to-r from-[#113229] to-[#0D241E]" />
 
             {/* Header */}
-            <div className="p-4 border-b border-[#e2e8f0] flex items-start justify-between bg-slate-50/50">
+            <div className="p-4 border-b border-[#e2e8f0] flex items-start justify-between bg-[#F9F8F6]/50">
               <div className="min-w-0">
-                <span className="text-[9px] font-bold text-[#0f766e] bg-[#e6f4f1] px-2 py-0.5 rounded border border-[#b2e2db]/30 uppercase tracking-wide">
+                <span className="text-[9px] font-bold text-[#113229] bg-[#e6f4f1] px-2 py-0.5 rounded border border-[#b2e2db]/30 uppercase tracking-wide">
                   Citation Details
                 </span>
                 <h3 className="text-xs font-bold text-slate-800 truncate mt-1.5">{activeSource.meeting_title}</h3>
@@ -1154,18 +1154,18 @@ export default function AIWorkspacePage() {
             <div className="p-5 overflow-y-auto flex-1 flex flex-col gap-4">
               
               {/* Speaker & Timestamp Info */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="grid grid-cols-2 gap-3 bg-[#F9F8F6] p-3 rounded-xl border border-slate-100">
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">Speaker</span>
                   <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                    <User size={11} className="text-[#0f766e]" />
+                    <User size={11} className="text-[#113229]" />
                     {activeSource.speaker}
                   </span>
                 </div>
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">Timestamp range</span>
                   <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                    <Clock size={11} className="text-[#0f766e]" />
+                    <Clock size={11} className="text-[#113229]" />
                     {formatSeconds(activeSource.timestamp_start)} - {formatSeconds(activeSource.timestamp_end)}
                   </span>
                 </div>
@@ -1182,10 +1182,10 @@ export default function AIWorkspacePage() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-[#e2e8f0] flex items-center justify-between bg-slate-50/50">
+            <div className="p-4 border-t border-[#e2e8f0] flex items-center justify-between bg-[#F9F8F6]/50">
               <button
                 onClick={() => router.push(`/meetings/${activeSource.meeting_id}`)}
-                className="flex items-center gap-1 text-[10px] font-bold text-[#0f766e] hover:text-[#0d9488] transition-colors"
+                className="flex items-center gap-1 text-[10px] font-bold text-[#113229] hover:text-[#0D241E] transition-colors"
               >
                 <ExternalLink size={12} />
                 Open Full Meeting Transcript

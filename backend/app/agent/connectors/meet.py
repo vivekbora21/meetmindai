@@ -45,4 +45,3 @@ class GoogleMeetConnector(MeetingConnector):
     def captureAudio(self) -> None:
         """Placeholder method to capture meeting audio."""
         logger.info("[GoogleMeetConnector] captureAudio placeholder called.")
-

@@ -84,4 +84,5 @@ app.include_router(ai.meeting_router, prefix="/api/meetings", tags=["meetings"])
 async def startup_event():
     import asyncio
     from app.services.scheduler import start_scheduler
+
     asyncio.create_task(start_scheduler())

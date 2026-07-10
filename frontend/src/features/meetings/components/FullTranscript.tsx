@@ -9,7 +9,7 @@ interface FullTranscriptProps {
 const PAGE_SIZE = 10;
 
 const SPEAKER_COLORS = [
-  { bg: "#f0fdfb", text: "#0f766e", border: "#99f6e4" },
+  { bg: "#f0fdfb", text: "#113229", border: "#99f6e4" },
   { bg: "#f5f3ff", text: "#7c3aed", border: "#ddd6fe" },
   { bg: "#fffbeb", text: "#b45309", border: "#fde68a" },
   { bg: "#fff1f2", text: "#be123c", border: "#fecdd3" },
@@ -37,8 +37,8 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "24px" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 700, color: "#0f172a", fontFamily: "'Inter', sans-serif", margin: 0 }}>
-          <FileText size={15} color="#0f766e" />
+        <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 700, color: "#102C23", fontFamily: "'Inter', sans-serif", margin: 0 }}>
+          <FileText size={15} color="#113229" />
           Full Transcript
         </h3>
         {total > 0 && (
@@ -170,7 +170,7 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
                   onClick={() => setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, total))}
                   style={{
                     display: "flex", alignItems: "center", gap: "4px",
-                    fontSize: "12px", fontWeight: 700, color: "#0f766e",
+                    fontSize: "12px", fontWeight: 700, color: "#113229",
                     background: "none", border: "1px solid transparent",
                     borderRadius: "8px", padding: "4px 10px",
                     cursor: "pointer", fontFamily: "'Inter', sans-serif",

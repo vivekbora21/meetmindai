@@ -36,6 +36,7 @@ PERMISSION_ERROR_CODES = {4711, 4700, 4701, 4704, 4710}
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def parse_zoom_datetime(dt_str: str) -> datetime:
     """Parses Zoom API ISO datetime strings to UTC-naive datetime."""
     if not dt_str:
@@ -66,10 +67,7 @@ def check_granted_scopes(granted_scope_str: str | None) -> list[str]:
     granted = [s.strip() for s in granted_scope_str.split() if s.strip()]
     missing = []
     for required in REQUIRED_SCOPE_PREFIXES:
-        satisfied = any(
-            g == required or g.startswith(required + ":")
-            for g in granted
-        )
+        satisfied = any(g == required or g.startswith(required + ":") for g in granted)
         if not satisfied:
             missing.append(required)
     return missing
@@ -82,6 +80,7 @@ def is_permission_error(zoom_code: int | None) -> bool:
 # ---------------------------------------------------------------------------
 # Service
 # ---------------------------------------------------------------------------
+
 
 class ZoomCalendarService:
     """
@@ -106,16 +105,20 @@ class ZoomCalendarService:
             f"[Zoom Sync] Requested | user_id={user_id} provider={Provider.ZOOM}"
         )
 
-        account = db.query(ConnectedAccount).filter(
-            ConnectedAccount.user_id == user_id,
-            ConnectedAccount.provider == Provider.ZOOM
-        ).first()
+        account = (
+            db.query(ConnectedAccount)
+            .filter(
+                ConnectedAccount.user_id == user_id,
+                ConnectedAccount.provider == Provider.ZOOM,
+            )
+            .first()
+        )
 
         if not account:
             logger.warning(f"[Zoom Sync] No ConnectedAccount for user_id={user_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Zoom account not connected. Please connect your Zoom account first."
+                detail="Zoom account not connected. Please connect your Zoom account first.",
             )
 
         # Guard: already flagged as needing reconnect
@@ -128,7 +131,7 @@ class ZoomCalendarService:
                 detail=(
                     "Your Zoom token is missing required meeting permissions. "
                     "Please reconnect your Zoom account from Settings > Integrations."
-                )
+                ),
             )
 
         # 1. Validate stored scopes using prefix matching (Zoom granular scopes)
@@ -139,16 +142,17 @@ class ZoomCalendarService:
                 f"granted='{account.scope}' missing={missing_scopes}"
             )
             self._mark_needs_reauth(
-                db, account,
+                db,
+                account,
                 f"Token missing required scopes: {missing_scopes}. "
-                "Please reconnect your Zoom account."
+                "Please reconnect your Zoom account.",
             )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=(
                     f"Zoom token is missing required scopes: {missing_scopes}. "
                     "Please reconnect from Settings > Integrations."
-                )
+                ),
             )
 
         # 2. Refresh token if near expiry
@@ -158,7 +162,7 @@ class ZoomCalendarService:
         if not decrypted_token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Zoom access token missing. Please reconnect your Zoom account."
+                detail="Zoom access token missing. Please reconnect your Zoom account.",
             )
 
         # 3. Call Zoom API and sync
@@ -170,7 +174,9 @@ class ZoomCalendarService:
         self, db: Session, account: ConnectedAccount, user_id: str
     ) -> None:
         """Refreshes the stored access token if expired or expiring within 60s."""
-        if account.expires_at and account.expires_at > datetime.utcnow() + timedelta(seconds=60):
+        if account.expires_at and account.expires_at > datetime.utcnow() + timedelta(
+            seconds=60
+        ):
             return  # Still valid
 
         logger.info(f"[Zoom Sync] Token near expiry - refreshing | user_id={user_id}")
@@ -178,17 +184,18 @@ class ZoomCalendarService:
         if not account.refresh_token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Zoom refresh token missing. Please reconnect your Zoom account."
+                detail="Zoom refresh token missing. Please reconnect your Zoom account.",
             )
 
         try:
-            new_tokens = await self._provider.refresh_access_token(account.refresh_token)
+            new_tokens = await self._provider.refresh_access_token(
+                account.refresh_token
+            )
             account.access_token = encrypt_value(new_tokens["access_token"])
             if new_tokens.get("refresh_token"):
                 account.refresh_token = encrypt_value(new_tokens["refresh_token"])
-            account.expires_at = (
-                datetime.utcnow()
-                + timedelta(seconds=new_tokens.get("expires_in", 3600))
+            account.expires_at = datetime.utcnow() + timedelta(
+                seconds=new_tokens.get("expires_in", 3600)
             )
             # Persist newly granted scopes if returned
             if new_tokens.get("scope"):
@@ -201,13 +208,13 @@ class ZoomCalendarService:
             db.commit()
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Zoom token refresh failed: {he.detail}"
+                detail=f"Zoom token refresh failed: {he.detail}",
             )
         except Exception as e:
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to save refreshed Zoom tokens."
+                detail="Failed to save refreshed Zoom tokens.",
             )
 
     async def _fetch_and_sync(
@@ -265,9 +272,10 @@ class ZoomCalendarService:
                 # Permanent permission error -> mark needs reconnect
                 if is_permission_error(zoom_code) or response.status_code in (401, 403):
                     self._mark_needs_reauth(
-                        db, account,
+                        db,
+                        account,
                         f"Zoom API error {zoom_code}: {zoom_message} | "
-                        "Token missing required permissions. Please reconnect."
+                        "Token missing required permissions. Please reconnect.",
                     )
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
@@ -275,29 +283,33 @@ class ZoomCalendarService:
                             f"Zoom sync failed (error {zoom_code}): {zoom_message}. "
                             "Your token is missing required permissions. "
                             "Please reconnect from Settings > Integrations."
-                        )
+                        ),
                     )
 
                 # Transient error -> retryable
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=f"Zoom API returned HTTP {response.status_code}: {zoom_message}."
+                    detail=f"Zoom API returned HTTP {response.status_code}: {zoom_message}.",
                 )
 
             except httpx.RequestError as exc:
-                logger.error(f"[Zoom Sync] Network error | user_id={user_id} error={exc}")
+                logger.error(
+                    f"[Zoom Sync] Network error | user_id={user_id} error={exc}"
+                )
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail="Failed to reach Zoom API servers. Will retry automatically."
+                    detail="Failed to reach Zoom API servers. Will retry automatically.",
                 )
             except HTTPException:
                 raise
             except Exception as e:
                 db.rollback()
-                logger.error(f"[Zoom Sync] Unexpected error | user_id={user_id} error={e}")
+                logger.error(
+                    f"[Zoom Sync] Unexpected error | user_id={user_id} error={e}"
+                )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Zoom meeting synchronization failed: {e}"
+                    detail=f"Zoom meeting synchronization failed: {e}",
                 )
 
     def _upsert_meetings(
@@ -325,11 +337,15 @@ class ZoomCalendarService:
             join_url = mt.get("join_url")
             start_time = parse_zoom_datetime(start_str_raw)
 
-            meeting_record = db.query(Meeting).filter(
-                Meeting.organization_id == account.user.organization_id,
-                Meeting.provider == "zoom",
-                Meeting.provider_event_id == provider_event_id,
-            ).first()
+            meeting_record = (
+                db.query(Meeting)
+                .filter(
+                    Meeting.organization_id == account.user.organization_id,
+                    Meeting.provider == "zoom",
+                    Meeting.provider_event_id == provider_event_id,
+                )
+                .first()
+            )
 
             if meeting_record:
                 meeting_record.title = title
@@ -366,12 +382,16 @@ class ZoomCalendarService:
         # Mark meetings deleted from Zoom as cancelled
         start_dt = datetime.utcnow()
         end_dt = start_dt + timedelta(days=30)
-        existing = db.query(Meeting).filter(
-            Meeting.organization_id == account.user.organization_id,
-            Meeting.provider == "zoom",
-            Meeting.meeting_date >= start_dt,
-            Meeting.meeting_date <= end_dt,
-        ).all()
+        existing = (
+            db.query(Meeting)
+            .filter(
+                Meeting.organization_id == account.user.organization_id,
+                Meeting.provider == "zoom",
+                Meeting.meeting_date >= start_dt,
+                Meeting.meeting_date <= end_dt,
+            )
+            .all()
+        )
         for m in existing:
             if m.provider_event_id not in synced_event_ids:
                 m.sync_status = "cancelled"

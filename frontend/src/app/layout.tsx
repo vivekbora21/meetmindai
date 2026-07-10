@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "MeetingMind AI",
   description: "A polished organizational memory platform for meetings, knowledge, and analytics.",
+  icons: {
+    icon: "/new_logo.png",
+  },
 };
 
 export default function RootLayout({

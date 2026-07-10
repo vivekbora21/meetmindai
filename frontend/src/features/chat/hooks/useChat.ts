@@ -218,7 +218,7 @@ export function useChat(meetingId: string) {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     let html = `<html><head><title>${activeSession?.title || "Chat History"}</title>`;
-    html += `<style>body{font-family:sans-serif;padding:40px;color:#0f172a;} h1{color:#0f766e;} .msg{margin-bottom:20px;padding:15px;border-radius:10px;} .user{background:#e6f4f1;border-left:4px solid #0f766e;} .assistant{background:#f8fafc;border-left:4px solid #94a3b8;} .role{font-weight:bold;margin-bottom:5px;font-size:12px;text-transform:uppercase;color:#64748b;}</style></head><body>`;
+    html += `<style>body{font-family:sans-serif;padding:40px;color:#102C23;} h1{color:#113229;} .msg{margin-bottom:20px;padding:15px;border-radius:10px;} .user{background:#e6f4f1;border-left:4px solid #113229;} .assistant{background:#f8fafc;border-left:4px solid #94a3b8;} .role{font-weight:bold;margin-bottom:5px;font-size:12px;text-transform:uppercase;color:#64748b;}</style></head><body>`;
     html += `<h1>${activeSession?.title || "Meeting Chat Session"}</h1>`;
     chatMessages.forEach(msg => {
       html += `<div class="msg ${msg.role === "user" ? "user" : "assistant"}">`;

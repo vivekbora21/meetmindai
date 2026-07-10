@@ -87,8 +87,8 @@ export const ParticipantsPanel: React.FC<ParticipantsPanelProps> = ({ detail, on
     <div className="flex flex-col gap-6">
       {/* Conversation Distribution Visualization */}
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col gap-4">
-        <div className="flex items-center gap-2 text-sm font-bold text-[#0f172a] font-outfit">
-          <BarChart2 className="w-4 h-4 text-[#0f766e]" />
+        <div className="flex items-center gap-2 text-sm font-bold text-[#102C23] font-outfit">
+          <BarChart2 className="w-4 h-4 text-[#113229]" />
           Conversation Distribution
         </div>
 
@@ -141,9 +141,9 @@ export const ParticipantsPanel: React.FC<ParticipantsPanelProps> = ({ detail, on
 
       {/* Inline info card about automatic voice profiles */}
       <div className="flex items-start gap-3 rounded-2xl bg-teal-50/50 border border-teal-100 p-4">
-        <Info className="w-4 h-4 text-[#0f766e] shrink-0 mt-0.5" />
+        <Info className="w-4 h-4 text-[#113229] shrink-0 mt-0.5" />
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-bold text-[#0f766e] font-outfit">
+          <span className="text-xs font-bold text-[#113229] font-outfit">
             Automatic Voice Recognition
           </span>
           <p className="text-[11px] text-slate-500 font-medium leading-relaxed">

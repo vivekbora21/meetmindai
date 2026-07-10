@@ -892,7 +892,7 @@ export default function SettingsPage() {
   });
 
   return (
-    <div className="flex flex-col min-h-full bg-slate-50 font-outfit text-slate-800 relative">
+    <div className="flex flex-col min-h-full bg-[#F9F8F6] font-outfit text-slate-800 relative">
       
       {/* Toast Notification */}
       {toast && (
@@ -1054,7 +1054,7 @@ export default function SettingsPage() {
                           type="email"
                           value={userEmail}
                           disabled
-                          className="w-full px-4 py-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-400 text-sm focus:outline-none cursor-not-allowed"
+                          className="w-full px-4 py-2 border border-slate-200 rounded-xl bg-[#F9F8F6] text-slate-400 text-sm focus:outline-none cursor-not-allowed"
                         />
                         {profile.email_verified ? (
                           <span className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200/50 rounded-xl">
@@ -1147,7 +1147,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Metadata fields readonly */}
-                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex flex-wrap gap-x-8 gap-y-3 text-xs text-slate-500 font-medium">
+                  <div className="bg-[#F9F8F6] rounded-2xl p-5 border border-slate-100 flex flex-wrap gap-x-8 gap-y-3 text-xs text-slate-500 font-medium">
                     <div>Account Status: <span className="text-teal-700 font-bold capitalize">{profile.account_status}</span></div>
                     <div>Plan Type: <span className="text-indigo-700 font-bold capitalize">{profile.subscription_plan}</span></div>
                     {profile.last_login && <div>Last Login: <span>{new Date(profile.last_login).toLocaleString()}</span></div>}
@@ -1302,7 +1302,7 @@ export default function SettingsPage() {
                                 <span>Last sync:</span>
                                 <span>{conn.last_sync ? new Date(conn.last_sync).toLocaleString() : "Never"}</span>
                               </div>
-                              <div className="flex items-center justify-between border-t border-slate-50 pt-2">
+                              <div className="flex items-center justify-between border-t border-[#F9F8F6] pt-2">
                                 <span className="font-semibold text-slate-700">Auto synchronization</span>
                                 <input
                                   type="checkbox"
@@ -1423,7 +1423,7 @@ export default function SettingsPage() {
                           { key: "auto_create_tech_analysis", label: "Auto-generate technical analysis" },
                           { key: "auto_create_decisions", label: "Auto-extract key decisions" }
                         ].map(item => (
-                          <label key={item.key} className="flex items-center gap-3 p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                          <label key={item.key} className="flex items-center gap-3 p-3 border border-slate-100 rounded-xl hover:bg-[#F9F8F6] cursor-pointer transition-colors">
                             <input
                               type="checkbox"
                               checked={meetingPreferences[item.key as keyof MeetingPreferences] as boolean}
@@ -1546,7 +1546,7 @@ export default function SettingsPage() {
                           { key: "enable_speaker_intelligence", label: "Speaker voice identification" },
                           { key: "enable_automatic_insights", label: "Autonomous meeting pattern insights" }
                         ].map(item => (
-                          <label key={item.key} className="flex items-center gap-3 p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                          <label key={item.key} className="flex items-center gap-3 p-3 border border-slate-100 rounded-xl hover:bg-[#F9F8F6] cursor-pointer transition-colors">
                             <input
                               type="checkbox"
                               checked={aiPreferences[item.key as keyof AIPreferences] as boolean}
@@ -1643,7 +1643,7 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200/60 flex items-center justify-between flex-wrap gap-4 text-xs font-medium">
+                    <div className="bg-[#F9F8F6] p-5 rounded-2xl border border-slate-200/60 flex items-center justify-between flex-wrap gap-4 text-xs font-medium">
                       <div>
                         <h4 className="font-bold text-slate-800">Download Account Archive</h4>
                         <p className="text-[11px] text-slate-500">Acquire a consolidated zip download containing meetings, action items, transcripts and graphs.</p>
@@ -1697,7 +1697,7 @@ export default function SettingsPage() {
                       />
                       <button 
                         onClick={handleCreateAPIKey}
-                        className="px-4 py-2 bg-teal-850 hover:bg-teal-700 bg-[#0f766e] text-white rounded-xl text-xs font-bold"
+                        className="px-4 py-2 bg-teal-850 hover:bg-teal-700 bg-[#113229] text-white rounded-xl text-xs font-bold"
                       >
                         Generate Key
                       </button>
@@ -1889,7 +1889,7 @@ export default function SettingsPage() {
                     <h3 className="text-sm font-bold text-slate-800">Billing History</h3>
                     <div className="space-y-2">
                       {billingData.billing_history.map(inv => (
-                        <div key={inv.invoice_id} className="flex items-center justify-between p-3 border border-slate-50 hover:bg-slate-50 rounded-xl text-xs font-medium">
+                        <div key={inv.invoice_id} className="flex items-center justify-between p-3 border border-[#F9F8F6] hover:bg-[#F9F8F6] rounded-xl text-xs font-medium">
                           <div>
                             <span className="font-bold text-slate-800 block">{inv.invoice_id}</span>
                             <span className="text-slate-400">{inv.date}</span>
@@ -1917,7 +1917,7 @@ export default function SettingsPage() {
                     <h3 className="text-sm font-bold text-slate-800">Members Directory</h3>
                     <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
                       {orgData.members.map(member => (
-                        <div key={member.id} className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition-colors text-xs">
+                        <div key={member.id} className="flex items-center justify-between p-4 bg-white hover:bg-[#F9F8F6] transition-colors text-xs">
                           <div>
                             <span className="font-bold text-slate-850 block">{member.name}</span>
                             <span className="text-slate-400 font-semibold">{member.email}</span>
@@ -1938,7 +1938,7 @@ export default function SettingsPage() {
                         placeholder="colleague@company.com"
                         className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/10 focus:border-teal-600"
                       />
-                      <button className="px-4 py-2 bg-teal-850 hover:bg-teal-700 bg-[#0f766e] text-white rounded-xl text-xs font-bold">
+                      <button className="px-4 py-2 bg-teal-850 hover:bg-teal-700 bg-[#113229] text-white rounded-xl text-xs font-bold">
                         Send Invite
                       </button>
                     </div>
@@ -2007,7 +2007,7 @@ export default function SettingsPage() {
                       </select>
                     </div>
 
-                    <div className="space-y-1.5 flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer">
+                    <div className="space-y-1.5 flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-[#F9F8F6] cursor-pointer">
                       <div>
                         <span className="text-xs font-semibold text-slate-800 block">Compact UI layout mode</span>
                         <span className="text-[10px] text-slate-400 font-medium">Reduces padding to increase information density.</span>
@@ -2043,7 +2043,7 @@ export default function SettingsPage() {
                         />
                       </div>
 
-                      <div className="flex items-center justify-between p-4 border border-slate-150 rounded-2xl hover:bg-slate-50 cursor-pointer">
+                      <div className="flex items-center justify-between p-4 border border-slate-150 rounded-2xl hover:bg-[#F9F8F6] cursor-pointer">
                         <div>
                           <span className="text-xs font-bold text-slate-850 block">Opt out of AI model training</span>
                           <span className="text-[10px] text-slate-450 font-medium">Prevent engines from parsing transcripts to refine proprietary models.</span>
@@ -2124,27 +2124,27 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="bg-[#F9F8F6] p-5 rounded-2xl border border-slate-100 space-y-2">
                       <span className="text-xs font-bold text-slate-400 uppercase">Meetings Processed</span>
                       <h3 className="text-3xl font-extrabold text-slate-850">{dashboardStats.total_meetings}</h3>
                     </div>
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="bg-[#F9F8F6] p-5 rounded-2xl border border-slate-100 space-y-2">
                       <span className="text-xs font-bold text-slate-400 uppercase">Hours Transcribed</span>
                       <h3 className="text-3xl font-extrabold text-slate-850">{dashboardStats.hours_processed} hrs</h3>
                     </div>
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="bg-[#F9F8F6] p-5 rounded-2xl border border-slate-100 space-y-2">
                       <span className="text-xs font-bold text-slate-400 uppercase">AI Insights Compiled</span>
                       <h3 className="text-3xl font-extrabold text-slate-850">{dashboardStats.ai_reports}</h3>
                     </div>
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="bg-[#F9F8F6] p-5 rounded-2xl border border-slate-100 space-y-2">
                       <span className="text-xs font-bold text-slate-400 uppercase">Mapped Entities</span>
                       <h3 className="text-3xl font-extrabold text-slate-850">{dashboardStats.knowledge_graphs}</h3>
                     </div>
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="bg-[#F9F8F6] p-5 rounded-2xl border border-slate-100 space-y-2">
                       <span className="text-xs font-bold text-slate-400 uppercase">Action Items extracted</span>
                       <h3 className="text-3xl font-extrabold text-slate-850">{dashboardStats.action_items}</h3>
                     </div>
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
+                    <div className="bg-[#F9F8F6] p-5 rounded-2xl border border-slate-100 space-y-2">
                       <span className="text-xs font-bold text-slate-400 uppercase">Identified Risks</span>
                       <h3 className="text-3xl font-extrabold text-slate-850">{dashboardStats.risks}</h3>
                     </div>
@@ -2182,7 +2182,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => { setIsDirty(false); fetchData(); }}
-              className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold rounded-xl transition-colors"
+              className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-[#F9F8F6] text-xs font-bold rounded-xl transition-colors"
             >
               Reset
             </button>

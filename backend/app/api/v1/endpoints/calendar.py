@@ -43,24 +43,31 @@ class CalendarEventOut(BaseModel):
 
 @router.get("/api/calendar/events", response_model=List[CalendarEventOut])
 async def get_calendar_events(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """
     Synchronizes upcoming calendar events for all connected providers and returns
     only CalendarEvent DB rows whose provider matches a currently-connected account.
     This ensures events from disconnected platforms are never shown.
     """
-    accounts = db.query(ConnectedAccount).filter(
-        ConnectedAccount.user_id == current_user.id,
-        ConnectedAccount.connection_status == "Connected"
-    ).all()
+    accounts = (
+        db.query(ConnectedAccount)
+        .filter(
+            ConnectedAccount.user_id == current_user.id,
+            ConnectedAccount.connection_status == "Connected",
+        )
+        .all()
+    )
 
     # Build a set of connected base provider names (e.g. {"microsoft", "zoom"})
     connected_providers = set()
     for account in accounts:
         # Normalise to the base provider string stored in CalendarEvent.provider
-        provider_val = account.provider.value if hasattr(account.provider, "value") else str(account.provider)
+        provider_val = (
+            account.provider.value
+            if hasattr(account.provider, "value")
+            else str(account.provider)
+        )
         connected_providers.add(provider_val.lower())
 
     # Trigger live sync only for connected providers
@@ -92,4 +99,3 @@ async def get_calendar_events(
         .all()
     )
     return events
-

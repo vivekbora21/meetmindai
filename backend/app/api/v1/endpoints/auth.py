@@ -58,7 +58,6 @@ from app.database.connection import get_db
 from app.config.settings import get_env
 from app.models.models import User, Organization
 
-
 # JWT Configurations
 SECRET_KEY = get_env(
     "JWT_SECRET", "supersecretkeymeetingmind_secure_key_at_least_32_bytes_long"
@@ -293,5 +292,3 @@ def logout(response: Response):
 @router.get("/me", response_model=UserOut)
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
-
-

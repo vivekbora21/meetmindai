@@ -17,14 +17,14 @@ class Settings:
     GOOGLE_CLIENT_ID: str | None = get_env("GOOGLE_CLIENT_ID")
     GOOGLE_CLIENT_SECRET: str | None = get_env("GOOGLE_CLIENT_SECRET")
     GOOGLE_REDIRECT_URI: str | None = get_env("GOOGLE_REDIRECT_URI")
-    
+
     ZOOM_CLIENT_ID: str | None = get_env("ZOOM_CLIENT_ID")
     ZOOM_CLIENT_SECRET: str | None = get_env("ZOOM_CLIENT_SECRET")
     ZOOM_REDIRECT_URI: str | None = get_env("ZOOM_REDIRECT_URI")
     ZOOM_AUTH_URL: str = get_env("ZOOM_AUTH_URL", "https://zoom.us/oauth/authorize")
     ZOOM_TOKEN_URL: str = get_env("ZOOM_TOKEN_URL", "https://zoom.us/oauth/token")
     ZOOM_API_BASE: str = get_env("ZOOM_API_BASE", "https://api.zoom.us/v2")
-    
+
     JWT_SECRET: str = get_env(
         "JWT_SECRET", "supersecretkeymeetingmind_secure_key_at_least_32_bytes_long"
     )
@@ -35,4 +35,3 @@ class Settings:
 
 
 settings = Settings()
-

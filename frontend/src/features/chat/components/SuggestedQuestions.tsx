@@ -56,7 +56,7 @@ export const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({ onQuesti
               borderRadius: "99px",
               border: "1px solid #e2e8f0",
               background: "#ffffff",
-              color: "#0f766e",
+              color: "#113229",
               fontWeight: 550,
               cursor: "pointer",
               transition: "all 0.15s ease",
@@ -69,13 +69,13 @@ export const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({ onQuesti
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#f0fdfa";
               e.currentTarget.style.borderColor = "#99f6e4";
-              e.currentTarget.style.color = "#0d9488";
+              e.currentTarget.style.color = "#0D241E";
               e.currentTarget.style.transform = "translateY(-0.5px)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "#ffffff";
               e.currentTarget.style.borderColor = "#e2e8f0";
-              e.currentTarget.style.color = "#0f766e";
+              e.currentTarget.style.color = "#113229";
               e.currentTarget.style.transform = "none";
             }}
           >

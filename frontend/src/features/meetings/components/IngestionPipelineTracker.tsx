@@ -130,7 +130,7 @@ export const IngestionPipelineTracker: React.FC<IngestionPipelineTrackerProps> =
         {isFailed ? (
           <h3 className="font-bold text-sm text-rose-700 font-outfit">Processing encountered issues</h3>
         ) : (
-          <h3 className="font-bold text-sm text-[#0f172a] font-outfit">AI processing in progress</h3>
+          <h3 className="font-bold text-sm text-[#102C23] font-outfit">AI processing in progress</h3>
         )}
         <p className="text-xs text-slate-500 font-medium">
           {isFailed
@@ -145,12 +145,12 @@ export const IngestionPipelineTracker: React.FC<IngestionPipelineTrackerProps> =
           const isCurrentRetrying = retryingStage === s.id;
 
           return (
-            <div key={s.id} className="flex items-center justify-between py-1 border-b border-slate-50 last:border-0">
+            <div key={s.id} className="flex items-center justify-between py-1 border-b border-[#F9F8F6] last:border-0">
               <div className="flex items-center gap-3">
                 {status === "completed" ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                 ) : status === "running" ? (
-                  <Loader2 className="w-5 h-5 text-[#0f766e] animate-spin flex-shrink-0" />
+                  <Loader2 className="w-5 h-5 text-[#113229] animate-spin flex-shrink-0" />
                 ) : status === "failed" ? (
                   <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
                 ) : status === "skipped" ? (
@@ -163,7 +163,7 @@ export const IngestionPipelineTracker: React.FC<IngestionPipelineTrackerProps> =
                   </div>
                 )}
                 <span className={`text-xs font-semibold ${
-                  status === "running" ? "text-[#0f766e]" : status === "completed" ? "text-[#0f172a]" : status === "failed" ? "text-rose-700" : "text-slate-400"
+                  status === "running" ? "text-[#113229]" : status === "completed" ? "text-[#102C23]" : status === "failed" ? "text-rose-700" : "text-slate-400"
                 }`}>
                   {s.label}
                 </span>
@@ -210,7 +210,7 @@ export const IngestionPipelineTracker: React.FC<IngestionPipelineTrackerProps> =
         <button
           onClick={onTranscribe}
           disabled={transcribing || retryingStage !== null}
-          className="py-2 rounded-xl bg-[#0f766e] hover:bg-[#0d9488] text-white text-xs font-bold transition-all shadow-md shadow-[#0f766e]/10 flex items-center justify-center gap-2 disabled:opacity-50"
+          className="py-2 rounded-xl bg-[#113229] hover:bg-[#0D241E] text-white text-xs font-bold transition-all shadow-md shadow-[#113229]/10 flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {transcribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Trigger Transcription"}
         </button>

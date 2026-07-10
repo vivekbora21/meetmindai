@@ -21,4 +21,3 @@ from app.models.models import (
     Provider,
     CalendarEvent,
 )
-

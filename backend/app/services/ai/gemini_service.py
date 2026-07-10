@@ -64,8 +64,9 @@ class GeminiService:
         self.use_openrouter = provider_name == "openrouter"
 
         from app.services.llm.factory import LLMFactory
+
         provider_instance = LLMFactory.get_provider(provider_name)
-        
+
         self.client = provider_instance.client
         self.async_client = provider_instance.async_client
 
@@ -174,6 +175,7 @@ class GeminiService:
                 )
 
                 from app.services.llm.provider import execute_with_retry
+
                 response = execute_with_retry(
                     self.client.chat.completions.create,
                     model=self.model_name,
@@ -281,6 +283,7 @@ class GeminiService:
                 )
 
                 from app.services.llm.provider import execute_async_with_retry
+
                 response = await execute_async_with_retry(
                     self.async_client.chat.completions.create,
                     model=self.model_name,
@@ -1067,7 +1070,10 @@ class GeminiService:
             return {"speakers": {}, "segment_speakers": []}
 
     def identify_speaker_names(
-        self, transcript_text: str, current_speakers: List[str], known_members: List[str] = None
+        self,
+        transcript_text: str,
+        current_speakers: List[str],
+        known_members: List[str] = None,
     ) -> Dict[str, str]:
         """
         Uses LLM to analyze the transcript and map generic speaker names (e.g., 'Speaker 1')
@@ -1109,7 +1115,13 @@ class GeminiService:
             if isinstance(parsed, dict):
                 cleaned = {}
                 for k, v in parsed.items():
-                    if k in current_speakers and isinstance(v, str) and v.strip() and v.lower() != "unknown" and "speaker" not in v.lower():
+                    if (
+                        k in current_speakers
+                        and isinstance(v, str)
+                        and v.strip()
+                        and v.lower() != "unknown"
+                        and "speaker" not in v.lower()
+                    ):
                         cleaned[k] = v.strip()
                 return cleaned
             return {}

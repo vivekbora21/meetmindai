@@ -22,7 +22,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px", maxWidth: "78%" }}>
           <div
             style={{
-              background: "linear-gradient(135deg, #0f766e 0%, #0d9488 100%)",
+              background: "linear-gradient(135deg, #113229 0%, #0D241E 100%)",
               color: "#fff",
               padding: "10px 16px",
               borderRadius: "18px 18px 4px 18px",
@@ -55,7 +55,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
         <div
           style={{
             width: 28, height: 28, borderRadius: "50%",
-            background: "linear-gradient(135deg, #0f766e, #0d9488)",
+            background: "linear-gradient(135deg, #113229, #0D241E)",
             display: "flex", alignItems: "center", justifyContent: "center",
             flexShrink: 0, marginBottom: "18px",
             boxShadow: "0 2px 8px rgba(15,118,110,0.25)",
@@ -110,7 +110,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
           <div
             style={{
               position: "absolute", top: 0, left: 0, right: 0, height: "2px",
-              background: "linear-gradient(90deg, #0f766e, #5eead4)",
+              background: "linear-gradient(90deg, #113229, #5eead4)",
               borderRadius: "2px 2px 0 0",
             }}
           />

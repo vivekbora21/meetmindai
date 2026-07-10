@@ -25,8 +25,8 @@ export const MeetingActionItems: React.FC<MeetingActionItemsProps> = ({
         return (
           <div key={idx} className="p-4 rounded-2xl bg-white border border-slate-200 flex justify-between items-start shadow-sm gap-4">
             <div className="flex flex-col gap-1 flex-1">
-              <span className="text-xs font-bold text-[#0f172a] font-outfit flex items-center gap-1.5">
-                <CheckSquare className="w-4 h-4 text-[#0f766e]" /> {item.action_text}
+              <span className="text-xs font-bold text-[#102C23] font-outfit flex items-center gap-1.5">
+                <CheckSquare className="w-4 h-4 text-[#113229]" /> {item.action_text}
               </span>
               <div className="flex items-center gap-4 text-[10px] text-slate-500 font-semibold mt-1">
                 <span>
@@ -44,12 +44,12 @@ export const MeetingActionItems: React.FC<MeetingActionItemsProps> = ({
               className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 transition-all shadow-sm ${
                 syncStatus
                   ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                  : "bg-white border-slate-200 text-slate-500 hover:border-[#0f766e] hover:text-[#0f766e]"
+                  : "bg-white border-slate-200 text-slate-500 hover:border-[#113229] hover:text-[#113229]"
               }`}
             >
               {isSyncing ? (
                 <>
-                  <RefreshCw className="w-3 h-3 animate-spin text-[#0f766e]" /> Syncing...
+                  <RefreshCw className="w-3 h-3 animate-spin text-[#113229]" /> Syncing...
                 </>
               ) : syncStatus ? (
                 <>

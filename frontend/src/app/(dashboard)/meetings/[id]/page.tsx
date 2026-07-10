@@ -59,12 +59,12 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
 
   if (!meetingDetail) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
-        <div className="p-3 bg-[#0f766e] rounded-2xl shadow-lg shadow-[#0f766e]/15 animate-bounce">
+      <div className="min-h-screen bg-[#F9F8F6] flex flex-col items-center justify-center gap-4">
+        <div className="p-3 bg-[#113229] rounded-2xl shadow-lg shadow-[#113229]/15 animate-bounce">
           <Brain className="w-8 h-8 text-white" />
         </div>
         <div className="flex items-center gap-2">
-          <Loader2 className="w-5 h-5 text-[#0f766e] animate-spin" />
+          <Loader2 className="w-5 h-5 text-[#113229] animate-spin" />
           <span className="font-outfit text-sm font-medium text-slate-500">Loading meeting insights...</span>
         </div>
       </div>
@@ -80,12 +80,12 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   const isCompleted = statusNorm === "COMPLETED";
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 flex flex-col gap-6 selection:bg-[#0f766e] selection:text-white text-[#0f172a]">
+    <div className="min-h-screen bg-[#F9F8F6] p-4 md:p-8 flex flex-col gap-6 selection:bg-[#113229] selection:text-white text-[#102C23]">
       {/* Header Bar */}
       <header className="flex items-center justify-between pb-4 border-b border-slate-200">
         <button
           onClick={() => router.push("/dashboard")}
-          className="flex items-center gap-2 text-slate-500 hover:text-[#0f172a] text-sm font-semibold transition-colors"
+          className="flex items-center gap-2 text-slate-500 hover:text-[#102C23] text-sm font-semibold transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
@@ -102,7 +102,7 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
               </>
             ) : (
               <>
-                <MessageSquare className="w-4 h-4 text-[#0f766e]" />
+                <MessageSquare className="w-4 h-4 text-[#113229]" />
                 <span>Split Screen (Show Chat)</span>
               </>
             )}

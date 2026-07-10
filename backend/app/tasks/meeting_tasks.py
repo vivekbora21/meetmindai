@@ -361,10 +361,10 @@ def generate_embeddings(self, meeting_id: str):
 
         # Run RAG chunking and indexing pipeline
         from app.services.ai.rag_service import RAGService
+
         RAGService.index_meeting(db, meeting_id)
 
         logger.info(f"Embedding stage completed successfully for meeting: {meeting_id}")
-
 
     except Exception as exc:
         logger.error(
@@ -828,7 +828,9 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
         )
         return
 
-    logger.info(f"auto_detect_speaker_names | Running speaker name identification for meeting {meeting_id}")
+    logger.info(
+        f"auto_detect_speaker_names | Running speaker name identification for meeting {meeting_id}"
+    )
 
     # Get all unconfirmed speakers with generic-looking names
     unconfirmed_speakers = (
@@ -841,7 +843,9 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
     )
 
     if not unconfirmed_speakers:
-        logger.info("auto_detect_speaker_names | No unconfirmed speakers found. Skipping.")
+        logger.info(
+            "auto_detect_speaker_names | No unconfirmed speakers found. Skipping."
+        )
         return
 
     # Check if they have generic names (e.g. starting with "speaker")
@@ -851,7 +855,9 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
             generic_speakers.append(spk)
 
     if not generic_speakers:
-        logger.info("auto_detect_speaker_names | No generic unconfirmed speakers found. Skipping.")
+        logger.info(
+            "auto_detect_speaker_names | No generic unconfirmed speakers found. Skipping."
+        )
         return
 
     # Load transcripts to build text
@@ -872,7 +878,9 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
     transcript_text = "\n".join(transcript_lines)
 
     # Get known organization users to match against
-    org_users = db.query(User).filter(User.organization_id == meeting.organization_id).all()
+    org_users = (
+        db.query(User).filter(User.organization_id == meeting.organization_id).all()
+    )
     known_members = [u.name for u in org_users if u.name]
 
     # Map current generic names
@@ -893,7 +901,9 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
     for spk in generic_speakers:
         detected_name = detected_mapping.get(spk.display_name)
         if detected_name:
-            logger.info(f"auto_detect_speaker_names | Mapping '{spk.display_name}' to '{detected_name}'")
+            logger.info(
+                f"auto_detect_speaker_names | Mapping '{spk.display_name}' to '{detected_name}'"
+            )
             spk.display_name = detected_name
             spk.is_confirmed = True
             updated = True
@@ -902,4 +912,6 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
         db.commit()
         # Invalidate cache so the frontend gets the fresh names
         MeetingContextCache.invalidate(meeting_id)
-        logger.info("auto_detect_speaker_names | Database updated and cache invalidated.")
+        logger.info(
+            "auto_detect_speaker_names | Database updated and cache invalidated."
+        )

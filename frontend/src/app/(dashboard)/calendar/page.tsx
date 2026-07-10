@@ -85,9 +85,9 @@ const getPlatformInfo = (provider: string) => {
       return {
         name: provider.charAt(0).toUpperCase() + provider.slice(1),
         Icon: Video,
-        bgClass: "bg-slate-50 border border-slate-200",
+        bgClass: "bg-[#F9F8F6] border border-slate-200",
         textClass: "text-slate-600",
-        dotColor: "bg-slate-500",
+        dotColor: "bg-[#F9F8F6]0",
       };
   }
 };
@@ -528,7 +528,7 @@ export default function CalendarPage() {
     const list: Array<{ initial: string; bg: string; name?: string }> = [];
     let extraCount = 0;
     const avatarColors = [
-      "bg-[#0f766e] text-white",
+      "bg-[#113229] text-white",
       "bg-indigo-650 text-white",
       "bg-amber-600 text-white",
       "bg-rose-500 text-white",
@@ -687,7 +687,7 @@ export default function CalendarPage() {
           
           <button
             onClick={() => setSelectedDateKey(null)}
-            className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-800 rounded-xl transition-all border border-slate-200 active:scale-95 cursor-pointer"
+            className="p-1.5 bg-[#F9F8F6] hover:bg-slate-100 text-slate-400 hover:text-slate-800 rounded-xl transition-all border border-slate-200 active:scale-95 cursor-pointer"
             aria-label="Close details"
           >
             <X className="w-3.5 h-3.5" />
@@ -744,7 +744,7 @@ export default function CalendarPage() {
                             {category.name}
                           </span>
                           {event.is_online_meeting && (
-                            <span className="bg-slate-50 border border-slate-200 text-slate-500 text-[7.5px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-0.5">
+                            <span className="bg-[#F9F8F6] border border-slate-200 text-slate-500 text-[7.5px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-0.5">
                               <Video className="w-2 h-2" />
                               {event.meeting_provider || "Online"}
                             </span>
@@ -764,7 +764,7 @@ export default function CalendarPage() {
                       <h4 
                         onClick={() => { if (isProcessed) router.push(`/meetings/${event.id}`); }}
                         className={`font-bold text-[12.5px] text-slate-900 leading-tight font-outfit mt-1.5 transition-colors ${
-                          isProcessed ? "cursor-pointer hover:text-[#0f766e] hover:underline" : ""
+                          isProcessed ? "cursor-pointer hover:text-[#113229] hover:underline" : ""
                         }`}
                       >
                         {event.title}
@@ -832,15 +832,15 @@ export default function CalendarPage() {
                         {isProcessed ? (
                           <button
                             onClick={() => router.push(`/meetings/${event.id}`)}
-                            className="bg-white hover:bg-slate-50 text-[#0f766e] px-2.5 py-1.5 rounded-xl text-[9px] font-bold border border-teal-200/50 flex items-center gap-1 active:scale-95 transition-all shadow-sm cursor-pointer"
+                            className="bg-white hover:bg-[#F9F8F6] text-[#113229] px-2.5 py-1.5 rounded-xl text-[9px] font-bold border border-teal-200/50 flex items-center gap-1 active:scale-95 transition-all shadow-sm cursor-pointer"
                           >
-                            <Brain className="w-3 h-3 text-[#0f766e]" />
+                            <Brain className="w-3 h-3 text-[#113229]" />
                             Insights
                           </button>
                         ) : (
                           <button
                             disabled
-                            className="bg-slate-50 text-slate-400 px-2.5 py-1.5 rounded-xl text-[9px] font-bold border border-slate-200 flex items-center gap-1 opacity-60 cursor-not-allowed select-none"
+                            className="bg-[#F9F8F6] text-slate-400 px-2.5 py-1.5 rounded-xl text-[9px] font-bold border border-slate-200 flex items-center gap-1 opacity-60 cursor-not-allowed select-none"
                             title="AI Insights are processing"
                           >
                             <Brain className="w-3 h-3 text-slate-400" />
@@ -853,13 +853,13 @@ export default function CalendarPage() {
                             href={event.join_url!}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-[#0f766e] hover:bg-[#115e59] text-white px-2.5 py-1.5 rounded-xl text-[9px] font-bold flex items-center gap-1 active:scale-95 transition-all shadow-sm"
+                            className="bg-[#113229] hover:bg-[#115e59] text-white px-2.5 py-1.5 rounded-xl text-[9px] font-bold flex items-center gap-1 active:scale-95 transition-all shadow-sm"
                           >
                             <ExternalLink className="w-3 h-3 text-white" />
                             Join
                           </a>
                         ) : (
-                          <span className="bg-slate-50 text-slate-400 px-2.5 py-1.5 rounded-xl text-[9px] font-bold border border-slate-200 flex items-center gap-1 opacity-60 cursor-not-allowed select-none">
+                          <span className="bg-[#F9F8F6] text-slate-400 px-2.5 py-1.5 rounded-xl text-[9px] font-bold border border-slate-200 flex items-center gap-1 opacity-60 cursor-not-allowed select-none">
                             No link
                           </span>
                         )}
@@ -872,7 +872,7 @@ export default function CalendarPage() {
             })
           ) : (
             <div className="py-16 px-4 text-center flex flex-col items-center justify-center gap-3">
-              <div className="p-3.5 bg-slate-50 text-slate-400 rounded-full border border-slate-100">
+              <div className="p-3.5 bg-[#F9F8F6] text-slate-400 rounded-full border border-slate-100">
                 <CalendarCheck className="w-6 h-6 text-slate-400" />
               </div>
               <div>
@@ -889,7 +889,7 @@ export default function CalendarPage() {
   };
 
   return (
-    <main className="relative p-6 flex flex-col gap-6 w-full h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden text-slate-800 bg-slate-50/50">
+    <main className="relative p-6 flex flex-col gap-6 w-full h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden text-slate-800 bg-[#F9F8F6]/50">
       
       {/* Blurred decorative ambient light spots */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -901,13 +901,13 @@ export default function CalendarPage() {
       <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-200/60 pb-5 flex-shrink-0">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white shadow-sm rounded-2xl border border-slate-200/80 text-[#0f766e] flex items-center justify-center">
+            <div className="p-2.5 bg-white shadow-sm rounded-2xl border border-slate-200/80 text-[#113229] flex items-center justify-center">
               <CalendarIcon className="w-5.5 h-5.5" />
             </div>
             <div>
               <h1 className="text-2xl font-extrabold font-outfit text-slate-900 tracking-tight flex items-center gap-2">
                 Calendar Hub
-                <span className="text-[12px] font-semibold bg-[#e6f4f1] text-[#0f766e] px-2 py-0.5 rounded-full border border-teal-100">
+                <span className="text-[12px] font-semibold bg-[#e6f4f1] text-[#113229] px-2 py-0.5 rounded-full border border-teal-100">
                   {currentDate} - {currentTime}
                 </span>
               </h1>
@@ -947,7 +947,7 @@ export default function CalendarPage() {
           <button
             onClick={() => loadAllEvents(true)}
             disabled={loading || syncing}
-            className="flex items-center gap-2 bg-[#0f766e] hover:bg-[#115e59] active:scale-95 disabled:opacity-55 text-white px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all shadow-sm hover:shadow-md cursor-pointer select-none"
+            className="flex items-center gap-2 bg-[#113229] hover:bg-[#115e59] active:scale-95 disabled:opacity-55 text-white px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all shadow-sm hover:shadow-md cursor-pointer select-none"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
             Sync Calendar
@@ -958,7 +958,7 @@ export default function CalendarPage() {
       {/* Main Grid View */}
       {loading && !syncing ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-8 h-8 text-[#0f766e] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[#113229] animate-spin" />
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Hydrating Calendar Intel...</span>
         </div>
       ) : (
@@ -971,7 +971,7 @@ export default function CalendarPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 flex-shrink-0 bg-white border border-slate-200/80 rounded-[22px] p-3 shadow-sm">
               <div className="flex items-center gap-3">
                 {/* Chevrons */}
-                <div className="flex items-center border border-slate-200/70 rounded-xl overflow-hidden bg-slate-50 shadow-inner">
+                <div className="flex items-center border border-slate-200/70 rounded-xl overflow-hidden bg-[#F9F8F6] shadow-inner">
                   <button
                     onClick={prevMonth}
                     className="p-2 hover:bg-white text-slate-500 hover:text-slate-800 transition-all border-r border-slate-200/70 active:scale-95"
@@ -990,7 +990,7 @@ export default function CalendarPage() {
 
                 <button
                   onClick={goToToday}
-                  className="px-3.5 py-2 bg-slate-50 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm"
+                  className="px-3.5 py-2 bg-[#F9F8F6] hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm"
                 >
                   Today
                 </button>
@@ -1012,7 +1012,7 @@ export default function CalendarPage() {
                       className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all active:scale-95 ${
                         isActive 
                           ? "bg-slate-900 text-white border-slate-950 shadow-sm" 
-                          : "bg-slate-50/80 text-slate-500 border-slate-200/70 hover:bg-slate-100"
+                          : "bg-[#F9F8F6]/80 text-slate-500 border-slate-200/70 hover:bg-slate-100"
                       }`}
                     >
                       {cat}
@@ -1046,22 +1046,22 @@ export default function CalendarPage() {
                 let cellClasses = "relative rounded-[20px] p-2 flex flex-col justify-between min-h-0 h-full overflow-hidden text-left focus:outline-none transition-all duration-200 select-none border cursor-pointer ";
                 
                 if (isSelected) {
-                  cellClasses += "bg-[#0f766e]/5 border-[#0f766e] ring-1.5 ring-[#0f766e] shadow-md z-10";
+                  cellClasses += "bg-[#113229]/5 border-[#113229] ring-1.5 ring-[#113229] shadow-md z-10";
                 } else if (isToday) {
                   cellClasses += "bg-teal-50/50 border-teal-400 shadow-md ring-2 ring-teal-400/25";
                 } else if (!cell.isCurrentMonth) {
-                  cellClasses += "bg-slate-50/40 border-transparent text-slate-350 opacity-60";
+                  cellClasses += "bg-[#F9F8F6]/40 border-transparent text-slate-350 opacity-60";
                 } else {
                   cellClasses += hasEvents
-                    ? "bg-white border-slate-200/80 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm"
-                    : "bg-white border-slate-150 hover:bg-slate-50/50";
+                    ? "bg-white border-slate-200/80 hover:bg-[#F9F8F6] hover:border-slate-300 hover:shadow-sm"
+                    : "bg-white border-slate-150 hover:bg-[#F9F8F6]/50";
                 }
 
                 // Heat map intensity style
                 const heatStyle = filteredEvents.length >= 3 
                   ? "border-t-3 border-t-amber-500/70"
                   : filteredEvents.length === 2
-                  ? "border-t-3 border-t-[#0f766e]/50"
+                  ? "border-t-3 border-t-[#113229]/50"
                   : "border-t-3 border-t-slate-200/20";
 
                 return (
@@ -1073,15 +1073,15 @@ export default function CalendarPage() {
                     {/* Day number & today marker */}
                     <div className="flex items-center justify-between w-full">
                       {isToday ? (
-                        <span className="text-[10px] font-black leading-none bg-[#0f766e] text-white px-2 py-1 rounded-full shadow-sm select-none">
+                        <span className="text-[10px] font-black leading-none bg-[#113229] text-white px-2 py-1 rounded-full shadow-sm select-none">
                           {cell.day}
                         </span>
                       ) : (
                         <span className={`text-xs font-bold leading-none ${
                           isSelected 
-                            ? "text-[#0f766e]" 
+                            ? "text-[#113229]" 
                             : isToday 
-                            ? "text-[#0f766e]" 
+                            ? "text-[#113229]" 
                             : cell.isCurrentMonth 
                             ? "text-slate-800" 
                             : "text-slate-400"
@@ -1112,7 +1112,7 @@ export default function CalendarPage() {
                           );
                         })}
                         {filteredEvents.length > (selectedDateKey ? 1 : 2) && (
-                          <div className="text-[8.5px] font-extrabold text-[#0f766e] pl-1.5 mt-0.5 flex items-center gap-1">
+                          <div className="text-[8.5px] font-extrabold text-[#113229] pl-1.5 mt-0.5 flex items-center gap-1">
                             <Plus className="w-2 h-2" /> {filteredEvents.length - (selectedDateKey ? 1 : 2)} more
                           </div>
                         )}
@@ -1143,7 +1143,7 @@ export default function CalendarPage() {
                   <span>Personal</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1 bg-[#e6f4f1] text-[#0f766e] px-2.5 py-1 rounded-full border border-teal-100 text-[10px]">
+              <div className="flex items-center gap-1 bg-[#e6f4f1] text-[#113229] px-2.5 py-1 rounded-full border border-teal-100 text-[10px]">
                 <span>{events.length} dynamic slots active</span>
               </div>
             </div>
@@ -1195,7 +1195,7 @@ export default function CalendarPage() {
       {!loading && (
         <div className="relative z-10 flex flex-col gap-3 flex-shrink-0 text-left">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-[#e6f4f1] text-[#0f766e] rounded-xl border border-teal-100/50 flex items-center justify-center">
+            <div className="p-1.5 bg-[#e6f4f1] text-[#113229] rounded-xl border border-teal-100/50 flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
             <h3 className="font-extrabold text-xs text-slate-800 tracking-wider uppercase">Schedule Intelligence & Health</h3>
@@ -1208,7 +1208,7 @@ export default function CalendarPage() {
               <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-widest block">Today's Agenda</span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-xl font-bold text-slate-900 leading-none">{todaysEventsCount}</span>
-                <span className="text-[9px] text-[#0f766e] font-bold leading-none bg-[#e6f4f1] px-1.5 py-0.5 rounded-md border border-teal-100">
+                <span className="text-[9px] text-[#113229] font-bold leading-none bg-[#e6f4f1] px-1.5 py-0.5 rounded-md border border-teal-100">
                   {diffInfo.isGreater ? `+${diffInfo.diff}` : `-${diffInfo.diff}`} v. yesterday
                 </span>
               </div>
@@ -1239,10 +1239,10 @@ export default function CalendarPage() {
             <div className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-sm hover:shadow-md transition-all col-span-1 lg:col-span-2 flex items-center justify-between">
               <div>
                 <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-widest block">Focus Window</span>
-                <span className="text-[11px] font-bold text-[#0f766e] block mt-1.5">{focusTimeWindow}</span>
+                <span className="text-[11px] font-bold text-[#113229] block mt-1.5">{focusTimeWindow}</span>
                 <span className="text-[9px] text-slate-400 font-semibold block mt-0.5">Maximum productivity window</span>
               </div>
-              <div className="p-2 bg-[#e6f4f1]/50 border border-teal-150 rounded-xl text-[#0f766e] hidden md:block">
+              <div className="p-2 bg-[#e6f4f1]/50 border border-teal-150 rounded-xl text-[#113229] hidden md:block">
                 <Brain className="w-5 h-5" />
               </div>
             </div>
