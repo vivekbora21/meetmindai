@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Loader2, Eye, EyeOff, Network, GitBranch, Calendar, Video, MessageSquare, Bot, AlertTriangle, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, Loader2, Eye, EyeOff, Network, GitBranch, Calendar, Video, MessageSquare, Bot, Zap } from "lucide-react";
 import { Logo } from "../components/Logo";
 import { getApiUrl } from "../config";
 
@@ -59,7 +59,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Check URL parameters for initial tab selection
+    // Check URL parameters for initial tab selection and errors
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const mode = params.get("mode");
@@ -67,6 +67,10 @@ export default function Home() {
         setIsLogin(true);
       } else if (mode === "signup") {
         setIsLogin(false);
+      }
+      const errorParam = params.get("error");
+      if (errorParam) {
+        setError(errorParam);
       }
     }
 
@@ -176,6 +180,11 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSocialLogin = (provider: "google" | "microsoft") => {
+    setError("");
+    window.location.href = getApiUrl(`/api/v1/auth/social/${provider}/login`);
   };
 
   if (checkingAuth) {
@@ -680,7 +689,14 @@ export default function Home() {
 
             {isLogin && (
               <div className="text-right text-xs">
-                <a href="/forgot-password" className="text-[#113229] font-semibold hover:underline">
+                <a 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setError("Password reset functionality is not configured. Please contact your organization administrator.");
+                  }}
+                  className="text-[#113229] font-semibold hover:underline"
+                >
                   Forgot your password?
                 </a>
               </div>
@@ -701,7 +717,11 @@ export default function Home() {
           </div>
 
           <div className="flex gap-4 mb-4">
-            <button className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-lg py-2.5 text-xs font-bold text-[#0f172a] hover:bg-slate-50 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+            <button 
+              type="button"
+              onClick={() => handleSocialLogin("google")}
+              className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-lg py-2.5 text-xs font-bold text-[#0f172a] hover:bg-slate-50 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -710,7 +730,11 @@ export default function Home() {
               </svg>
               Google
             </button>
-            <button className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-lg py-2.5 text-xs font-bold text-[#0f172a] hover:bg-slate-50 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+            <button 
+              type="button"
+              onClick={() => handleSocialLogin("microsoft")}
+              className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-lg py-2.5 text-xs font-bold text-[#0f172a] hover:bg-slate-50 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+            >
               <svg width="16" height="16" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M10 0H0V10H10V0Z" fill="#F25022"/>
                 <path d="M21 0H11V10H21V0Z" fill="#7FBA00"/>

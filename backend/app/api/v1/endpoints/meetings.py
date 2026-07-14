@@ -3,10 +3,8 @@ import logging
 from typing import List, Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
 from datetime import datetime, timedelta
 
-logger = logging.getLogger(__name__)
 from app.database.connection import get_db
 from app.models.models import (
     Meeting,
@@ -20,153 +18,26 @@ from app.models.models import (
     ScheduledMeeting,
     AgentLiveSession,
 )
-from app.api.v1.endpoints.auth import get_current_user
+from app.helpers.auth import get_current_user
+from app.models.enums import MeetingStatus, AIStatus, Platform
+from app.schemas.meetings import (
+    MeetingCreate,
+    SpeakerOut,
+    TranscriptSegmentOut,
+    ActionItemOut,
+    DecisionOut,
+    RiskOut,
+    QuestionOut,
+    MeetingListOut,
+    MeetingDetailOut,
+    JoinMeetingLinkRequest,
+    RenameSpeakerRequest,
+)
 from app.services.media_service import MediaService
 from app.services.cache_service import MeetingContextCache
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-# Schemas
-class MeetingCreate(BaseModel):
-    title: str
-    meeting_date: Optional[datetime] = None
-
-
-class SpeakerOut(BaseModel):
-    id: str
-    speaker_number: int
-    speaker_tag: str
-    display_name: str
-    is_confirmed: bool
-    confidence: Optional[float] = None
-    contribution_percentage: Optional[float] = None
-    has_conflict: Optional[bool] = False
-    conflict_details: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-
-class TranscriptSegmentOut(BaseModel):
-    id: str
-    speaker_id: Optional[str] = None
-    speaker_tag: str
-    start_time: float
-    end_time: float
-    start_ms: int
-    end_ms: int
-    text: str
-
-    class Config:
-        from_attributes = True
-
-
-class ActionItemOut(BaseModel):
-    id: str
-    description: str
-    status: str
-    priority: str
-    due_date: Optional[datetime]
-    assigned_to: Optional[str]
-    confidence_score: float
-
-    class Config:
-        from_attributes = True
-
-
-class DecisionOut(BaseModel):
-    id: str
-    decision_text: str
-    rationale: Optional[str]
-    confidence_score: float
-
-    class Config:
-        from_attributes = True
-
-
-class RiskOut(BaseModel):
-    id: str
-    risk_text: str
-    mitigation: Optional[str]
-    severity: str
-
-    class Config:
-        from_attributes = True
-
-
-class QuestionOut(BaseModel):
-    id: str
-    question_text: str
-
-    class Config:
-        from_attributes = True
-
-
-class MeetingListOut(BaseModel):
-    id: str
-    title: str
-    status: str
-    ai_status: str
-    embedding_status: str
-    speaker_status: Optional[str] = None
-    kg_status: Optional[str] = None
-    platform: str
-    duration_seconds: int
-    meeting_date: datetime
-    created_at: datetime
-    meeting_url: Optional[str] = None
-    recording_url: Optional[str] = None
-    original_filename: Optional[str] = None
-    file_size: Optional[int] = None
-    content_type: Optional[str] = None
-
-    # Detailed fields for dashboard/calendar
-    executive_summary: Optional[str] = None
-    description: Optional[str] = None
-    action_items_count: Optional[int] = 0
-    decisions_count: Optional[int] = 0
-    attendees: Optional[List[Any]] = None
-
-    class Config:
-        from_attributes = True
-
-
-class MeetingDetailOut(BaseModel):
-    id: str
-    title: str
-    status: str
-    ai_status: str
-    embedding_status: str
-    speaker_status: Optional[str] = None
-    kg_status: Optional[str] = None
-    platform: str
-    recording_url: Optional[str]
-    meeting_url: Optional[str]
-    duration_seconds: int
-    meeting_date: datetime
-    executive_summary: Optional[str]
-    one_minute_read: Optional[str]
-    followup_email: Optional[str]
-    sentiment_summary: Optional[str]
-    original_filename: Optional[str] = None
-    file_size: Optional[int] = None
-    content_type: Optional[str] = None
-    speakers: List[SpeakerOut]
-    transcripts: List[TranscriptSegmentOut]
-    action_items: List[ActionItemOut]
-    decisions: List[DecisionOut]
-    risks: List[RiskOut]
-    questions: List[QuestionOut]
-    agenda_items: Optional[List[dict]] = None
-    technical_context: Optional[dict] = None
-    language: Optional[str] = None
-    key_themes: Optional[List[str]] = None
-    main_takeaways: Optional[List[str]] = None
-    important_quotes: Optional[List[dict]] = None
-
-    class Config:
-        from_attributes = True
 
 
 @router.get("/", response_model=List[MeetingListOut])
@@ -185,21 +56,9 @@ def get_meetings(
                 Meeting.created_at < stale_threshold,
                 # Either it's actively processing/transcribing/analyzing OR it's uploaded and has a recording file
                 (
-                    Meeting.status.in_(
-                        [
-                            "PROCESSING",
-                            "TRANSCRIBED",
-                            "ANALYZING",
-                            "Processing",
-                            "Transcribed",
-                            "Analyzing",
-                            "processing",
-                            "transcribed",
-                            "analyzing",
-                        ]
-                    )
+                    Meeting.status.in_(MeetingStatus.processing_values())
                     | (
-                        Meeting.status.in_(["UPLOADED", "Uploaded", "uploaded"])
+                        Meeting.status.in_(MeetingStatus.uploaded_values())
                         & Meeting.recording_url.isnot(None)
                     )
                 ),
@@ -208,15 +67,15 @@ def get_meetings(
         )
         if stuck_meetings:
             for m in stuck_meetings:
-                m.status = "FAILED"
-                if m.ai_status in ["RUNNING", "PENDING"]:
-                    m.ai_status = "FAILED"
-                if m.embedding_status in ["RUNNING", "PENDING"]:
-                    m.embedding_status = "FAILED"
-                if m.speaker_status in ["RUNNING", "PENDING"]:
-                    m.speaker_status = "FAILED"
-                if m.kg_status in ["RUNNING", "PENDING"]:
-                    m.kg_status = "FAILED"
+                m.status = MeetingStatus.FAILED.value
+                if m.ai_status in AIStatus.active_values():
+                    m.ai_status = AIStatus.FAILED.value
+                if m.embedding_status in AIStatus.active_values():
+                    m.embedding_status = AIStatus.FAILED.value
+                if m.speaker_status in AIStatus.active_values():
+                    m.speaker_status = AIStatus.FAILED.value
+                if m.kg_status in AIStatus.active_values():
+                    m.kg_status = AIStatus.FAILED.value
             db.commit()
     except Exception as e:
         logger.error(f"Error cleaning up stuck meetings: {e}")
@@ -230,7 +89,7 @@ def get_meetings(
         # Exclude meetings that are scheduled for the future and have not started (no recording and UPLOADED)
         query = query.filter(
             (Meeting.meeting_date <= now)
-            | (Meeting.status.notin_(["UPLOADED", "Uploaded", "uploaded"]))
+            | (Meeting.status.notin_(MeetingStatus.uploaded_values()))
             | (Meeting.recording_url.isnot(None))
         )
 
@@ -259,32 +118,20 @@ def get_meeting(
     # Automatically clean up if stuck
     try:
         stale_threshold = datetime.utcnow() - timedelta(minutes=15)
-        is_stuck_processing = meeting.status.in_(
-            [
-                "PROCESSING",
-                "TRANSCRIBED",
-                "ANALYZING",
-                "Processing",
-                "Transcribed",
-                "Analyzing",
-                "processing",
-                "transcribed",
-                "analyzing",
-            ]
-        ) or (
-            meeting.status in ["UPLOADED", "Uploaded", "uploaded"]
+        is_stuck_processing = meeting.status in MeetingStatus.processing_values() or (
+            meeting.status in MeetingStatus.uploaded_values()
             and meeting.recording_url is not None
         )
         if is_stuck_processing and meeting.created_at < stale_threshold:
-            meeting.status = "FAILED"
-            if meeting.ai_status in ["RUNNING", "PENDING"]:
-                meeting.ai_status = "FAILED"
-            if meeting.embedding_status in ["RUNNING", "PENDING"]:
-                meeting.embedding_status = "FAILED"
-            if meeting.speaker_status in ["RUNNING", "PENDING"]:
-                meeting.speaker_status = "FAILED"
-            if meeting.kg_status in ["RUNNING", "PENDING"]:
-                meeting.kg_status = "FAILED"
+            meeting.status = MeetingStatus.FAILED.value
+            if meeting.ai_status in AIStatus.active_values():
+                meeting.ai_status = AIStatus.FAILED.value
+            if meeting.embedding_status in AIStatus.active_values():
+                meeting.embedding_status = AIStatus.FAILED.value
+            if meeting.speaker_status in AIStatus.active_values():
+                meeting.speaker_status = AIStatus.FAILED.value
+            if meeting.kg_status in AIStatus.active_values():
+                meeting.kg_status = AIStatus.FAILED.value
             db.commit()
             db.refresh(meeting)
     except Exception as e:
@@ -317,9 +164,9 @@ def upload_meeting(
         title=title,
         meeting_date=parsed_date,
         organization_id=current_user.organization_id,
-        status="UPLOADED",
-        ai_status="PENDING",
-        embedding_status="PENDING",
+        status=MeetingStatus.UPLOADED.value,
+        ai_status=AIStatus.PENDING.value,
+        embedding_status=AIStatus.PENDING.value,
         platform=platform,
         recording_url=None,
         meeting_url=None,
@@ -332,7 +179,7 @@ def upload_meeting(
     try:
         saved_file_path = media_service.save_uploaded_file(file, meeting, db)
     except Exception as save_err:
-        meeting.status = "FAILED"
+        meeting.status = MeetingStatus.FAILED.value
         db.commit()
         raise HTTPException(
             status_code=500, detail=f"Failed to save uploaded file: {save_err}"
@@ -345,15 +192,6 @@ def upload_meeting(
         print(f"Failed to queue Celery processing: {e}")
 
     return meeting
-
-
-class JoinMeetingLinkRequest(BaseModel):
-    title: str
-    platform: str
-    meeting_url: str
-    meeting_date: Optional[datetime] = None
-    scheduled_start: Optional[datetime] = None
-    scheduled_end: Optional[datetime] = None
 
 
 @router.post(
@@ -372,9 +210,9 @@ def join_meeting_by_link(
         title=request.title,
         meeting_date=parsed_date,
         organization_id=current_user.organization_id,
-        status="UPLOADED",
-        ai_status="PENDING",
-        embedding_status="PENDING",
+        status=MeetingStatus.UPLOADED.value,
+        ai_status=AIStatus.PENDING.value,
+        embedding_status=AIStatus.PENDING.value,
         platform=request.platform,
         recording_url=None,
         meeting_url=request.meeting_url,
@@ -436,7 +274,7 @@ def upload_meeting_media(
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
-    meeting.status = "PROCESSING"
+    meeting.status = MeetingStatus.PROCESSING.value
     db.commit()
     MeetingContextCache.invalidate(meeting_id)
 
@@ -444,7 +282,7 @@ def upload_meeting_media(
     try:
         saved_file_path = media_service.save_uploaded_file(file, meeting, db)
     except Exception as save_err:
-        meeting.status = "FAILED"
+        meeting.status = MeetingStatus.FAILED.value
         db.commit()
         raise HTTPException(
             status_code=500, detail=f"Failed to save uploaded file: {save_err}"
@@ -483,7 +321,7 @@ def transcribe_meeting(
     if not saved_file_path:
         raise HTTPException(status_code=404, detail="Meeting recording not found.")
 
-    meeting.status = "PROCESSING"
+    meeting.status = MeetingStatus.PROCESSING.value
     db.commit()
     MeetingContextCache.invalidate(meeting_id)
     try:
@@ -494,10 +332,6 @@ def transcribe_meeting(
         print(f"Failed to queue Celery processing: {e}")
 
     return meeting
-
-
-class RenameSpeakerRequest(BaseModel):
-    display_name: str
 
 
 @router.put("/{meeting_id}/speakers/{speaker_id}", response_model=MeetingDetailOut)

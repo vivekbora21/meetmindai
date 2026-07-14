@@ -8,96 +8,26 @@ from pydantic import BaseModel
 
 from app.database.connection import get_db, SessionLocal
 from app.models.models import Meeting, User, Transcript, ChatMessage, ChatSession
-from app.api.v1.endpoints.auth import get_current_user
+from app.helpers.auth import get_current_user
 from app.services.embedding_service import EmbeddingService
 from app.services.ai.gemini_service import GeminiService
 from app.services.cache_service import MeetingContextCache
+from app.schemas.search import (
+    SearchQuery,
+    SearchResultItem,
+    ChatQuery,
+    ChatResponse,
+    ChatMessageOut,
+    ChatSessionCreate,
+    ChatSessionOut,
+    ChatSessionDetailOut,
+    TitleUpdate,
+    MessageInput,
+    ArchiveStatus,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-class SearchQuery(BaseModel):
-    query: str
-    limit: Optional[int] = 5
-
-
-class SearchResultItem(BaseModel):
-    meeting_id: str
-    meeting_title: str
-    segment_id: str
-    speaker_tag: str
-    text: str
-    start_ms: int
-    end_ms: int
-    score: float
-
-
-class ChatQuery(BaseModel):
-    meeting_id: Optional[str] = None  # If None, search across all meetings
-    question: str
-
-
-class ChatResponse(BaseModel):
-    answer: str
-    confidence_score: float
-    sources: List[SearchResultItem]
-
-
-class ChatMessageOut(BaseModel):
-    id: str
-    meeting_id: Optional[str] = None
-    user_id: str
-    session_id: Optional[str] = None
-    role: str
-    text: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class ChatSessionCreate(BaseModel):
-    title: Optional[str] = "New Chat"
-
-
-class ChatSessionOut(BaseModel):
-    id: str
-    meeting_id: Optional[str] = None
-    user_id: str
-    title: str
-    is_archived: bool
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class ChatSessionDetailOut(BaseModel):
-    id: str
-    meeting_id: Optional[str] = None
-    user_id: str
-    title: str
-    is_archived: bool
-    created_at: datetime
-    updated_at: datetime
-    messages: List[ChatMessageOut]
-
-    class Config:
-        from_attributes = True
-
-
-class TitleUpdate(BaseModel):
-    title: str
-
-
-class MessageInput(BaseModel):
-    question: str
-
-
-class ArchiveStatus(BaseModel):
-    is_archived: bool
 
 
 @router.post("/semantic", response_model=List[SearchResultItem])
@@ -176,55 +106,7 @@ def semantic_search(
     return results
 
 
-def is_high_level_question(question: str) -> bool:
-    import re
-
-    # Normalize question: remove non-alphanumeric chars (except spaces) and lowercase it
-    q = re.sub(r"[^\w\s]", "", question.lower().strip())
-
-    high_level_phrases = [
-        "what is this meeting about",
-        "what was this meeting about",
-        "main point",
-        "main objective",
-        "purpose of the meeting",
-        "purpose of this meeting",
-        "overall discussion",
-        "give me an overview",
-        "summarize this meeting",
-        "summarize the meeting",
-        "what happened in this meeting",
-        "what happened in the meeting",
-        "key discussion topics",
-        "what was the focus",
-        "meeting summary",
-        "general summary",
-        "overall summary",
-        "executive summary",
-        "high level summary",
-    ]
-
-    # Check for direct phrase matches
-    for phrase in high_level_phrases:
-        if phrase in q:
-            return True
-
-    # Also check if it's asking for summary / overview / purpose in a short query
-    words = q.split()
-    if len(words) <= 5:
-        short_keywords = {
-            "summary",
-            "overview",
-            "purpose",
-            "objective",
-            "theme",
-            "agenda",
-            "focus",
-        }
-        if any(w in short_keywords for w in words):
-            return True
-
-    return False
+from app.helpers.search import is_high_level_question
 
 
 @router.post("/chat", response_model=ChatResponse)

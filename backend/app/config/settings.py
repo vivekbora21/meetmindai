@@ -28,6 +28,8 @@ class Settings:
     JWT_SECRET: str = get_env(
         "JWT_SECRET", "supersecretkeymeetingmind_secure_key_at_least_32_bytes_long"
     )
+    JWT_ALGORITHM: str = get_env("JWT_ALGORITHM", "HS256")
+    JWT_EXPIRE_MINUTES: int = int(get_env("JWT_EXPIRE_MINUTES", "1440"))
     DATABASE_URL: str = get_env(
         "DATABASE_URL", "postgresql://postgres:password@localhost:5432/meetingmind"
     )

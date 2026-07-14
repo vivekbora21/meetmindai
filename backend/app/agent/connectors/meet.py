@@ -41,7 +41,3 @@ class GoogleMeetConnector(MeetingConnector):
         self, callback: Callable[[Dict[str, Any]], None]
     ) -> None:
         self.participant_callback = callback
-
-    def captureAudio(self) -> None:
-        """Placeholder method to capture meeting audio."""
-        logger.info("[GoogleMeetConnector] captureAudio placeholder called.")

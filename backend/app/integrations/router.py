@@ -27,12 +27,16 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
-from app.models.models import User
+from app.models.models import User, Organization
 from app.integrations.registry import get_provider
-from app.api.v1.endpoints.auth import (
+from app.helpers.auth import (
     get_current_user,
     generate_signed_state,
     verify_signed_state,
+    verify_social_login_state,
+    create_access_token,
+    get_password_hash,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
 )
 
 logger = logging.getLogger(__name__)
@@ -150,6 +154,111 @@ async def provider_callback(
         return _error_redirect("State parameter is missing.")
 
     # Step 3 — validate state and resolve user
+    if verify_social_login_state(state, provider):
+        try:
+            # Exchange authorization code for tokens
+            tokens = await oauth_provider.exchange_code(
+                code, redirect_uri=oauth_provider.redirect_uri
+            )
+            access_token = tokens.get("access_token")
+            if not access_token:
+                return RedirectResponse(
+                    url=f"http://{host}:3000/login?mode=login&error=Failed to retrieve access token from provider."
+                )
+
+            # Get user profile info
+            profile = await oauth_provider.get_user_profile(access_token)
+            email = profile.get("email")
+            display_name = profile.get("display_name") or email
+
+            if not email:
+                return RedirectResponse(
+                    url=f"http://{host}:3000/login?mode=login&error=Provider failed to return user email address."
+                )
+
+            # Check if user already exists
+            user = db.query(User).filter(User.email == email).first()
+
+            if not user:
+                import secrets
+
+                # Domain-based organization naming
+                domain = email.split("@")[-1] if "@" in email else "Personal Workspace"
+                org_name = domain.split(".")[0].title() if "." in domain else domain
+                if org_name.lower() in [
+                    "gmail",
+                    "outlook",
+                    "hotmail",
+                    "yahoo",
+                    "icloud",
+                ]:
+                    org_name = f"{display_name}'s Workspace"
+
+                org = Organization(name=org_name)
+                db.add(org)
+                db.commit()
+                db.refresh(org)
+
+                # Create user
+                hashed_pwd = get_password_hash(secrets.token_urlsafe(32))
+                user = User(
+                    name=display_name,
+                    email=email,
+                    hashed_password=hashed_pwd,
+                    organization_id=org.id,
+                    role="Admin",
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+
+            # Generate JWT local token
+            app_token = create_access_token(
+                data={"sub": user.id, "org": user.organization_id, "role": user.role}
+            )
+
+            # Build frontend redirect
+            from app.config.settings import get_env
+
+            frontend_url = get_env("FRONTEND_URL", f"http://{host}:3000")
+            redirect_response = RedirectResponse(
+                url=f"{frontend_url.rstrip('/')}/dashboard"
+            )
+
+            # Set cookies
+            secure_cookie = get_env("PYTHON_ENV", "development") == "production"
+            redirect_response.set_cookie(
+                key="access_token",
+                value=app_token,
+                httponly=True,
+                max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+                samesite="lax",
+                secure=secure_cookie,
+            )
+
+            redirect_response.set_cookie(
+                key="isAuthenticated",
+                value="true",
+                max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+                samesite="lax",
+                secure=secure_cookie,
+            )
+
+            logger.info(
+                f"[IntegrationRouter] Social OAuth login/register complete | "
+                f"provider={provider} user_id={user.id} email={email}"
+            )
+            return redirect_response
+
+        except Exception as e:
+            logger.exception(f"Unexpected error in social callback for {provider}")
+            import urllib.parse
+
+            encoded = urllib.parse.quote(str(e))
+            return RedirectResponse(
+                url=f"http://{host}:3000/login?mode=login&error={encoded}"
+            )
+
     try:
         user_id = verify_signed_state(state, provider)
     except HTTPException as exc:

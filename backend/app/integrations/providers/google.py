@@ -50,8 +50,11 @@ class GoogleOAuthProvider(AbstractOAuthProvider):
     # Authorization URL
     # ------------------------------------------------------------------
 
-    def get_authorization_url(self, state: str) -> str:
-        if not self.client_id or not self.redirect_uri:
+    def get_authorization_url(
+        self, state: str, redirect_uri: Optional[str] = None
+    ) -> str:
+        r_uri = redirect_uri or self.redirect_uri
+        if not self.client_id or not r_uri:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Google OAuth configuration is incomplete.",
@@ -59,7 +62,7 @@ class GoogleOAuthProvider(AbstractOAuthProvider):
         params = {
             "client_id": self.client_id,
             "response_type": "code",
-            "redirect_uri": self.redirect_uri,
+            "redirect_uri": r_uri,
             "scope": " ".join(self.scopes),
             "state": state,
             "access_type": "offline",
@@ -74,8 +77,11 @@ class GoogleOAuthProvider(AbstractOAuthProvider):
     # Token Exchange
     # ------------------------------------------------------------------
 
-    async def exchange_code(self, code: str) -> Dict[str, Any]:
-        if not self.client_id or not self.client_secret or not self.redirect_uri:
+    async def exchange_code(
+        self, code: str, redirect_uri: Optional[str] = None
+    ) -> Dict[str, Any]:
+        r_uri = redirect_uri or self.redirect_uri
+        if not self.client_id or not self.client_secret or not r_uri:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Google OAuth configuration is incomplete.",
@@ -85,7 +91,7 @@ class GoogleOAuthProvider(AbstractOAuthProvider):
             "client_id": self.client_id,
             "client_secret": self.client_secret,
             "code": code,
-            "redirect_uri": self.redirect_uri,
+            "redirect_uri": r_uri,
             "grant_type": "authorization_code",
         }
 

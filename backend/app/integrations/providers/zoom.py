@@ -57,8 +57,11 @@ class ZoomOAuthProvider(AbstractOAuthProvider):
     # Authorization URL
     # ------------------------------------------------------------------
 
-    def get_authorization_url(self, state: str) -> str:
-        if not self.client_id or not self.redirect_uri:
+    def get_authorization_url(
+        self, state: str, redirect_uri: Optional[str] = None
+    ) -> str:
+        r_uri = redirect_uri or self.redirect_uri
+        if not self.client_id or not r_uri:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Zoom OAuth configuration is incomplete.",
@@ -66,7 +69,7 @@ class ZoomOAuthProvider(AbstractOAuthProvider):
         params = {
             "client_id": self.client_id,
             "response_type": "code",
-            "redirect_uri": self.redirect_uri,
+            "redirect_uri": r_uri,
             "state": state,
             "scope": self.SCOPES,
         }
@@ -81,8 +84,11 @@ class ZoomOAuthProvider(AbstractOAuthProvider):
     # Token Exchange
     # ------------------------------------------------------------------
 
-    async def exchange_code(self, code: str) -> Dict[str, Any]:
-        if not self.client_id or not self.client_secret or not self.redirect_uri:
+    async def exchange_code(
+        self, code: str, redirect_uri: Optional[str] = None
+    ) -> Dict[str, Any]:
+        r_uri = redirect_uri or self.redirect_uri
+        if not self.client_id or not self.client_secret or not r_uri:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Zoom OAuth configuration is incomplete.",
@@ -90,7 +96,7 @@ class ZoomOAuthProvider(AbstractOAuthProvider):
 
         data = {
             "code": code,
-            "redirect_uri": self.redirect_uri,
+            "redirect_uri": r_uri,
             "grant_type": "authorization_code",
         }
         headers = {

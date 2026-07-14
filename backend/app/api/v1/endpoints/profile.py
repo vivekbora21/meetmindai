@@ -30,187 +30,25 @@ from app.models.models import (
     Decision,
     Risk,
 )
-from app.api.v1.endpoints.auth import (
+from app.helpers.auth import (
     get_current_user,
     get_password_hash,
     verify_password,
 )
+from app.helpers.profile import log_activity, ensure_user_settings_initialized
+from app.schemas.profile import (
+    ProfileUpdate,
+    PasswordChange,
+    AIPreferenceUpdate,
+    MeetingPreferenceUpdate,
+    NotificationSettingUpdate,
+    PersonalizationUpdate,
+    PrivacyUpdate,
+    APIKeyCreate,
+    IntegrationConnect,
+)
 
 router = APIRouter()
-
-# --- Helpers ---
-
-
-def log_activity(
-    db: Session, user_id: str, action: str, details: str = None, ip: str = "127.0.0.1"
-):
-    activity = ActivityLog(
-        user_id=user_id, action=action, details=details, ip_address=ip
-    )
-    db.add(activity)
-    db.commit()
-
-
-def ensure_user_settings_initialized(db: Session, user: User):
-    """Ensure all profile & setting sub-tables exist for a user."""
-    # 1. Profile
-    if not user.profile:
-        profile = UserProfile(
-            user_id=user.id,
-            username=user.email.split("@")[0] + "_" + str(uuid.uuid4())[:4],
-            company_name=user.organization.name if user.organization else None,
-            time_zone="UTC",
-            preferred_language="en",
-            account_status="Active",
-            subscription_plan="Free",
-            email_verified=False,
-        )
-        db.add(profile)
-
-    # 2. AI Preferences
-    if not user.ai_preference:
-        ai_pref = AIPreference(user_id=user.id)
-        db.add(ai_pref)
-
-    # 3. Meeting Preferences
-    if not user.meeting_preference:
-        meet_pref = MeetingPreference(user_id=user.id)
-        db.add(meet_pref)
-
-    # 4. Notification Settings
-    if not user.notification_setting:
-        notif = NotificationSetting(user_id=user.id)
-        db.add(notif)
-
-    # 5. Security Settings
-    if not user.security_setting:
-        sec = UserSecuritySetting(user_id=user.id)
-        db.add(sec)
-
-    # 6. Storage Usage
-    if not user.storage_usage:
-        storage = StorageUsage(
-            user_id=user.id,
-            recordings_bytes=4.5 * 1024 * 1024 * 1024,  # mock seed
-            transcripts_bytes=150 * 1024 * 1024,
-            kg_bytes=25 * 1024 * 1024,
-            embeddings_bytes=80 * 1024 * 1024,
-            reports_bytes=45 * 1024 * 1024,
-            chat_bytes=10 * 1024 * 1024,
-            total_limit_bytes=10.0 * 1024 * 1024 * 1024,
-        )
-        db.add(storage)
-
-    # 7. Personalization
-    if not user.personalization:
-        pers = PersonalizationSetting(user_id=user.id)
-        db.add(pers)
-
-    # 8. Privacy
-    if not user.privacy_setting:
-        priv = PrivacySetting(user_id=user.id)
-        db.add(priv)
-
-    db.commit()
-    db.refresh(user)
-
-
-# --- Schemas ---
-
-
-class ProfileUpdate(BaseModel):
-    name: Optional[str] = None
-    username: Optional[str] = None
-    phone_number: Optional[str] = None
-    job_title: Optional[str] = None
-    company_name: Optional[str] = None
-    department: Optional[str] = None
-    country: Optional[str] = None
-    time_zone: Optional[str] = None
-    preferred_language: Optional[str] = None
-
-
-class PasswordChange(BaseModel):
-    current_password: str
-    new_password: str
-
-
-class AIPreferenceUpdate(BaseModel):
-    preferred_provider: str
-    fallback_provider: str
-    preferred_model: str
-    temperature: float
-    summary_length: str
-    response_style: str
-    enable_chat_memory: bool
-    enable_semantic_search: bool
-    enable_context_retrieval: bool
-    enable_kg_generation: bool
-    enable_speaker_intelligence: bool
-    enable_automatic_insights: bool
-
-
-class MeetingPreferenceUpdate(BaseModel):
-    default_language: str
-    enable_speaker_id: bool
-    enable_translation: bool
-    enable_subtitles: bool
-    transcript_format: str
-    default_category: str
-    recording_retention_days: int
-    auto_delete_recordings: bool
-    meeting_privacy: str
-    auto_import_meetings: bool
-    auto_import_recordings: bool
-    auto_generate_transcript: bool
-    auto_generate_summary: bool
-    auto_create_action_items: bool
-    auto_create_risks: bool
-    auto_create_kg: bool
-    auto_create_tech_analysis: bool
-    auto_create_decisions: bool
-    calendar_sync_frequency: str
-    recording_preference: str
-
-
-class NotificationSettingUpdate(BaseModel):
-    meeting_uploaded: Dict[str, bool]
-    transcript_ready: Dict[str, bool]
-    ai_summary_ready: Dict[str, bool]
-    kg_ready: Dict[str, bool]
-    action_items_ready: Dict[str, bool]
-    failed_processing: Dict[str, bool]
-    calendar_sync: Dict[str, bool]
-    oauth_expired: Dict[str, bool]
-    weekly_reports: Dict[str, bool]
-
-
-class PersonalizationUpdate(BaseModel):
-    theme: str
-    accent_color: str
-    compact_mode: bool
-    date_format: str
-    time_format: str
-    default_landing_page: str
-    sidebar_expanded: bool
-
-
-class PrivacyUpdate(BaseModel):
-    data_retention_days: int
-    ai_training_opt_out: bool
-
-
-class APIKeyCreate(BaseModel):
-    name: str
-
-
-class IntegrationConnect(BaseModel):
-    provider: str
-    email: str
-    auto_sync: Optional[bool] = True
-    recording_import: Optional[bool] = True
-    calendar_sync: Optional[bool] = True
-
 
 # --- Endpoints ---
 

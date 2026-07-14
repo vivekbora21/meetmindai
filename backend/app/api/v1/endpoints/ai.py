@@ -9,59 +9,22 @@ from pydantic import BaseModel
 
 from app.database.connection import get_db, SessionLocal
 from app.models.models import Meeting, User, ChatMessage, ChatSession
-from app.api.v1.endpoints.auth import get_current_user
+from app.helpers.auth import get_current_user
 from app.services.ai.rag_service import RAGService
 from app.tasks.meeting_tasks import generate_embeddings
+from app.schemas.ai import (
+    ChatFilter,
+    WorkspaceChatQuery,
+    ManualIndexQuery,
+    WorkspaceChatResponse,
+    ChatSessionOut,
+    RegenerateQuery,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 meeting_router = APIRouter()
-
-
-class ChatFilter(BaseModel):
-    platform: Optional[str] = None
-    date_start: Optional[str] = None
-    date_end: Optional[str] = None
-    meeting_id: Optional[str] = None
-    participants: Optional[List[str]] = None
-    project: Optional[str] = None
-
-
-class WorkspaceChatQuery(BaseModel):
-    question: str
-    filters: Optional[ChatFilter] = None
-    session_id: Optional[str] = None
-    stream: Optional[bool] = True
-
-
-class ManualIndexQuery(BaseModel):
-    meeting_id: str
-
-
-class WorkspaceChatResponse(BaseModel):
-    answer: str
-    confidence_score: float
-    sources: List[Dict[str, Any]]
-    suggested_questions: List[str]
-    session_id: str
-
-
-class ChatSessionOut(BaseModel):
-    id: str
-    title: str
-    created_at: datetime
-    updated_at: datetime
-    is_archived: bool
-
-    class Config:
-        from_attributes = True
-
-
-class RegenerateQuery(BaseModel):
-    session_id: str
-    filters: Optional[ChatFilter] = None
-    stream: Optional[bool] = True
 
 
 @router.post("/chat")

@@ -17,16 +17,7 @@ from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 from app.database.connection import Base
 
-from enum import Enum
-
-
-class Provider(str, Enum):
-    MICROSOFT = "microsoft"
-    GOOGLE = "google"
-    ZOOM = "zoom"
-    SLACK = "slack"
-    DISCORD = "discord"
-    WEBEX = "webex"
+from app.models.enums import Provider
 
 
 class Organization(Base):

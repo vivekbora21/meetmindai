@@ -28,12 +28,15 @@ class AbstractOAuthProvider(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    def get_authorization_url(self, state: str) -> str:
+    def get_authorization_url(
+        self, state: str, redirect_uri: Optional[str] = None
+    ) -> str:
         """
         Generate the provider-specific OAuth authorization URL.
 
         Args:
             state: A signed JWT state parameter for CSRF protection.
+            redirect_uri: Optional redirect URI to override the default.
 
         Returns:
             The full authorization URL to redirect the user to.
@@ -44,7 +47,9 @@ class AbstractOAuthProvider(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    async def exchange_code(self, code: str) -> Dict[str, Any]:
+    async def exchange_code(
+        self, code: str, redirect_uri: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Exchange an authorization code for access/refresh tokens.
 

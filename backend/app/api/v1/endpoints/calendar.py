@@ -6,39 +6,17 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
-from app.api.v1.endpoints.auth import get_current_user
+from app.helpers.auth import get_current_user
 from app.models.models import User, CalendarEvent, ConnectedAccount, Provider
 from app.services.microsoft_calendar import MicrosoftCalendarService
 from app.services.google_calendar import GoogleCalendarService
 from app.services.zoom_calendar import ZoomCalendarService
+from app.schemas.calendar import CalendarEventOut
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 calendar_service = MicrosoftCalendarService()
-
-
-class CalendarEventOut(BaseModel):
-    id: str
-    user_id: str
-    provider: str
-    provider_event_id: str
-    title: str
-    description: Optional[str] = None
-    start_time: datetime
-    end_time: datetime
-    timezone: Optional[str] = None
-    organizer_email: Optional[str] = None
-    join_url: Optional[str] = None
-    meeting_provider: Optional[str] = None
-    is_online_meeting: bool
-    status: Optional[str] = None
-    attendees: Optional[List[dict]] = None
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 @router.get("/api/calendar/events", response_model=List[CalendarEventOut])

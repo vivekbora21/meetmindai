@@ -13,30 +13,10 @@ from app.models.models import (
     MeetingSpeaker,
     Transcript,
 )
-from app.api.v1.endpoints.auth import get_current_user
+from app.helpers.auth import get_current_user
+from app.schemas.analytics import AnalyticsOverview, SpeakerMetric, TopicMetric
 
 router = APIRouter()
-
-
-class AnalyticsOverview(BaseModel):
-    total_meetings: int
-    completed_action_items: int
-    pending_action_items: int
-    total_decisions: int
-    active_risks: int
-    productivity_score: int  # Calculated metric
-    decision_velocity: float  # Average decisions per meeting
-
-
-class SpeakerMetric(BaseModel):
-    name: str
-    minutes_spoken: float
-    percentage: float
-
-
-class TopicMetric(BaseModel):
-    topic: str
-    count: int
 
 
 @router.get("/overview", response_model=AnalyticsOverview)

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { 
   Search, Upload, AlertTriangle, ShieldAlert, TrendingUp, ChevronRight, Brain, 
   Sparkles,Loader2, Scale, ClipboardCheck, Bell, ChevronDown, Download, ArrowRight,
-  Calendar, Clock, Video
+  Calendar, Clock, Video, Link as LinkIcon
 } from "lucide-react";
 import { getApiUrl } from "../../config";
 
@@ -609,7 +609,15 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <>
-                    <Upload className="w-3.5 h-3.5" /> Upload recording
+                    {platform === "Teams" || platform === "Google Meet" ? (
+                      <>
+                        <LinkIcon className="w-3.5 h-3.5" /> Link scheduled meeting
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3.5 h-3.5" /> Upload recording
+                      </>
+                    )}
                   </>
                 )}
               </button>
