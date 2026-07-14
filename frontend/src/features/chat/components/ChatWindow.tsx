@@ -203,7 +203,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
                       <span style={{ fontSize: "9px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'Inter', sans-serif" }}>MeetMind AI</span>
                       <div style={{ position: "relative", background: "#fff", border: "1px solid #e2e8f0", padding: "12px 16px", borderRadius: "18px 18px 18px 4px", fontSize: "13px", color: "#334155", lineHeight: 1.6, fontWeight: 450, fontFamily: "'Inter', sans-serif", boxShadow: "0 1px 6px rgba(15,23,42,0.06)", overflow: "hidden", maxWidth: "78%" }}>
                         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, #113229, #5eead4)" }} />
-                        <p style={{ margin: 0 }}>👋 Hi! I've read through the meeting. Ask me anything or pick a suggested question below.</p>
+                        <p style={{ margin: 0 }}>👋 Hi! I&apos;ve read through the meeting. Ask me anything or pick a suggested question below.</p>
                       </div>
                     </div>
                   </div>

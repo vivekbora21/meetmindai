@@ -131,7 +131,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-800">Decision Extracted</div>
-                    <div className="text-[10px] text-slate-500">"Launch Q3 marketing campaign"</div>
+                    <div className="text-[10px] text-slate-500">&quot;Launch Q3 marketing campaign&quot;</div>
                   </div>
                 </div>
               </div>
@@ -197,7 +197,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-3">Semantic Search</h3>
                 <p className="text-slate-600 leading-relaxed">
-                  "What did we decide about the Q3 budget?" Search across your entire organization's meeting history instantly.
+                  &quot;What did we decide about the Q3 budget?&quot; Search across your entire organization&apos;s meeting history instantly.
                 </p>
               </div>
 
@@ -219,7 +219,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-3">Real-time Processing</h3>
                 <p className="text-slate-600 leading-relaxed">
-                  Meeting insights are generated in under 3 minutes after your call ends. You'll never wait for notes again.
+                  Meeting insights are generated in under 3 minutes after your call ends. You&apos;ll never wait for notes again.
                 </p>
               </div>
               

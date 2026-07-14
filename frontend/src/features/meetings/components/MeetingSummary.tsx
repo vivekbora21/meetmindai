@@ -1,5 +1,5 @@
 import React from "react";
-import { Sparkles, CheckCircle2, Quote } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { MeetingDetail } from "../types/meeting";
 
 interface MeetingSummaryProps {

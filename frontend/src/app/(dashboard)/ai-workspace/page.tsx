@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Sparkles, 
   MessageSquare, 
   Trash2, 
   SlidersHorizontal, 
-  Calendar, 
   User, 
   Briefcase, 
   Layers, 
@@ -17,11 +16,8 @@ import {
   RefreshCw, 
   Bot, 
   ChevronRight, 
-  Search, 
-  HelpCircle,
   Clock,
   ExternalLink,
-  ChevronDown,
   X,
   Plus,
   Loader2,
@@ -68,6 +64,22 @@ interface MeetingItem {
   platform?: string;
 }
 
+interface ChatFilters {
+  platform?: string;
+  date_start?: string;
+  date_end?: string;
+  meeting_id?: string;
+  project?: string;
+  participants?: string[];
+}
+
+const defaultSuggestions = [
+  "When was the deadline for the Recruitease project Vivek was working on?",
+  "What tasks were assigned to Rahul?",
+  "What decisions were made regarding the UI redesign?",
+  "Summarize all risks discussed in meetings this month"
+];
+
 export default function AIWorkspacePage() {
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -100,34 +112,9 @@ export default function AIWorkspacePage() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   
   // Suggested Questions
-  const defaultSuggestions = [
-    "When was the deadline for the Recruitease project Vivek was working on?",
-    "What tasks were assigned to Rahul?",
-    "What decisions were made regarding the UI redesign?",
-    "Summarize all risks discussed in meetings this month"
-  ];
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(defaultSuggestions);
 
-  // Fetch initial data
-  useEffect(() => {
-    fetchSessions();
-    fetchMeetings();
-    
-    // Check if session ID is present in URL
-    const params = new URLSearchParams(window.location.search);
-    const urlSessionId = params.get("session");
-    if (urlSessionId) {
-      setActiveSessionId(urlSessionId);
-      fetchSessionMessages(urlSessionId);
-    }
-  }, []);
-
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
-
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     setSidebarLoading(true);
     try {
       const res = await fetch(getApiUrl("/api/ai/history"), {
@@ -142,9 +129,9 @@ export default function AIWorkspacePage() {
     } finally {
       setSidebarLoading(false);
     }
-  };
+  }, []);
 
-  const fetchMeetings = async () => {
+  const fetchMeetings = useCallback(async () => {
     try {
       const res = await fetch(getApiUrl("/api/v1/meetings/"), {
         credentials: "include"
@@ -156,48 +143,9 @@ export default function AIWorkspacePage() {
     } catch (e) {
       console.error("Failed to fetch meetings list:", e);
     }
-  };
+  }, []);
 
-  const fetchSessionMessages = async (sid: string) => {
-    if (sid === "new") {
-      setMessages([]);
-      setCurrentSuggestions(defaultSuggestions);
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(getApiUrl(`/api/v1/search/session/${sid}`), {
-        credentials: "include"
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // Adapt schema from standard backend chat message if necessary
-        const formatted = data.map((msg: any) => ({
-          role: msg.role,
-          text: msg.text,
-          sources: msg.sources || []
-        }));
-        setMessages(formatted);
-        
-        // Extract sources to generate recommendations
-        const allSources = formatted.reduce((acc: Source[], m: any) => {
-          if (m.sources) acc.push(...m.sources);
-          return acc;
-        }, []);
-        if (allSources.length > 0) {
-          generateSuggestedQuestions(allSources);
-        } else {
-          setCurrentSuggestions(defaultSuggestions);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to fetch messages for session:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateSuggestedQuestions = (srcList: Source[]) => {
+  const generateSuggestedQuestions = useCallback((srcList: Source[]) => {
     const text = srcList.map(s => s.chunk_text).join(" ").toLowerCase();
     const list: string[] = [];
     if (text.includes("action") || text.includes("todo") || text.includes("assign")) {
@@ -220,7 +168,60 @@ export default function AIWorkspacePage() {
       }
     });
     setCurrentSuggestions(list.slice(0, 4));
-  };
+  }, []);
+
+  const fetchSessionMessages = useCallback(async (sid: string) => {
+    if (sid === "new") {
+      setMessages([]);
+      setCurrentSuggestions(defaultSuggestions);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(getApiUrl(`/api/v1/search/session/${sid}`), {
+        credentials: "include"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Adapt schema from standard backend chat message if necessary
+        const formatted = data.map((msg: { role: "user" | "assistant"; text: string; sources?: Source[] }) => ({
+          role: msg.role,
+          text: msg.text,
+          sources: msg.sources || []
+        }));
+        setMessages(formatted);
+        
+        // Extract sources to generate recommendations
+        const allSources = formatted.reduce((acc: Source[], m: Message) => {
+          if (m.sources) acc.push(...m.sources);
+          return acc;
+        }, []);
+        if (allSources.length > 0) {
+          generateSuggestedQuestions(allSources);
+        } else {
+          setCurrentSuggestions(defaultSuggestions);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch messages for session:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [generateSuggestedQuestions]);
+
+  // Fetch initial data
+  useEffect(() => {
+    fetchSessions();
+    fetchMeetings();
+    
+    // Check if session ID is present in URL
+    const params = new URLSearchParams(window.location.search);
+    const urlSessionId = params.get("session");
+    if (urlSessionId) {
+      setActiveSessionId(urlSessionId);
+      fetchSessionMessages(urlSessionId);
+    }
+  }, [fetchSessions, fetchMeetings, fetchSessionMessages]);
 
   const handleNewChat = () => {
     setActiveSessionId("new");
@@ -287,7 +288,7 @@ export default function AIWorkspacePage() {
         const errData = await res.json();
         setIndexStatus({ message: errData.detail || "Failed to trigger indexing.", type: "error" });
       }
-    } catch (e) {
+    } catch {
       setIndexStatus({ message: "Network error occurred while connecting to backend.", type: "error" });
     } finally {
       setIndexLoading(false);
@@ -310,7 +311,7 @@ export default function AIWorkspacePage() {
     setMessages(prev => [...prev, aiPlaceholder]);
 
     // 3. Build filters object
-    const filtersObj: any = {};
+    const filtersObj: ChatFilters = {};
     if (platform) filtersObj.platform = platform;
     if (dateStart) filtersObj.date_start = dateStart;
     if (dateEnd) filtersObj.date_end = dateEnd;
@@ -455,7 +456,7 @@ export default function AIWorkspacePage() {
 
     setLoading(true);
 
-    const filtersObj: any = {};
+    const filtersObj: ChatFilters = {};
     if (platform) filtersObj.platform = platform;
     if (dateStart) filtersObj.date_start = dateStart;
     if (dateEnd) filtersObj.date_end = dateEnd;
@@ -505,7 +506,7 @@ export default function AIWorkspacePage() {
           mainAnswer = mainAnswer.substring(0, sepIdx).trim();
           try {
             metadata = JSON.parse(metadataStr);
-          } catch (e) {}
+          } catch {}
         }
 
         setMessages(prev => {

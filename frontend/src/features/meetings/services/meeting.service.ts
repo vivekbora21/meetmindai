@@ -1,7 +1,8 @@
 import { getApiUrl } from "@/app/config";
+import { MeetingDetail } from "../types/meeting";
 
 export const meetingService = {
-  async getMeetingDetail(id: string): Promise<any> {
+  async getMeetingDetail(id: string): Promise<MeetingDetail> {
     const res = await fetch(getApiUrl(`/api/v1/meetings/${id}`), {
       credentials: "include"
     });
@@ -9,7 +10,7 @@ export const meetingService = {
     return res.json();
   },
 
-  async getMeetingDetailSilent(id: string): Promise<any> {
+  async getMeetingDetailSilent(id: string): Promise<MeetingDetail> {
     const res = await fetch(getApiUrl(`/api/v1/meetings/${id}`), {
       credentials: "include"
     });
@@ -17,7 +18,7 @@ export const meetingService = {
     return res.json();
   },
 
-  async uploadMedia(id: string, file: File): Promise<any> {
+  async uploadMedia(id: string, file: File): Promise<MeetingDetail> {
     const formData = new FormData();
     formData.append("file", file);
     const res = await fetch(getApiUrl(`/api/v1/meetings/${id}/upload-media`), {
@@ -29,7 +30,7 @@ export const meetingService = {
     return res.json();
   },
 
-  async triggerTranscription(id: string): Promise<any> {
+  async triggerTranscription(id: string): Promise<MeetingDetail> {
     const res = await fetch(getApiUrl(`/api/v1/meetings/${id}/transcribe`), {
       method: "POST",
       credentials: "include"
@@ -38,7 +39,7 @@ export const meetingService = {
     return res.json();
   },
 
-  async renameSpeaker(meetingId: string, speakerId: string, displayName: string): Promise<any> {
+  async renameSpeaker(meetingId: string, speakerId: string, displayName: string): Promise<MeetingDetail> {
     const res = await fetch(getApiUrl(`/api/v1/meetings/${meetingId}/speakers/${speakerId}`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -49,7 +50,7 @@ export const meetingService = {
     return res.json();
   },
 
-  async retryStage(meetingId: string, stage: string): Promise<any> {
+  async retryStage(meetingId: string, stage: string): Promise<MeetingDetail> {
     const res = await fetch(getApiUrl(`/api/v1/meetings/${meetingId}/retry?stage=${stage}`), {
       method: "POST",
       credentials: "include"
@@ -58,7 +59,7 @@ export const meetingService = {
     return res.json();
   },
 
-  async triggerAiAnalysis(meetingId: string): Promise<any> {
+  async triggerAiAnalysis(meetingId: string): Promise<MeetingDetail> {
     const res = await fetch(getApiUrl(`/api/v1/meetings/${meetingId}/retry?stage=ai_analysis`), {
       method: "POST",
       credentials: "include"

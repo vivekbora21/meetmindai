@@ -10,6 +10,8 @@ import {
   HelpCircle, 
   LogOut, 
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Video,
   Sparkles,
   Calendar
@@ -21,6 +23,7 @@ interface SidebarProps {
   loading: boolean;
   onLogout: () => Promise<void> | void;
   isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export default function Sidebar({ 
@@ -28,7 +31,8 @@ export default function Sidebar({
   userRole, 
   loading, 
   onLogout,
-  isCollapsed = false 
+  isCollapsed = false,
+  onToggleCollapse
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -42,110 +46,133 @@ export default function Sidebar({
   const isCalendarActive = pathname.startsWith("/calendar");
 
   return (
-    <aside className={`border-r border-[#e2e8f0] flex flex-col justify-between bg-white transition-all duration-300 ease-in-out h-full flex-shrink-0 ${
+    <aside className={`border-r border-[#DEDDDA]/60 flex flex-col justify-between bg-white transition-all duration-300 ease-in-out h-full flex-shrink-0 relative z-30 ${
       isCollapsed ? "w-20 p-3" : "w-72 p-6"
     }`}>
+      
+      {/* Floating Collapse/Expand Button at Sidebar & Navbar Edge Intersection */}
+      {onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          className="absolute top-1 -right-3.5 z-40 w-7 h-7 rounded-full bg-white border border-[#DEDDDA] hover:border-[#113229] shadow-sm hover:shadow-md flex items-center justify-center text-slate-500 hover:text-[#113229] transition-all hover:scale-105 active:scale-90 cursor-pointer"
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
+            <ChevronLeft className="w-4 h-4" />
+          )}
+        </button>
+      )}
+
       <div className="flex flex-col gap-6">
         {/* Navigation Section */}
         <nav className="flex flex-col gap-1.5 pt-2">
+          
+          {/* Dashboard link */}
           <button 
             onClick={() => router.push("/dashboard")}
             title="Dashboard"
             className={`group flex items-center ${
               isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-sm font-medium transition-all duration-200 ${
+            } rounded-xl text-xs font-bold transition-all duration-250 ${
               isDashboardActive 
-                ? "bg-[#e6f4f1] text-[#113229]" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
+                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
             }`}
           >
-            <LayoutDashboard className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-              isDashboardActive ? "text-[#113229]" : "text-[#64748b] group-hover:text-[#102C23]"
+            <LayoutDashboard className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
+              isDashboardActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
             }`} />
             {!isCollapsed && <span className="truncate">Dashboard</span>}
           </button>
           
+          {/* Meetings link */}
           <button 
             onClick={() => router.push("/meetings")}
             title="Meetings"
             className={`group flex items-center ${
               isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-sm font-medium transition-all duration-200 ${
+            } rounded-xl text-xs font-bold transition-all duration-250 ${
               isMeetingsActive 
-                ? "bg-[#e6f4f1] text-[#113229]" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
+                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
             }`}
           >
-            <Video className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-              isMeetingsActive ? "text-[#113229]" : "text-[#64748b] group-hover:text-[#102C23]"
+            <Video className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
+              isMeetingsActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
             }`} />
             {!isCollapsed && <span className="truncate">Meetings</span>}
           </button>
 
+          {/* Calendar link */}
           <button 
             onClick={() => router.push("/calendar")}
             title="Calendar"
             className={`group flex items-center ${
               isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-sm font-medium transition-all duration-200 ${
+            } rounded-xl text-xs font-bold transition-all duration-250 ${
               isCalendarActive 
-                ? "bg-[#e6f4f1] text-[#113229]" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
+                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
             }`}
           >
-            <Calendar className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-              isCalendarActive ? "text-[#113229]" : "text-[#64748b] group-hover:text-[#102C23]"
+            <Calendar className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
+              isCalendarActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
             }`} />
             {!isCollapsed && <span className="truncate">Calendar</span>}
           </button>
 
+          {/* AI Workspace link */}
           <button 
             onClick={() => router.push("/ai-workspace")}
             title="AI Workspace"
             className={`group flex items-center ${
               isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-sm font-medium transition-all duration-200 ${
+            } rounded-xl text-xs font-bold transition-all duration-250 ${
               isAIWorkspaceActive 
-                ? "bg-[#e6f4f1] text-[#113229]" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
+                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
             }`}
           >
-            <Sparkles className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-              isAIWorkspaceActive ? "text-[#113229]" : "text-[#64748b] group-hover:text-[#102C23]"
+            <Sparkles className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
+              isAIWorkspaceActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
             }`} />
             {!isCollapsed && <span className="truncate">AI Workspace</span>}
           </button>
 
+          {/* Knowledge Graph link */}
           <button 
             onClick={() => router.push("/knowledge")}
             title="Knowledge Graph"
             className={`group flex items-center ${
               isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-sm font-medium transition-all duration-200 ${
+            } rounded-xl text-xs font-bold transition-all duration-250 ${
               isKnowledgeActive 
-                ? "bg-[#e6f4f1] text-[#113229]" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
+                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
             }`}
           >
-            <Network className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-              isKnowledgeActive ? "text-[#113229]" : "text-[#64748b] group-hover:text-[#102C23]"
+            <Network className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
+              isKnowledgeActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
             }`} />
             {!isCollapsed && <span className="truncate">Knowledge Graph</span>}
           </button>
           
+          {/* Analytics link */}
           <button 
             onClick={() => router.push("/analytics")}
             title="Analytics"
             className={`group flex items-center ${
               isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-sm font-medium transition-all duration-200 ${
+            } rounded-xl text-xs font-bold transition-all duration-250 ${
               isAnalyticsActive 
-                ? "bg-[#e6f4f1] text-[#113229]" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
+                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
             }`}
           >
-            <BarChart3 className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-              isAnalyticsActive ? "text-[#113229]" : "text-[#64748b] group-hover:text-[#102C23]"
+            <BarChart3 className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
+              isAnalyticsActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
             }`} />
             {!isCollapsed && <span className="truncate">Analytics</span>}
           </button>
@@ -153,16 +180,19 @@ export default function Sidebar({
       </div>
 
       <div className="flex flex-col gap-4">
-        {/* Help & Insights card (only when expanded) */}
+        {/* Help & Insights Premium Card */}
         {!isCollapsed && (
-          <div className="relative w-full overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-[#113229]/5 to-[#113229]/10 border border-[#113229]/10">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-1 rounded-lg bg-[#e6f4f1]">
-                <Sparkles className="w-3.5 h-3.5 text-[#113229]" />
+          <div className="relative w-full overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-[#113229] to-[#0D241E] text-white shadow-md border border-[#113229]/20 group">
+            {/* Glow blur element */}
+            <div className="absolute -right-6 -bottom-6 w-16 h-16 rounded-full bg-[#D98A44]/15 blur-xl pointer-events-none group-hover:bg-[#D98A44]/25 transition-all duration-300" />
+            
+            <div className="flex items-center gap-2 mb-2 relative z-10">
+              <div className="p-1 rounded-lg bg-[#D98A44]/20 border border-[#D98A44]/35">
+                <Sparkles className="w-3.5 h-3.5 text-[#D98A44] animate-pulse" />
               </div>
-              <span className="text-xs font-bold text-[#113229]">MeetingMind AI</span>
+              <span className="text-[10px] font-black text-[#D98A44] uppercase tracking-wider">MeetMind AI</span>
             </div>
-            <p className="text-[11px] text-[#64748b] leading-relaxed font-semibold">
+            <p className="text-[10.5px] text-slate-300 leading-relaxed font-semibold relative z-10">
               Your meeting intelligence assistant is active and ready to transcribe and analyze.
             </p>
           </div>
@@ -175,16 +205,16 @@ export default function Sidebar({
             title="Help & Support"
             className={`group flex items-center ${
               isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 text-sm font-medium transition-all duration-200 w-full text-left`}
+            } rounded-xl text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 text-xs font-bold transition-all duration-250 w-full text-left`}
           >
-            <HelpCircle className="w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 text-[#64748b] group-hover:text-[#102C23]" /> 
+            <HelpCircle className="w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 text-[#64748b] group-hover:text-[#102C23]" /> 
             {!isCollapsed && <span className="truncate">Help & Support</span>}
           </button>
         </div>
 
         {/* Profile Card / User section */}
         {loading ? (
-          <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3 py-2.5"} rounded-xl bg-white border border-[#e2e8f0] animate-pulse`}>
+          <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3 py-2.5"} rounded-xl bg-white border border-[#DEDDDA]/60 animate-pulse`}>
             <div className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0" />
             {!isCollapsed && (
               <div className="flex flex-col gap-1.5 flex-1">
@@ -202,7 +232,7 @@ export default function Sidebar({
                   className="fixed inset-0 z-10" 
                   onClick={() => setIsDropdownOpen(false)}
                 />
-                <div className={`absolute bottom-full mb-2 z-20 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 flex flex-col gap-0.5 min-w-[180px] ${
+                <div className={`absolute bottom-full mb-2.5 z-20 bg-white border border-[#DEDDDA]/60 rounded-2xl shadow-lg p-1.5 flex flex-col gap-0.5 min-w-[190px] ${
                   isCollapsed ? "left-2" : "left-0 right-0"
                 }`}>
                   <button
@@ -210,7 +240,7 @@ export default function Sidebar({
                       setIsDropdownOpen(false);
                       router.push("/settings");
                     }}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6] transition-colors w-full text-left"
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748b] hover:text-[#113229] hover:bg-[#F9F8F6] transition-colors w-full text-left"
                   >
                     <Settings className="w-4 h-4 text-[#64748b]" />
                     Settings
@@ -220,7 +250,7 @@ export default function Sidebar({
                       setIsDropdownOpen(false);
                       onLogout();
                     }}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50/50 transition-colors w-full text-left"
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50/50 transition-colors w-full text-left border-t border-slate-50 mt-1 pt-2"
                   >
                     <LogOut className="w-4 h-4 text-rose-500" />
                     Sign Out
@@ -236,21 +266,21 @@ export default function Sidebar({
               className={`flex items-center ${
                 isCollapsed 
                   ? "justify-center w-12 h-12 mx-auto p-0 border-0 bg-transparent hover:bg-[#F9F8F6] rounded-full" 
-                  : "justify-between px-3 py-2.5 rounded-xl bg-white border border-[#e2e8f0] hover:bg-[#F9F8F6]"
-              } transition-all duration-200 cursor-pointer group`}
+                  : "justify-between px-3.5 py-2.5 rounded-2xl bg-white border border-[#DEDDDA]/60 hover:bg-[#F9F8F6]"
+              } transition-all duration-250 cursor-pointer group`}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-full bg-[#113229] flex items-center justify-center text-xs font-bold text-white uppercase shadow-sm flex-shrink-0 ring-2 ring-transparent group-hover:ring-[#113229]/20 transition-all duration-200">
+                <div className="w-9 h-9 rounded-full bg-[#113229] flex items-center justify-center text-xs font-bold text-white uppercase shadow-sm flex-shrink-0 ring-2 ring-transparent group-hover:ring-[#113229]/20 transition-all duration-250">
                   {userName ? userName.split(" ").map((n) => n[0]).join("").slice(0, 2) : "VS"}
                 </div>
                 {!isCollapsed && (
                   <div className="flex flex-col min-w-0">
                     <span className="text-xs font-bold text-[#102C23] truncate max-w-[140px]">{userName}</span>
-                    <span className="text-[10px] text-[#64748b] capitalize">{userRole}</span>
+                    <span className="text-[10px] text-[#64748b] capitalize font-medium">{userRole}</span>
                   </div>
                 )}
               </div>
-              {!isCollapsed && <ChevronDown className={`w-4 h-4 text-[#64748b] group-hover:text-[#102C23] transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />}
+              {!isCollapsed && <ChevronDown className={`w-4 h-4 text-[#64748b] group-hover:text-[#102C23] transition-transform duration-250 ${isDropdownOpen ? "rotate-180" : ""}`} />}
             </div>
           </div>
         )}

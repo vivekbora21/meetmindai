@@ -3,15 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Brain, 
-  PanelLeftClose, 
-  PanelLeftOpen, 
   Bell, 
   Sparkles, 
   ChevronDown, 
   LogOut, 
-  Settings, 
-  User 
+  Settings 
 } from "lucide-react";
 import { Logo } from "./Logo";
 
@@ -19,8 +15,6 @@ interface NavbarProps {
   userName: string;
   userRole: string;
   loading: boolean;
-  isCollapsed: boolean;
-  onToggleCollapse: () => void;
   onLogout: () => Promise<void> | void;
 }
 
@@ -28,8 +22,6 @@ export default function Navbar({
   userName, 
   userRole, 
   loading, 
-  isCollapsed, 
-  onToggleCollapse,
   onLogout
 }: NavbarProps) {
   const router = useRouter();
@@ -54,19 +46,6 @@ export default function Navbar({
       {/* Left side: Logo, Company name, Sidebar Toggle */}
       <div className="flex items-center gap-4">
         <Logo />
-
-        {/* Sidebar Collapse Toggle Button */}
-        <button 
-          onClick={onToggleCollapse} 
-          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-colors ml-2 flex items-center justify-center"
-        >
-          {isCollapsed ? (
-            <PanelLeftOpen className="w-5 h-5 text-[#113229]" />
-          ) : (
-            <PanelLeftClose className="w-5 h-5 text-slate-500" />
-          )}
-        </button>
       </div>
 
       {/* Right side: Global Actions and Profile */}

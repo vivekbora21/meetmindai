@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MeetingDetail } from "../types/meeting";
+import { MeetingDetail, Speaker, TranscriptSegment } from "../types/meeting";
 import { ChevronDown, ChevronUp, FileText, User } from "lucide-react";
 
 interface FullTranscriptProps {
@@ -28,8 +28,8 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
   const visible = transcripts.slice(0, visibleCount);
   const hasMore = visibleCount < total;
 
-  const getSpeakerName = (t: any) =>
-    detail.speakers?.find((s: any) => s.speaker_tag === t.speaker_tag)?.display_name ||
+  const getSpeakerName = (t: TranscriptSegment) =>
+    detail.speakers?.find((s: Speaker) => s.speaker_tag === t.speaker_tag)?.display_name ||
     t.speaker_tag ||
     "Unknown";
 
@@ -68,7 +68,7 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
               <p style={{ fontSize: "12px", color: "#94a3b8", fontWeight: 500, fontFamily: "'Inter', sans-serif", margin: 0 }}>No transcript segments found</p>
             </div>
           ) : (
-            visible.map((t: any, idx: number) => {
+            visible.map((t: TranscriptSegment, idx: number) => {
               const speakerName = getSpeakerName(t);
               const color = getSpeakerColor(speakerName);
               const timestamp =

@@ -6,7 +6,7 @@ import { RenameSpeakerDialog } from "./RenameSpeakerDialog";
 
 interface ParticipantsPanelProps {
   detail: MeetingDetail;
-  onRefresh: (updatedMeeting?: any) => void;
+  onRefresh: (updatedMeeting?: MeetingDetail) => void;
 }
 
 export const ParticipantsPanel: React.FC<ParticipantsPanelProps> = ({ detail, onRefresh }) => {

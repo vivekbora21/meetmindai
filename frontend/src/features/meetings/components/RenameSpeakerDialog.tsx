@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Check, Loader2 } from "lucide-react";
-import { Speaker } from "../types/meeting";
+import { Speaker, MeetingDetail } from "../types/meeting";
 import { meetingService } from "../services/meeting.service";
 
 interface RenameSpeakerDialogProps {
@@ -8,7 +8,7 @@ interface RenameSpeakerDialogProps {
   onClose: () => void;
   speaker: Speaker | null;
   meetingId: string;
-  onSaved: (updatedMeeting: any) => void;
+  onSaved: (updatedMeeting: MeetingDetail) => void;
 }
 
 export const RenameSpeakerDialog: React.FC<RenameSpeakerDialogProps> = ({
@@ -44,7 +44,7 @@ export const RenameSpeakerDialog: React.FC<RenameSpeakerDialogProps> = ({
       const updatedMeeting = await meetingService.renameSpeaker(meetingId, speaker.id, name.trim());
       onSaved(updatedMeeting);
       onClose();
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
       setError("Failed to rename speaker. Please try again.");
     } finally {

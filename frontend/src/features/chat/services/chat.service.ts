@@ -1,7 +1,8 @@
 import { getApiUrl } from "@/app/config";
+import { ChatSession, ChatSessionDetail } from "../types/chat";
 
 export const chatService = {
-  async getSessions(meetingId: string): Promise<any[]> {
+  async getSessions(meetingId: string): Promise<ChatSession[]> {
     const res = await fetch(getApiUrl(`/api/v1/search/meetings/${meetingId}/chat-history`), {
       credentials: "include"
     });
@@ -9,7 +10,7 @@ export const chatService = {
     return res.json();
   },
 
-  async getSessionDetails(sessionId: string): Promise<any> {
+  async getSessionDetails(sessionId: string): Promise<ChatSessionDetail> {
     const res = await fetch(getApiUrl(`/api/v1/search/chat/${sessionId}`), {
       credentials: "include"
     });
@@ -17,7 +18,7 @@ export const chatService = {
     return res.json();
   },
 
-  async createSession(meetingId: string, title: string = "New Chat"): Promise<any> {
+  async createSession(meetingId: string, title: string = "New Chat"): Promise<ChatSession> {
     const res = await fetch(getApiUrl(`/api/v1/search/meetings/${meetingId}/chat/new`), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -36,7 +37,7 @@ export const chatService = {
     return res.ok;
   },
 
-  async updateArchiveStatus(sessionId: string, isArchived: boolean): Promise<any> {
+  async updateArchiveStatus(sessionId: string, isArchived: boolean): Promise<ChatSession> {
     const res = await fetch(getApiUrl(`/api/v1/search/chat/${sessionId}/archive`), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -47,7 +48,7 @@ export const chatService = {
     return res.json();
   },
 
-  async updateTitle(sessionId: string, title: string): Promise<any> {
+  async updateTitle(sessionId: string, title: string): Promise<ChatSession> {
     const res = await fetch(getApiUrl(`/api/v1/search/chat/${sessionId}/title`), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

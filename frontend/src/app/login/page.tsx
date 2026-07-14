@@ -97,7 +97,7 @@ export default function Home() {
         } else {
           eraseCookie("isAuthenticated");
         }
-      } catch (e) {
+      } catch {
         // Backend not active, bypass auto-redirect
       }
       setCheckingAuth(false);
@@ -135,8 +135,8 @@ export default function Home() {
           body,
           credentials: "include",
         });
-      } catch (err: any) {
-        console.warn("Backend not reachable. Logging in with developer mock environment...", err);
+      } catch {
+        console.warn("Backend not reachable. Logging in with developer mock environment...");
         isBackendReachable = false;
       }
 
@@ -175,8 +175,9 @@ export default function Home() {
         setCookie("isAuthenticated", "true", 86400);
         router.push("/dashboard");
       }
-    } catch (err: any) {
-      setError(err.message || "Authentication failed");
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Authentication failed";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -329,7 +330,7 @@ export default function Home() {
                     <Zap className="w-3 h-3 text-[#D98A44]" />
                     <span className="text-[8px] font-bold text-white uppercase tracking-wider">Active</span>
                   </div>
-                  <p className="text-[9px] text-[#C1D2CA] leading-snug">"Deploy frontend via Vercel" approved by Team.</p>
+                  <p className="text-[9px] text-[#C1D2CA] leading-snug">&quot;Deploy frontend via Vercel&quot; approved by Team.</p>
                 </div>
               </div>
             )}
@@ -746,7 +747,7 @@ export default function Home() {
           </div>
 
           <p className="text-[10px] text-slate-400 text-center leading-relaxed max-w-sm mx-auto">
-            By creating an account, you agree to MeetingMind AI's <a href="#" className="font-bold text-[#0f172a] hover:underline">Terms</a> and <a href="#" className="font-bold text-[#0f172a] hover:underline">Privacy Policy</a>.
+            By creating an account, you agree to MeetingMind AI&apos;s <a href="#" className="font-bold text-[#0f172a] hover:underline">Terms</a> and <a href="#" className="font-bold text-[#0f172a] hover:underline">Privacy Policy</a>.
           </p>
 
           <div className="mt-4 text-center text-xs">

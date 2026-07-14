@@ -1,6 +1,6 @@
 import React from "react";
 import { Clock } from "lucide-react";
-import { MeetingDetail } from "../types/meeting";
+import { MeetingDetail, AgendaItem } from "../types/meeting";
 
 interface MeetingTimelineProps {
   detail: MeetingDetail;
@@ -15,7 +15,7 @@ export const MeetingTimeline: React.FC<MeetingTimelineProps> = ({ detail }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      {detail.agenda_items ? detail.agenda_items.map((item: any, idx: number) => (
+      {detail.agenda_items ? detail.agenda_items.map((item: AgendaItem, idx: number) => (
         <div key={idx} className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-col gap-2 shadow-sm">
           <div className="flex justify-between items-center">
             <span className="text-sm font-bold text-[#102C23] font-outfit">{item.topic}</span>

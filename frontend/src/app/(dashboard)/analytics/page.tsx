@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BarChart3, TrendingUp, Users, Target, Activity, Loader2, ShieldAlert, Scale, ClipboardCheck } from "lucide-react";
+import { 
+  BarChart3, TrendingUp, Users, Target, Activity, Loader2, Scale, 
+  ClipboardCheck, Award, AlertCircle
+} from "lucide-react";
+import { 
+  ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid 
+} from "recharts";
 import { getApiUrl } from "../../config";
 
 interface OverviewStats {
@@ -25,9 +31,46 @@ interface TopicMetric {
   count: number;
 }
 
+interface TooltipPayloadItem {
+  name: string;
+  value: number;
+  color?: string;
+}
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}
+
+interface MeetingSimple {
+  id: string;
+  title: string;
+  meeting_date?: string;
+  duration_seconds?: number;
+}
+
+const AnalyticsTooltip = ({ active, payload, label }: TooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-xl text-xs flex flex-col gap-1">
+        <p className="font-bold text-slate-800">{label}</p>
+        {payload.map((p) => (
+          <p key={p.name} className="font-semibold text-slate-600">
+            <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5" style={{ backgroundColor: p.color || "#113229" }}></span>
+            Meeting Hours: <span className="text-slate-900 font-extrabold">{p.value} hrs</span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function Analytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   
   const [overview, setOverview] = useState<OverviewStats>({
     total_meetings: 0,
@@ -42,13 +85,13 @@ export default function Analytics() {
   const [speakers, setSpeakers] = useState<SpeakerMetric[]>([]);
   const [topics, setTopics] = useState<TopicMetric[]>([]);
   const [weeklyVelocity, setWeeklyVelocity] = useState<{ label: string; dateRange: string; hours: number }[]>([]);
-  const [meetings, setMeetings] = useState<any[]>([]);
+  const [meetings, setMeetings] = useState<MeetingSimple[]>([]);
 
   // Weekly colors for charts
-  const speakerColors = ["#113229", "#0D241E", "#14b8a6", "#2dd4bf", "#99f6e4", "#cbd5e1"];
-  const topicColors = ["#113229", "#0D241E", "#14b8a6", "#2dd4bf", "#99f6e4", "#cbd5e1"];
+  const speakerColors = ["#113229", "#0D241E", "#D98A44", "#e9a15f", "#6B7280", "#DEDDDA"];
+  const topicColors = ["#113229", "#0D241E", "#D98A44", "#e9a15f", "#6B7280", "#DEDDDA"];
 
-  const calculateWeeklyVelocity = (meetingsList: any[]) => {
+  const calculateWeeklyVelocity = (meetingsList: MeetingSimple[]) => {
     const now = new Date();
     const weeks = Array.from({ length: 7 }, (_, i) => {
       const end = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
@@ -87,6 +130,7 @@ export default function Analytics() {
   };
 
   useEffect(() => {
+    setMounted(true);
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -112,7 +156,7 @@ export default function Analytics() {
         if (topicsRes.ok) {
           const topicsData = await topicsRes.json();
           // Filter out the empty fallback topic if there are real topics
-          const filteredTopics = topicsData.filter((t: any) => t.topic !== "No topics discussed yet" || t.count > 0);
+          const filteredTopics = topicsData.filter((t: TopicMetric) => t.topic !== "No topics discussed yet" || t.count > 0);
           setTopics(filteredTopics);
         }
 
@@ -146,7 +190,6 @@ export default function Analytics() {
     : "0.0";
 
   // Calculate meeting health score letter grade
-  // A+ (no active risks), down by 10 points for each risk
   let healthScore = 100;
   if (overview.total_meetings > 0) {
     healthScore = Math.max(40, 100 - (overview.active_risks * 10));
@@ -173,9 +216,6 @@ export default function Analytics() {
       healthSubtext = "Critical risks and blockers detected";
     }
   }
-
-  // Max weekly hours for velocity scaling
-  const maxWeeklyHours = Math.max(...weeklyVelocity.map(w => w.hours), 1);
 
   // Max topic count for progress bar scaling
   const maxTopicCount = Math.max(...topics.map(t => t.count), 1);
@@ -231,112 +271,178 @@ export default function Analytics() {
               ))}
             </div>
           </section>
-
-          {/* Weekly Velocity Skeleton */}
-          <section className="md:col-span-12 p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm animate-pulse">
-            <div className="h-4 w-48 bg-slate-200 rounded" />
-            <div className="h-48 w-full flex items-end justify-between gap-4 mt-6 pt-6 border-b border-slate-200">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="w-full bg-slate-150 rounded-t" style={{ height: "40px" }} />
-                  <div className="h-3 w-8 bg-slate-100 rounded" />
-                </div>
-              ))}
-            </div>
-          </section>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#102C23]">
-      {/* Header */}
-      <header className="w-full flex items-center justify-between border-b border-slate-200 pb-6 mb-8">
-        <h1 className="text-lg font-bold font-outfit text-[#102C23]">Organizational Analytics</h1>
-        <span className="text-xs text-[#113229] font-bold flex items-center gap-1.5 bg-teal-50 px-3 py-1.5 rounded-full border border-teal-100 shadow-sm">
-          <BarChart3 className="w-4 h-4 text-[#113229]" /> Organizational Insights
-        </span>
-      </header>
+    <div className="p-8 max-w-9xl w-full mx-auto flex flex-col min-h-full text-[#102C23] animate-fade-in-up">
+      {/* Top Banner / Hero Header */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#113229] to-[#0D241E] p-8 text-white shadow-xl shadow-[#113229]/10 mb-8">
+        <div className="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-[#D98A44]/10 blur-3xl"></div>
+        <div className="absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-[#113229]/40 blur-3xl"></div>
+
+        <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+          <div className="flex flex-col gap-1.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-outfit tracking-tight">Organizational Analytics</h1>
+            <p className="text-slate-350 text-xs sm:text-sm max-w-xl font-medium">
+              Analyze organizational efficiency, conversational distributions, decision velocity, and topic trends.
+            </p>
+          </div>
+          <span className="text-xs text-[#e9a15f] bg-[#D98A44]/15 border border-[#D98A44]/35 px-4 py-2 rounded-2xl font-bold flex items-center gap-1.5">
+            <BarChart3 className="w-4 h-4" /> Operational Intelligence
+          </span>
+        </div>
+      </section>
 
       {error && (
         <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4 text-amber-600" />
+          <AlertCircle className="w-4 h-4 text-amber-600" />
           <span>{error} Showing offline/cached metrics.</span>
         </div>
       )}
 
       {/* Main Grid */}
       <main className="max-w-9xl w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 flex-grow">
-        {/* Metric Cards */}
-        <section className="md:col-span-12 grid grid-cols-1 sm:grid-cols-4 gap-6">
-          {/* Productivity / Effectiveness */}
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-1 shadow-sm hover:shadow-md transition-all group">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Overall Effectiveness</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-extrabold font-outfit text-[#102C23]">{overview.productivity_score}%</span>
-              {overview.productivity_score > 80 && (
-                <span className="text-xs text-emerald-600 font-bold flex items-center">
-                  <TrendingUp className="w-3.5 h-3.5 mr-0.5" /> High
-                </span>
-              )}
+        
+        {/* KPI Cards Grid */}
+        <section className="md:col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Productivity */}
+          <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+            <div className="flex justify-between items-start">
+              <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-outfit">
+                Conversion
+              </span>
             </div>
-            <p className="text-[10px] text-slate-500 mt-2 font-medium">Calculated via action conversion rate</p>
+            <div className="flex flex-col mt-1">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Overall Effectiveness</span>
+              <span className="text-3xl font-extrabold font-outfit text-[#102C23] mt-0.5">
+                {overview.productivity_score}%
+              </span>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div 
+                  className="bg-emerald-600 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${overview.productivity_score}%` }}
+                ></div>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                Conversion of action items from meetings.
+              </p>
+            </div>
           </div>
 
           {/* Decision Velocity */}
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-1 shadow-sm hover:shadow-md transition-all group">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold flex items-center gap-1">
-              Decision Velocity
-            </span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-extrabold font-outfit text-[#102C23]">{decisionsPerHour} / hr</span>
+          <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+            <div className="flex justify-between items-start">
+              <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
+                <Scale className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-outfit">
+                Velocity
+              </span>
             </div>
-            <p className="text-[10px] text-slate-500 mt-2 font-medium">Avg {overview.decision_velocity} decisions per meeting</p>
+            <div className="flex flex-col mt-1">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Decision Velocity</span>
+              <span className="text-3xl font-extrabold font-outfit text-[#102C23] mt-0.5">
+                {decisionsPerHour}/hr
+              </span>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div 
+                  className="bg-blue-600 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(100, parseFloat(decisionsPerHour) * 20)}%` }}
+                ></div>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                Avg {overview.decision_velocity} decisions per meeting hour.
+              </p>
+            </div>
           </div>
 
           {/* Action Completion Rate */}
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-1 shadow-sm hover:shadow-md transition-all group">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Action Completion Rate</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-extrabold font-outfit text-[#102C23]">{actionCompletionRate}%</span>
+          <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+            <div className="flex justify-between items-start">
+              <div className="w-11 h-11 rounded-xl bg-amber-50 text-[#D98A44] flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
+                <ClipboardCheck className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-extrabold text-[#D98A44] bg-amber-50 px-2 py-0.5 rounded-full font-outfit">
+                Completion
+              </span>
             </div>
-            <p className="text-[10px] text-slate-500 mt-2 font-medium">{overview.completed_action_items} of {totalActionItems} items closed</p>
+            <div className="flex flex-col mt-1">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Action Completion Rate</span>
+              <span className="text-3xl font-extrabold font-outfit text-[#102C23] mt-0.5">
+                {actionCompletionRate}%
+              </span>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div 
+                  className="bg-[#D98A44] h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${actionCompletionRate}%` }}
+                ></div>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                {overview.completed_action_items} of {totalActionItems} action items resolved.
+              </p>
+            </div>
           </div>
 
           {/* Meeting Health */}
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-1 shadow-sm hover:shadow-md transition-all group">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Meeting Health Score</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-extrabold font-outfit text-[#102C23]">{healthGrade}</span>
+          <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+            <div className="flex justify-between items-start">
+              <div className="w-11 h-11 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
+                <Award className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-extrabold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full font-outfit">
+                Consensus
+              </span>
             </div>
-            <p className="text-[10px] text-slate-500 mt-2 font-medium">{healthSubtext}</p>
+            <div className="flex flex-col mt-1">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Meeting Health Grade</span>
+              <span className="text-3xl font-extrabold font-outfit text-[#102C23] mt-0.5">
+                {healthGrade}
+              </span>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                <div 
+                  className="bg-rose-600 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${healthScore}%` }}
+                ></div>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                {healthSubtext}
+              </p>
+            </div>
           </div>
         </section>
 
-        {/* Speakers Distribution */}
-        <section className="md:col-span-6 p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-          <h3 className="text-sm font-bold text-[#102C23] flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-[#113229]" /> Active Speakers Distribution
-          </h3>
+        {/* Speakers Distribution Card */}
+        <section className="md:col-span-6 p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 flex flex-col gap-5 shadow-sm">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Conversational Share</span>
+            <h3 className="text-sm font-bold text-[#102C23] flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-[#113229]" /> Active Speakers Distribution
+            </h3>
+          </div>
 
           <div className="flex flex-col gap-4 mt-2 flex-grow justify-center">
             {speakers.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 min-h-[160px]">
-                <Users className="w-8 h-8 text-slate-300 mb-2" />
-                <p className="text-xs font-semibold">No speaker data available</p>
-                <p className="text-[10px] text-slate-400 mt-1">Transcripts with diarization will populate speaker metrics.</p>
+                <Users className="w-8 h-8 text-slate-300 mb-2 animate-pulse" />
+                <p className="text-xs font-semibold">No active speaker share data</p>
+                <p className="text-[10px] text-slate-400 mt-1 max-w-[250px]">Transcripts with speaker tags will compile share distributions.</p>
               </div>
             ) : (
               speakers.slice(0, 5).map((spk, idx) => (
-                <div key={spk.name}>
-                  <div className="flex justify-between text-xs text-slate-500 mb-1 font-medium">
-                    <span className="text-slate-700 font-bold">{spk.name}</span>
+                <div key={spk.name} className="group">
+                  <div className="flex justify-between text-xs text-slate-500 mb-1.5 font-semibold">
+                    <span className="text-slate-800 font-bold group-hover:text-[#113229] transition-colors">{spk.name}</span>
                     <span>{spk.minutes_spoken} mins ({spk.percentage}%)</span>
                   </div>
-                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-50">
                     <div 
-                      className="h-full rounded-full transition-all duration-500" 
+                      className="h-full rounded-full transition-all duration-500 shadow-sm" 
                       style={{ 
                         width: `${spk.percentage}%`, 
                         backgroundColor: speakerColors[idx % speakerColors.length] 
@@ -349,31 +455,34 @@ export default function Analytics() {
           </div>
         </section>
 
-        {/* Topics Distribution */}
-        <section className="md:col-span-6 p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-          <h3 className="text-sm font-bold text-[#102C23] flex items-center gap-1.5">
-            <Target className="w-4 h-4 text-[#113229]" /> Topic Distribution
-          </h3>
+        {/* Topics Distribution Card */}
+        <section className="md:col-span-6 p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 flex flex-col gap-5 shadow-sm">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-bold text-slate-450 uppercase tracking-wider">Semantic Analysis</span>
+            <h3 className="text-sm font-bold text-[#102C23] flex items-center gap-1.5">
+              <Target className="w-4 h-4 text-[#113229]" /> Topic Classification distribution
+            </h3>
+          </div>
 
           <div className="flex flex-col gap-4 mt-2 flex-grow justify-center">
             {topics.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 min-h-[160px]">
-                <Target className="w-8 h-8 text-slate-300 mb-2" />
-                <p className="text-xs font-semibold">No topics identified</p>
-                <p className="text-[10px] text-slate-400 mt-1">Once meetings are analyzed, top themes will appear here.</p>
+                <Target className="w-8 h-8 text-slate-300 mb-2 animate-pulse" />
+                <p className="text-xs font-semibold">No themes identified yet</p>
+                <p className="text-[10px] text-slate-400 mt-1 max-w-[250px]">As transcripts process, dominant themes will map here.</p>
               </div>
             ) : (
               topics.map((t, idx) => {
                 const pct = maxTopicCount > 0 ? (t.count / maxTopicCount) * 100 : 0;
                 return (
-                  <div key={t.topic}>
-                    <div className="flex justify-between text-xs text-slate-500 mb-1 font-medium">
-                      <span className="text-slate-700 font-bold">{t.topic}</span>
+                  <div key={t.topic} className="group">
+                    <div className="flex justify-between text-xs text-slate-500 mb-1.5 font-semibold">
+                      <span className="text-slate-805 font-bold group-hover:text-[#113229] transition-colors">{t.topic}</span>
                       <span>{t.count === 1 ? "1 mention" : `${t.count} mentions`}</span>
                     </div>
-                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-50">
                       <div 
-                        className="h-full rounded-full transition-all duration-500" 
+                        className="h-full rounded-full transition-all duration-500 shadow-sm" 
                         style={{ 
                           width: `${pct}%`, 
                           backgroundColor: topicColors[idx % topicColors.length] 
@@ -387,40 +496,67 @@ export default function Analytics() {
           </div>
         </section>
 
-        {/* Meeting Velocity */}
-        <section className="md:col-span-12 p-6 rounded-2xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm">
-          <h3 className="text-sm font-bold text-[#102C23] flex items-center gap-1.5">
-            <Activity className="w-4 h-4 text-[#113229]" /> Meeting Velocity (Weekly)
-          </h3>
+        {/* Meeting Velocity Recharts Card */}
+        <section className="md:col-span-12 p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 shadow-sm flex flex-col gap-6">
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sync Frequency</span>
+              <h3 className="text-md font-bold font-outfit text-[#102C23] mt-0.5 flex items-center gap-1.5">
+                <Activity className="w-4 h-4 text-[#113229]" /> Meeting Velocity (Weekly Distribution)
+              </h3>
+            </div>
+            <span className="text-[10px] font-bold text-slate-450 bg-[#F9F8F6] border border-slate-205 px-3 py-1 rounded-lg">
+              Rolling 7 Weeks
+            </span>
+          </div>
 
-          <div className="h-48 w-full flex items-end justify-between gap-4 mt-4 pt-6 border-b border-slate-200">
-            {weeklyVelocity.length === 0 ? (
-              <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-medium">
-                No meeting hours logged in the last 7 weeks.
-              </div>
+          <div className="h-[220px] w-full relative">
+            {mounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyVelocity} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <XAxis 
+                    dataKey="label" 
+                    stroke="#94A3B8" 
+                    fontSize={10} 
+                    fontWeight={700}
+                    tickLine={false} 
+                    axisLine={false} 
+                  />
+                  <YAxis 
+                    stroke="#94A3B8" 
+                    fontSize={10} 
+                    fontWeight={700}
+                    tickLine={false} 
+                    axisLine={false} 
+                  />
+                  <RechartsTooltip content={<AnalyticsTooltip />} />
+                  <Bar dataKey="hours" radius={[6, 6, 0, 0]} maxBarSize={45}>
+                    {weeklyVelocity.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={index % 2 === 0 ? "#113229" : "#D98A44"} 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             ) : (
-              weeklyVelocity.map((val, idx) => {
-                const heightPct = maxWeeklyHours > 0 ? (val.hours / maxWeeklyHours) * 140 : 4;
-                return (
-                  <div key={idx} className="flex-1 flex flex-col items-center gap-2 group relative" title={val.dateRange}>
-                    {/* Tooltip with Date Range */}
-                    <div className="absolute bottom-full mb-2 bg-slate-800 text-white text-[9px] px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      {val.dateRange}
-                    </div>
-                    
-                    <span className="text-[10px] text-slate-500 font-bold">{val.hours} hrs</span>
-                    <div
-                      className="w-full rounded-t transition-all duration-300 cursor-pointer hover:opacity-85"
-                      style={{ 
-                        height: `${heightPct}px`, 
-                        background: "linear-gradient(180deg, #0D241E 0%, #113229 100%)" 
-                      }}
-                    />
-                    <span className="text-[10px] text-slate-400 font-bold mt-1">{val.label}</span>
-                  </div>
-                );
-              })
+              <div className="h-full flex items-center justify-center text-slate-400">
+                <Loader2 className="w-6 h-6 animate-spin text-[#113229]" />
+              </div>
             )}
+          </div>
+
+          <div className="flex justify-center items-center gap-6 border-t border-slate-100 pt-4 text-xs font-bold">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#113229]"></span>
+              <span className="text-slate-500">Core Sync hours</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#D98A44]"></span>
+              <span className="text-slate-500">Peak operations hours</span>
+            </div>
           </div>
         </section>
       </main>

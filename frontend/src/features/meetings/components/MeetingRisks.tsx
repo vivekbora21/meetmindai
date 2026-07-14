@@ -1,6 +1,6 @@
 import React from "react";
 import { ShieldAlert } from "lucide-react";
-import { MeetingDetail } from "../types/meeting";
+import { MeetingDetail, Risk } from "../types/meeting";
 
 interface MeetingRisksProps {
   detail: MeetingDetail;
@@ -9,7 +9,7 @@ interface MeetingRisksProps {
 export const MeetingRisks: React.FC<MeetingRisksProps> = ({ detail }) => {
   return (
     <div className="flex flex-col gap-4">
-      {detail.risks ? detail.risks.map((risk: any, idx: number) => (
+      {detail.risks ? detail.risks.map((risk: Risk, idx: number) => (
         <div key={idx} className="p-4 rounded-2xl bg-rose-50/30 border border-rose-200/60 flex flex-col gap-2 shadow-sm">
           <div className="flex justify-between items-center">
             <span className="text-sm font-bold text-[#102C23] font-outfit flex items-center gap-1.5">

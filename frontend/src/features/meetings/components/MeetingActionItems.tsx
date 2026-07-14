@@ -1,6 +1,6 @@
 import React from "react";
 import { CheckSquare, RefreshCw, Check } from "lucide-react";
-import { MeetingDetail } from "../types/meeting";
+import { MeetingDetail, ActionItem } from "../types/meeting";
 
 interface MeetingActionItemsProps {
   detail: MeetingDetail;
@@ -17,7 +17,7 @@ export const MeetingActionItems: React.FC<MeetingActionItemsProps> = ({
 }) => {
   return (
     <div className="flex flex-col gap-4">
-      {detail.action_items ? detail.action_items.map((item: any, idx: number) => {
+      {detail.action_items ? detail.action_items.map((item: ActionItem, idx: number) => {
         const actionId = item.id || `action-${idx}`;
         const isSyncing = jiraSyncing[actionId];
         const syncStatus = jiraStatus[actionId];

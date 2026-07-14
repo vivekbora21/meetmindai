@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { meetingService } from "../services/meeting.service";
 import { MeetingDetail } from "../types/meeting";
+
+const TERMINAL_STATUSES = ["Completed", "COMPLETED", "Failed", "FAILED", "Error", "ERROR"];
 
 export function useMeeting(meetingId: string) {
   const [meetingDetail, setMeetingDetail] = useState<MeetingDetail | null>(null);
@@ -23,36 +25,32 @@ export function useMeeting(meetingId: string) {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const fetchMeetingDetail = async () => {
+  const fetchMeetingDetail = useCallback(async () => {
     try {
       const data = await meetingService.getMeetingDetail(meetingId);
       setMeetingDetail(data);
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [meetingId]);
 
-  const fetchMeetingDetailSilent = async () => {
+  const fetchMeetingDetailSilent = useCallback(async () => {
     try {
       const data = await meetingService.getMeetingDetailSilent(meetingId);
       setMeetingDetail(data);
-    } catch (e) {
+    } catch {
       console.warn("Silent fetch failed");
     }
-  };
+  }, [meetingId]);
 
   useEffect(() => {
     if (meetingId) {
       fetchMeetingDetail();
     }
-  }, [meetingId]);
-
-  // Polling for processing status
-  // Terminal statuses where polling should stop
-  const TERMINAL_STATUSES = ["Completed", "COMPLETED", "Failed", "FAILED", "Error", "ERROR"];
+  }, [meetingId, fetchMeetingDetail]);
 
   useEffect(() => {
-    let intervalId: any;
+    let intervalId: ReturnType<typeof setInterval> | undefined = undefined;
     if (meetingDetail && !TERMINAL_STATUSES.includes(meetingDetail.status)) {
       intervalId = setInterval(() => {
         fetchMeetingDetailSilent();
@@ -61,7 +59,7 @@ export function useMeeting(meetingId: string) {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [meetingDetail?.status]);
+  }, [meetingDetail, fetchMeetingDetailSilent]);
 
   const handleMediaUpload = async (e: React.FormEvent) => {
     e.preventDefault();

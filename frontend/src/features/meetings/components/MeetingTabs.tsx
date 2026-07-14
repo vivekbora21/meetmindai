@@ -2,7 +2,7 @@ import React from "react";
 
 interface MeetingTabsProps {
   activeTab: string;
-  setActiveTab: (tab: any) => void;
+  setActiveTab: (tab: "summary" | "timeline" | "actions" | "decisions" | "risks" | "technical" | "participants" | "decisions_risks") => void;
 }
 
 export const MeetingTabs: React.FC<MeetingTabsProps> = ({ activeTab, setActiveTab }) => {
@@ -13,7 +13,7 @@ export const MeetingTabs: React.FC<MeetingTabsProps> = ({ activeTab, setActiveTa
     { id: "actions", label: "Action Items" },
     { id: "decisions_risks", label: "Decisions & Risks" },
     { id: "technical", label: "Technical Analysis" }
-  ];
+  ] as const;
 
   return (
     <div className="flex border-b border-slate-200 gap-1 overflow-x-auto pb-1 scrollbar">

@@ -3,10 +3,20 @@
 import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  ArrowLeft, Users, MessageSquare, AlertCircle, 
-  CheckCircle2, Sparkles, Loader2, Mic, Play, ShieldAlert
+  ArrowLeft, Users, AlertCircle, 
+  Sparkles, Loader2, Mic, Play
 } from "lucide-react";
 import { getApiUrl, getWsUrl } from "../../../../config";
+
+interface LiveInsight {
+  type: "Action Item" | "Decision" | string;
+  description?: string;
+  decision_text?: string;
+  assigned_to?: string;
+  due_date?: string;
+  confidence_score: number;
+  rationale?: string;
+}
 
 export default function LiveMeeting({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -18,8 +28,7 @@ export default function LiveMeeting({ params }: { params: Promise<{ id: string }
   const [activeSpeaker, setActiveSpeaker] = useState<string | null>(null);
   const [currentText, setCurrentText] = useState("");
   const [transcriptSegments, setTranscriptSegments] = useState<Array<{ speaker: string, text: string }>>([]);
-  const [insights, setInsights] = useState<any[]>([]);
-  const [isSimulating, setIsSimulating] = useState(false);
+  const [insights, setInsights] = useState<LiveInsight[]>([]);
 
   const socketRef = useRef<WebSocket | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
@@ -78,7 +87,6 @@ export default function LiveMeeting({ params }: { params: Promise<{ id: string }
   }, [transcriptSegments, currentText]);
 
   const handleStartSimulation = async () => {
-    setIsSimulating(true);
     setTranscriptSegments([]);
     setInsights([]);
     setParticipants([]);
@@ -94,7 +102,7 @@ export default function LiveMeeting({ params }: { params: Promise<{ id: string }
       if (!res.ok) {
         throw new Error("Simulation endpoint returned error status");
       }
-    } catch (e) {
+    } catch {
       console.warn("Backend API not reachable. Triggering client-side simulation fallback.");
       runClientSideSimulation();
     }

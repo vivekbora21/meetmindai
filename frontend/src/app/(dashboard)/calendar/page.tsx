@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -13,17 +13,45 @@ import {
   ExternalLink,
   Loader2,
   CalendarCheck,
-  ArrowRight,
   Sparkles,
   Brain,
   CheckSquare,
   Zap,
   User,
-  Plus,
-  Filter,
-  Check
+  Plus
 } from "lucide-react";
 import { getApiUrl } from "../../config";
+
+interface AttendeeObj {
+  name?: string | null;
+  email?: string | null;
+}
+type Attendee = string | AttendeeObj;
+
+interface Integration {
+  provider: string;
+  email: string;
+  connection_status: string;
+  [key: string]: unknown;
+}
+
+interface ProcessedMeeting {
+  id: string;
+  title?: string | null;
+  platform?: string | null;
+  meeting_date?: string | null;
+  duration_seconds?: number | null;
+  organization_id?: string | null;
+  description?: string | null;
+  executive_summary?: string | null;
+  organizer_email?: string | null;
+  meeting_url?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  action_items_count?: number | null;
+  decisions_count?: number | null;
+  attendees?: Attendee[] | null;
+}
 
 interface CalendarEvent {
   id: string;
@@ -45,7 +73,7 @@ interface CalendarEvent {
   executive_summary?: string | null;
   action_items_count?: number;
   decisions_count?: number;
-  attendees?: any[] | null;
+  attendees?: Attendee[] | null;
 }
 
 const getBaseProviderKey = (provider: string) => {
@@ -153,11 +181,9 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Profile and integration state
-  const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
-  const [integrations, setIntegrations] = useState<any[]>([]);
+  // Integration state
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
 
   // Calendar Specific States
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -188,30 +214,6 @@ export default function CalendarPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch(getApiUrl("/api/v1/auth/me"), { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        setProfile({ name: data.name, email: data.email });
-      }
-    } catch (e) {
-      console.warn("Could not fetch user profile details.");
-    }
-  };
-
-  const fetchIntegrations = async () => {
-    try {
-      const res = await fetch(getApiUrl("/api/v1/profile/integrations"), { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        setIntegrations(data);
-      }
-    } catch (e) {
-      console.warn("Could not fetch user integrations.");
-    }
-  };
-
   // Map a meeting platform string to the base provider key used by integrations
   const getMeetingBaseProvider = (platform: string): string => {
     const p = (platform || "").toLowerCase();
@@ -222,10 +224,9 @@ export default function CalendarPage() {
     return "upload";
   };
 
-  const loadAllEvents = async (showSyncIndicator = false) => {
+  const loadAllEvents = useCallback(async (showSyncIndicator = false) => {
     if (showSyncIndicator) setSyncing(true);
     else setLoading(true);
-    setError(null);
 
     try {
       const ensureUTCSuffix = (isoStr: string | null | undefined): string => {
@@ -237,22 +238,22 @@ export default function CalendarPage() {
       };
 
       // 1. Fetch current integrations first so we know which providers are connected
-      let currentIntegrations: any[] = integrations;
+      let currentIntegrations: Integration[] = [];
       try {
         const res = await fetch(getApiUrl("/api/v1/profile/integrations"), { credentials: "include" });
         if (res.ok) {
           currentIntegrations = await res.json();
           setIntegrations(currentIntegrations);
         }
-      } catch (e) {
+      } catch {
         console.warn("Could not fetch integrations during event load.");
       }
 
       // Build a set of connected base provider keys (e.g. {"microsoft", "google"})
       const connectedProviderKeys = new Set<string>(
         currentIntegrations
-          .filter((i: any) => i.connection_status === "Connected")
-          .map((i: any) => getBaseProviderKey(i.provider))
+          .filter((i: Integration) => i.connection_status === "Connected")
+          .map((i: Integration) => getBaseProviderKey(i.provider))
       );
 
       // 2. Fetch calendar events (backend already filters by connected provider)
@@ -261,37 +262,37 @@ export default function CalendarPage() {
         const res = await fetch(getApiUrl("/api/calendar/events"), { credentials: "include" });
         if (res.ok) {
           const rawEvents = await res.json();
-          calendarEvents = rawEvents.map((e: any) => ({
+          calendarEvents = rawEvents.map((e: CalendarEvent) => ({
             ...e,
             start_time: ensureUTCSuffix(e.start_time),
             end_time: ensureUTCSuffix(e.end_time)
           }));
         }
-      } catch (e) {
+      } catch {
         console.warn("Failed to fetch calendar events from backend.");
       }
 
       // 3. Fetch processed meetings
-      let processedMeetings: any[] = [];
+      let processedMeetings: ProcessedMeeting[] = [];
       try {
         const res = await fetch(getApiUrl("/api/v1/meetings/?include_future=true"), { credentials: "include" });
         if (res.ok) {
           processedMeetings = await res.json();
         }
-      } catch (e) {
+      } catch {
         console.warn("Failed to fetch processed meetings from backend.");
       }
 
       // 4. Map processed meetings — only include those from connected platforms
       //    (or locally uploaded meetings which are platform-agnostic)
       const mappedMeetings: CalendarEvent[] = processedMeetings
-      .filter((m: any) => {
+      .filter((m: ProcessedMeeting) => {
         const baseProvider = getMeetingBaseProvider(m.platform || "upload");
         // Always show uploaded/local meetings; hide platform-specific ones if not connected
         if (baseProvider === "upload") return true;
         return connectedProviderKeys.has(baseProvider);
       })
-      .map((m: any) => {
+      .map((m: ProcessedMeeting) => {
         const startDateStr = ensureUTCSuffix(m.meeting_date);
         const durationSec = m.duration_seconds || 1800;
         const endDateStr = new Date(new Date(startDateStr).getTime() + durationSec * 1000).toISOString();
@@ -360,19 +361,15 @@ export default function CalendarPage() {
       }
     } catch (e) {
       console.error(e);
-      setError("Unable to connect to the backend server.");
     } finally {
       setLoading(false);
       setSyncing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchProfile();
-    // loadAllEvents fetches integrations internally before loading events
-    // to ensure correct provider-based filtering order.
     loadAllEvents();
-  }, []);
+  }, [loadAllEvents]);
 
   const formatEventTime = (isoString: string) => {
     const d = new Date(isoString);
@@ -537,7 +534,7 @@ export default function CalendarPage() {
 
     if (event.attendees && Array.isArray(event.attendees) && event.attendees.length > 0) {
       const displayLimit = 3;
-      event.attendees.slice(0, displayLimit).forEach((att: any, index: number) => {
+      event.attendees.slice(0, displayLimit).forEach((att) => {
         let name = "";
         let email = "";
         if (typeof att === "string") {
@@ -617,16 +614,6 @@ export default function CalendarPage() {
       busiestDay = day;
     }
   });
-
-  const now = new Date();
-  const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-  const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
-  const thisWeekEvents = events.filter(e => {
-    const d = new Date(e.start_time);
-    return d >= startOfWeek && d <= endOfWeek;
-  });
-  const thisWeekCount = thisWeekEvents.length;
-
   const avgDurationMin = events.length > 0 
     ? Math.round(events.reduce((sum, event) => {
         const start = new Date(event.start_time).getTime();
@@ -702,7 +689,7 @@ export default function CalendarPage() {
           )}
 
           {(eventsByDate[selectedDateKey] || []).length > 0 ? (
-            (eventsByDate[selectedDateKey] || []).map((event, index) => {
+            (eventsByDate[selectedDateKey] || []).map((event) => {
               const hasJoinUrl = !!event.join_url;
               const duration = getDurationText(event.start_time, event.end_time);
               const category = getEventCategory(event.title);
@@ -785,7 +772,7 @@ export default function CalendarPage() {
                             AI Intelligence Summary
                           </div>
                           <p className="italic font-normal text-slate-600">
-                            "{event.executive_summary}"
+                            &quot;{event.executive_summary}&quot;
                           </p>
                           <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                             {event.action_items_count !== undefined && event.action_items_count > 0 && (
@@ -1205,7 +1192,7 @@ export default function CalendarPage() {
             
             {/* Today Stats */}
             <div className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-sm hover:shadow-md transition-all">
-              <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-widest block">Today's Agenda</span>
+              <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-widest block">Today&apos;s Agenda</span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-xl font-bold text-slate-900 leading-none">{todaysEventsCount}</span>
                 <span className="text-[9px] text-[#113229] font-bold leading-none bg-[#e6f4f1] px-1.5 py-0.5 rounded-md border border-teal-100">

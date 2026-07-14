@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Brain, Loader2 } from "lucide-react";
 import { getApiUrl } from "../config";
 import Sidebar from "../components/Sidebar";
@@ -13,7 +13,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
   
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
@@ -38,19 +37,7 @@ export default function DashboardLayout({
     document.cookie = `${name}=; max-age=0; path=/; SameSite=Lax`;
   };
 
-  useEffect(() => {
-    const isMockMode = getCookie("mock_mode") === "true";
-    if (isMockMode) {
-      setUserName("Vivek Singh Bora");
-      setUserRole("Admin");
-      setIsAuthenticated(true);
-      setLoading(false);
-    } else {
-      fetchProfile();
-    }
-  }, []);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const res = await fetch(getApiUrl("/api/v1/auth/me"), {
         credentials: "include"
@@ -66,7 +53,7 @@ export default function DashboardLayout({
         setIsAuthenticated(false);
         router.push("/");
       }
-    } catch (e) {
+    } catch {
       console.warn("Backend not active. Falling back to mock details.");
       setUserName("Vivek Singh Bora");
       setUserRole("Admin");
@@ -74,7 +61,19 @@ export default function DashboardLayout({
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    const isMockMode = getCookie("mock_mode") === "true";
+    if (isMockMode) {
+      setUserName("Vivek Singh Bora");
+      setUserRole("Admin");
+      setIsAuthenticated(true);
+      setLoading(false);
+    } else {
+      fetchProfile();
+    }
+  }, [fetchProfile]);
 
   const handleLogout = async () => {
     try {
@@ -82,7 +81,7 @@ export default function DashboardLayout({
         method: "POST",
         credentials: "include"
       });
-    } catch (e) {
+    } catch {
       console.warn("Could not reach logout endpoint on backend.");
     }
     eraseCookie("mock_mode");
@@ -114,8 +113,6 @@ export default function DashboardLayout({
         userName={userName} 
         userRole={userRole} 
         loading={loading} 
-        isCollapsed={isCollapsed} 
-        onToggleCollapse={() => setIsCollapsed(!isCollapsed)} 
         onLogout={handleLogout} 
       />
 
@@ -127,6 +124,7 @@ export default function DashboardLayout({
           loading={loading} 
           onLogout={handleLogout} 
           isCollapsed={isCollapsed}
+          onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
         />
 
         {/* Main Workspace - Controlled height and independent scrolling */}

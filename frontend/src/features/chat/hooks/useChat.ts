@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { chatService } from "../services/chat.service";
 import { ChatMessage, ChatSession } from "../types/chat";
 
@@ -14,34 +14,34 @@ export function useChat(meetingId: string) {
   const [newTitleVal, setNewTitleVal] = useState("");
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  const fetchChatSession = async (sessionId: string) => {
+  const fetchChatSession = useCallback(async (sessionId: string) => {
     try {
       const data = await chatService.getSessionDetails(sessionId);
       setActiveSession(data);
       if (data.messages && data.messages.length > 0) {
-        setChatMessages(data.messages.map((m: any) => ({ role: m.role, text: m.text })));
+        setChatMessages(data.messages.map((m: ChatMessage) => ({ role: m.role, text: m.text })));
       } else {
         setChatMessages([]);
       }
     } catch (e) {
       console.error("Failed to fetch session messages", e);
     }
-  };
+  }, []);
 
-  const fetchSessionsListSilent = async () => {
+  const fetchSessionsListSilent = useCallback(async () => {
     try {
       const data = await chatService.getSessions(meetingId);
       setSessions(data);
       if (activeSessionId) {
-        const current = data.find((s: any) => s.id === activeSessionId);
+        const current = data.find((s: ChatSession) => s.id === activeSessionId);
         if (current) setActiveSession(current);
       }
     } catch (e) {
       console.warn("Silent sessions fetch failed:", e);
     }
-  };
+  }, [meetingId, activeSessionId]);
 
-  const initializeSessions = async () => {
+  const initializeSessions = useCallback(async () => {
     try {
       const data = await chatService.getSessions(meetingId);
       setSessions(data);
@@ -60,13 +60,13 @@ export function useChat(meetingId: string) {
     } catch (e) {
       console.error("Initialization of sessions failed:", e);
     }
-  };
+  }, [meetingId, fetchChatSession]);
 
   useEffect(() => {
     if (meetingId) {
       initializeSessions();
     }
-  }, [meetingId]);
+  }, [meetingId, initializeSessions]);
 
   const handleNewChat = async () => {
     try {
