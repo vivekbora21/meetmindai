@@ -1,6 +1,7 @@
 import React from "react";
-import { CheckSquare, RefreshCw, Check } from "lucide-react";
+import { CheckSquare, RefreshCw, Check, Loader2 } from "lucide-react";
 import { MeetingDetail, ActionItem } from "../types/meeting";
+import { InsightSkeleton } from "./InsightSkeleton";
 
 interface MeetingActionItemsProps {
   detail: MeetingDetail;
@@ -15,6 +16,21 @@ export const MeetingActionItems: React.FC<MeetingActionItemsProps> = ({
   jiraStatus,
   onJiraSync
 }) => {
+  const status = (detail.action_items_status || detail.ai_status || "").toUpperCase();
+  const isLoading = !detail.action_items && !["COMPLETED", "SUCCESS", "FAILED", "ERROR", "SKIPPED"].includes(status);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-4">
+        <InsightSkeleton title="Action Items" hint="Searching the transcript for commitments and owners." accentClassName="bg-amber-200" />
+        <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          Action items are being extracted independently.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {detail.action_items ? detail.action_items.map((item: ActionItem, idx: number) => {
@@ -26,7 +42,7 @@ export const MeetingActionItems: React.FC<MeetingActionItemsProps> = ({
           <div key={idx} className="p-4 rounded-2xl bg-white border border-slate-200 flex justify-between items-start shadow-sm gap-4">
             <div className="flex flex-col gap-1 flex-1">
               <span className="text-xs font-bold text-[#102C23] font-outfit flex items-center gap-1.5">
-                <CheckSquare className="w-4 h-4 text-[#113229]" /> {item.action_text}
+                <CheckSquare className="w-4 h-4 text-[#113229]" aria-hidden="true" /> {item.action_text}
               </span>
               <div className="flex items-center gap-4 text-[10px] text-slate-500 font-semibold mt-1">
                 <span>
@@ -41,6 +57,7 @@ export const MeetingActionItems: React.FC<MeetingActionItemsProps> = ({
             <button
               onClick={() => onJiraSync(actionId)}
               disabled={isSyncing || !!syncStatus}
+              aria-label={syncStatus ? `Synced ${item.action_text} to Jira with key ${syncStatus}` : `Sync action item: ${item.action_text} to Jira`}
               className={`px-3 py-1.5 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 transition-all shadow-sm ${
                 syncStatus
                   ? "bg-emerald-50 border-emerald-200 text-emerald-700"
@@ -49,15 +66,15 @@ export const MeetingActionItems: React.FC<MeetingActionItemsProps> = ({
             >
               {isSyncing ? (
                 <>
-                  <RefreshCw className="w-3 h-3 animate-spin text-[#113229]" /> Syncing...
+                  <RefreshCw className="w-3 h-3 animate-spin text-[#113229]" aria-hidden="true" /> Syncing...
                 </>
               ) : syncStatus ? (
                 <>
-                  <Check className="w-3 h-3 text-emerald-600" /> Synced ({syncStatus})
+                  <Check className="w-3 h-3 text-emerald-600" aria-hidden="true" /> Synced ({syncStatus})
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-3 h-3" /> Sync to Jira
+                  <RefreshCw className="w-3 h-3" aria-hidden="true" /> Sync to Jira
                 </>
               )}
             </button>

@@ -15,8 +15,8 @@ from app.models.models import (
 
 
 def log_activity(
-    db: Session, user_id: str, action: str, details: str = None, ip: str = "127.0.0.1"
-):
+    db: Session, user_id: str, action: str, details: str | None = None, ip: str = "127.0.0.1"
+) -> None:
     activity = ActivityLog(
         user_id=user_id, action=action, details=details, ip_address=ip
     )
@@ -24,7 +24,7 @@ def log_activity(
     db.commit()
 
 
-def ensure_user_settings_initialized(db: Session, user: User):
+def ensure_user_settings_initialized(db: Session, user: User) -> None:
     """Ensure all profile & setting sub-tables exist for a user."""
     # 1. Profile
     if not user.profile:

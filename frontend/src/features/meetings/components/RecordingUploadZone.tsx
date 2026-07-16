@@ -17,7 +17,7 @@ export const RecordingUploadZone: React.FC<RecordingUploadZoneProps> = ({
   return (
     <div className="p-8 rounded-2xl bg-white border border-slate-200 flex flex-col items-center justify-center text-center shadow-sm">
       <div className="p-4 rounded-full bg-teal-50 text-[#113229] mb-4">
-        <FileAudio className="w-8 h-8" />
+        <FileAudio className="w-8 h-8" aria-hidden="true" />
       </div>
       <h3 className="font-bold text-sm text-[#102C23] font-outfit mb-1">No meeting audio</h3>
       <p className="text-xs text-slate-500 font-medium max-w-[240px] mb-4">
@@ -25,13 +25,13 @@ export const RecordingUploadZone: React.FC<RecordingUploadZoneProps> = ({
       </p>
       
       <form onSubmit={onUpload} className="flex flex-col items-center gap-3">
-        <label className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#113229] text-xs font-bold text-slate-500 hover:text-[#102C23] transition-all cursor-pointer shadow-sm">
+        <label className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:border-[#113229] focus-within:ring-2 focus-within:ring-[#113229]/20 focus-within:border-[#113229] text-xs font-bold text-slate-500 hover:text-[#102C23] transition-all cursor-pointer shadow-sm">
           <span>{selectedFile ? selectedFile.name : "Select Audio / Video"}</span>
           <input
             type="file"
             accept="audio/*,video/*"
             onChange={(e) => onFileSelect(e.target.files ? e.target.files[0] : null)}
-            className="hidden"
+            className="sr-only"
             disabled={uploadingFile}
           />
         </label>
@@ -43,7 +43,7 @@ export const RecordingUploadZone: React.FC<RecordingUploadZoneProps> = ({
           >
             {uploadingFile ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...
+                <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> Uploading...
               </>
             ) : (
               "Upload and Transcribe"

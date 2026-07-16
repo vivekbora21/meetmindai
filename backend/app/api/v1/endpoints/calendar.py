@@ -66,12 +66,13 @@ async def get_calendar_events(
         # No connected accounts — return nothing
         return []
 
-    # Return only CalendarEvent rows for currently-connected providers
+    # Return only CalendarEvent rows for currently-connected providers that are online meetings
     events = (
         db.query(CalendarEvent)
         .filter(
             CalendarEvent.user_id == current_user.id,
             CalendarEvent.provider.in_(list(connected_providers)),
+            CalendarEvent.is_online_meeting == True,
         )
         .order_by(CalendarEvent.start_time)
         .all()

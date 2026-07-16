@@ -463,6 +463,42 @@ def get_meeting_chat_history(
     return sessions
 
 
+@router.post("/chats/global/new", response_model=ChatSessionOut)
+def create_global_chat_session(
+    session_input: ChatSessionCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    session = ChatSession(
+        meeting_id=None,
+        user_id=current_user.id,
+        title=session_input.title or "New Chat",
+        is_archived=False,
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.get("/chats/global", response_model=List[ChatSessionOut])
+def get_global_chat_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    sessions = (
+        db.query(ChatSession)
+        .filter(
+            ChatSession.meeting_id == None,
+            ChatSession.user_id == current_user.id,
+        )
+        .order_by(ChatSession.updated_at.desc())
+        .all()
+    )
+    return sessions
+
+
+
 @router.get("/chat/{session_id}", response_model=ChatSessionDetailOut)
 def get_chat_session(
     session_id: str,
@@ -635,14 +671,37 @@ def chat_in_session(
 
     if is_high_level:
         # Load context from Cache if available, or build it
-        context_str = MeetingContextCache.get_context(session.meeting_id, db)
+        if session.meeting_id:
+            context_str = MeetingContextCache.get_context(session.meeting_id, db)
+            system_prompt_override = (
+                "You are an AI Meeting Assistant.\n"
+                "When answering questions about the overall meeting, identify the central theme across the ENTIRE meeting instead of focusing on one retrieved sentence.\n"
+                "Do not simply repeat the first matching transcript chunk.\n"
+                "Synthesize information from all provided context and produce a concise but accurate meeting-level answer."
+            )
+        else:
+            recent_meetings = (
+                db.query(Meeting)
+                .filter(
+                    Meeting.organization_id == current_user.organization_id,
+                    Meeting.status == "COMPLETED"
+                )
+                .order_by(Meeting.meeting_date.desc())
+                .limit(5)
+                .all()
+            )
+            if recent_meetings:
+                context_str = "Context from recent meetings:\n"
+                for m in recent_meetings:
+                    if m.executive_summary:
+                        context_str += f"Meeting '{m.title}' Summary: {m.executive_summary}\n\n"
+            else:
+                context_str = "No recent meetings context available. Answer based on general knowledge."
 
-        system_prompt_override = (
-            "You are an AI Meeting Assistant.\n"
-            "When answering questions about the overall meeting, identify the central theme across the ENTIRE meeting instead of focusing on one retrieved sentence.\n"
-            "Do not simply repeat the first matching transcript chunk.\n"
-            "Synthesize information from all provided context and produce a concise but accurate meeting-level answer."
-        )
+            system_prompt_override = (
+                "You are an AI Organization Assistant.\n"
+                "You answer queries about the company's meetings and activities. Provide a summarized answer based on all recent meetings' context."
+            )
     else:
         # Generate embedding (from cache or new)
         embedding_service = EmbeddingService()

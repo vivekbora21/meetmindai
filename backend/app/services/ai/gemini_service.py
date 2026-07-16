@@ -47,6 +47,9 @@ class GeminiService:
         self._openrouter_model_idx = 0
         self._groq_model_idx = 0
 
+        self.last_prompt_tokens = 0
+        self.last_completion_tokens = 0
+
         # Choose the initial provider based on what keys are configured
         if self.google_key:
             self._setup_provider("gemini")
@@ -189,6 +192,9 @@ class GeminiService:
 
                 duration = time.time() - start_time
                 usage = getattr(response, "usage", None)
+                if usage:
+                    self.last_prompt_tokens += usage.prompt_tokens
+                    self.last_completion_tokens += usage.completion_tokens
                 tokens_log = (
                     f"Tokens: P={usage.prompt_tokens}, C={usage.completion_tokens}"
                     if usage
@@ -297,6 +303,9 @@ class GeminiService:
 
                 duration = time.time() - start_time
                 usage = getattr(response, "usage", None)
+                if usage:
+                    self.last_prompt_tokens += usage.prompt_tokens
+                    self.last_completion_tokens += usage.completion_tokens
                 tokens_log = (
                     f"Tokens: P={usage.prompt_tokens}, C={usage.completion_tokens}"
                     if usage
@@ -648,6 +657,8 @@ class GeminiService:
         Centralized method to perform a single call to Gemini to extract all structured insights.
         Avoids making duplicate Gemini API calls.
         """
+        self.last_prompt_tokens = 0
+        self.last_completion_tokens = 0
         if not transcript:
             return self._get_ultimate_fallback_data(transcript)
 

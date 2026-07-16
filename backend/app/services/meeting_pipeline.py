@@ -16,7 +16,7 @@ from app.models.models import (
 
 from app.services.media_service import MediaService
 from app.services.whisper_service import WhisperService
-from app.services.transcript_repository import TranscriptRepository
+from app.repositories.transcript_repository import TranscriptRepository
 from app.services.ai.gemini_service import GeminiService
 from app.services.embedding_service import EmbeddingService
 from app.services.knowledge_graph_service import KnowledgeGraphService

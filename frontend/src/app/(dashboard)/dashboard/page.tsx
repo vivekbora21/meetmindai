@@ -1,18 +1,30 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Search, Upload, AlertTriangle, ShieldAlert, TrendingUp, ChevronRight, Brain, 
-  Sparkles, Loader2, Scale, ClipboardCheck, Download, ArrowRight,
-  Calendar, Clock, Video, Link as LinkIcon, Sparkle, CheckCircle2, 
+  Search, AlertTriangle, ShieldAlert, TrendingUp, ChevronRight, Brain, 
+  Sparkles, Loader2, Scale, ClipboardCheck, ArrowRight,
+  Calendar, Clock, Video, Sparkle, CheckCircle2, 
   Activity, XCircle, ArrowUpRight
 } from "lucide-react";
-import { 
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid 
-} from "recharts";
+import dynamic from "next/dynamic";
+
+const ActivityChart = dynamic(
+  () => import("./components/ActivityChart"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full flex items-center justify-center text-slate-400">
+        <Loader2 className="w-6 h-6 animate-spin text-[#113229]" />
+      </div>
+    )
+  }
+);
 import { getApiUrl } from "../../config";
 import { MeetingDetail } from "@/features/meetings/types/meeting";
+import { meetingService } from "@/features/meetings/services/meeting.service";
+import { IngestMeetingCard } from "@/features/meetings/components/IngestMeetingCard";
 
 const getMeetingStatusInfo = (m: MeetingDetail) => {
   const now = new Date();
@@ -101,34 +113,7 @@ const getMeetingStatusInfo = (m: MeetingDetail) => {
   }
 };
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    name: string;
-    value: number;
-    color: string;
-  }>;
-  label?: string;
-}
 
-const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-xl text-xs flex flex-col gap-1">
-        <p className="font-bold text-slate-800">{label}</p>
-        {payload.map((p) => (
-          <p key={p.name} className="font-semibold text-slate-600">
-            <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5" style={{ backgroundColor: p.color }}></span>
-            {p.name === "meetingsCount" ? "Meetings: " : p.name === "durationMinutes" ? "Duration: " : p.name === "decisionsCount" ? "Decisions: " : "Actions: "}
-            <span className="text-slate-900 font-bold">{p.value}</span>
-            {p.name === "durationMinutes" ? " mins" : ""}
-          </p>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
 
 interface DashboardStats {
   productivity_score: number;
@@ -141,15 +126,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [meetings, setMeetings] = useState<MeetingDetail[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [meetingTitle, setMeetingTitle] = useState("");
-  const [platform, setPlatform] = useState("Upload"); // "Upload", "Google Meet", "Teams"
   const [activeTab, setActiveTab] = useState("all"); // "all", "processing"
-  const [ingestTab, setIngestTab] = useState<"file" | "link">("file");
-  const [scheduledStart, setScheduledStart] = useState("");
-  const [meetingUrl, setMeetingUrl] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [userName, setUserName] = useState("Vivek Singh Bora");
   const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
@@ -158,7 +135,6 @@ export default function Dashboard() {
     pending_action_items: 0,
     active_risks: 0
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -195,20 +171,16 @@ export default function Dashboard() {
 
   const fetchMeetings = useCallback(async () => {
     try {
-      const res = await fetch(getApiUrl("/api/v1/meetings/"), {
-        credentials: "include"
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.length > 0) {
-          setMeetings(data);
-          return;
-        }
-      } else if (res.status === 401) {
+      const data = await meetingService.getMeetings();
+      if (data && data.length > 0) {
+        setMeetings(data);
+        return;
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message === "Unauthorized") {
         eraseCookie("isAuthenticated");
         router.push("/");
       }
-    } catch {
       console.warn("Backend not active for meetings fetch.");
     }
     setMeetings([]);
@@ -220,93 +192,6 @@ export default function Dashboard() {
     fetchProfile();
     fetchStats();
   }, [fetchMeetings, fetchProfile, fetchStats]);
-
-  // Update platform value based on active ingest tab
-  useEffect(() => {
-    if (ingestTab === "file") {
-      setPlatform("Upload");
-    } else {
-      setPlatform("Google Meet");
-    }
-  }, [ingestTab]);
-
-  const handleUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!meetingTitle) return;
-    setUploading(true);
-
-    const isLinkJoin = platform === "Teams" || platform === "Google Meet";
-
-    try {
-      let responseData: MeetingDetail | null = null;
-      if (isLinkJoin) {
-        const res = await fetch(getApiUrl("/api/v1/meetings/join-link"), {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            title: meetingTitle,
-            platform: platform,
-            meeting_url: meetingUrl,
-            scheduled_start: scheduledStart ? new Date(scheduledStart).toISOString() : undefined
-          }),
-          credentials: "include"
-        });
-        if (res.ok) responseData = await res.json();
-      } else {
-        const formData = new FormData();
-        formData.append("title", meetingTitle);
-        formData.append("platform", platform);
-        if (selectedFile) {
-          formData.append("file", selectedFile);
-        } else {
-          // Append empty placeholder file
-          const blob = new Blob([""], { type: "audio/wav" });
-          formData.append("file", blob, "meeting.wav");
-        }
-        
-        const res = await fetch(getApiUrl("/api/v1/meetings/upload"), {
-          method: "POST",
-          body: formData,
-          credentials: "include"
-        });
-        if (res.ok) responseData = await res.json();
-      }
-
-      if (responseData) {
-        setMeetings(prev => [responseData as MeetingDetail, ...prev]);
-        if (responseData.id) {
-          router.push(`/meetings/${responseData.id}`);
-        }
-      }
-    } catch {
-      console.warn("Could not sync upload to backend.");
-    } finally {
-      setMeetingTitle("");
-      setMeetingUrl("");
-      setSelectedFile(null);
-      setUploading(false);
-    }
-  };
-
-  // Drag and Drop handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setSelectedFile(e.dataTransfer.files[0]);
-    }
-  };
 
   const filteredMeetings = meetings.filter(m => {
     const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -564,61 +449,7 @@ export default function Dashboard() {
 
             {/* Render the chart safely only on the client */}
             <div className="h-[220px] w-full relative">
-              {mounted ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorMeetings" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#113229" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#113229" stopOpacity={0.01}/>
-                      </linearGradient>
-                      <linearGradient id="colorDuration" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#D98A44" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#D98A44" stopOpacity={0.01}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#94A3B8" 
-                      fontSize={10} 
-                      fontWeight={700}
-                      tickLine={false} 
-                      axisLine={false} 
-                    />
-                    <YAxis 
-                      stroke="#94A3B8" 
-                      fontSize={10} 
-                      fontWeight={700}
-                      tickLine={false} 
-                      axisLine={false} 
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="durationMinutes" 
-                      name="durationMinutes"
-                      stroke="#D98A44" 
-                      strokeWidth={2}
-                      fillOpacity={1} 
-                      fill="url(#colorDuration)" 
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="actionsCount" 
-                      name="actionsCount"
-                      stroke="#113229" 
-                      strokeWidth={2}
-                      fillOpacity={1} 
-                      fill="url(#colorMeetings)" 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#113229]" />
-                </div>
-              )}
+              <ActivityChart chartData={chartData} />
             </div>
 
             <div className="flex justify-center items-center gap-6 border-t border-slate-100 pt-4 text-xs font-bold">
@@ -824,165 +655,11 @@ export default function Dashboard() {
         <section className="lg:col-span-4 flex flex-col gap-8">
           
           {/* Tabbed Ingest Meeting Card */}
-          <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 shadow-sm flex flex-col gap-5">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sync Desk</span>
-              <h3 className="font-bold text-md text-[#102C23] flex items-center gap-2">
-                <Download className="w-4 h-4 text-[#113229] transform rotate-180" /> Ingest Meeting Data
-              </h3>
-            </div>
-
-            {/* Tab Controllers */}
-            <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-200 gap-1">
-              <button
-                onClick={() => setIngestTab("file")}
-                className={`flex-1 text-[11px] font-bold py-2 rounded-lg transition-all ${
-                  ingestTab === "file"
-                    ? "bg-[#113229] text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                Upload File
-              </button>
-              <button
-                onClick={() => setIngestTab("link")}
-                className={`flex-1 text-[11px] font-bold py-2 rounded-lg transition-all ${
-                  ingestTab === "link"
-                    ? "bg-[#113229] text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                Join Live URL
-              </button>
-            </div>
-            
-            <form onSubmit={handleUpload} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Meeting Title</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g., API gateway review"
-                  value={meetingTitle}
-                  onChange={(e) => setMeetingTitle(e.target.value)}
-                  className="px-3.5 py-2.5 rounded-xl bg-[#F9F8F6] border border-slate-200 focus:bg-white text-xs focus:outline-none focus:border-[#113229] focus:ring-1 focus:ring-[#113229] text-[#102C23] shadow-inner w-full font-medium"
-                  required
-                />
-              </div>
-
-              {ingestTab === "link" ? (
-                <>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Sync Platform</label>
-                    <select
-                      value={platform}
-                      onChange={(e) => setPlatform(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#F9F8F6] border border-slate-200 text-xs focus:outline-none focus:border-[#113229] text-[#102C23] cursor-pointer shadow-sm font-medium"
-                    >
-                      <option value="Google Meet">Google Meet Sync</option>
-                      <option value="Teams">Microsoft Teams Sync</option>
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Meeting Invite URL</label>
-                    <input 
-                      type="url" 
-                      placeholder={platform === "Teams" ? "https://teams.microsoft.com/l/meetup-join/..." : "https://meet.google.com/abc-defg-hij"}
-                      value={meetingUrl}
-                      onChange={(e) => setMeetingUrl(e.target.value)}
-                      className="px-3.5 py-2.5 rounded-xl bg-[#F9F8F6] border border-slate-200 focus:bg-white text-xs focus:outline-none focus:border-[#113229] focus:ring-1 focus:ring-[#113229] text-[#102C23] shadow-inner font-medium"
-                      required
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Scheduled Start Time</label>
-                    <input 
-                      type="datetime-local"
-                      value={scheduledStart}
-                      onChange={(e) => setScheduledStart(e.target.value)}
-                      className="px-3.5 py-2.5 rounded-xl bg-[#F9F8F6] border border-slate-200 focus:bg-white text-xs focus:outline-none focus:border-[#113229] text-[#102C23] shadow-inner font-medium"
-                    />
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Audio / Video File</label>
-                  
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
-                      isDragging 
-                        ? "border-[#113229] bg-[#113229]/5 ring-4 ring-[#113229]/10" 
-                        : "border-slate-200 hover:border-[#113229]/50 bg-[#F9F8F6]/50 hover:bg-[#F9F8F6]"
-                    }`}
-                  >
-                    <input 
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files.length > 0) {
-                          setSelectedFile(e.target.files[0]);
-                        }
-                      }}
-                      accept="audio/*,video/*"
-                      className="hidden"
-                    />
-                    
-                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-[#113229]">
-                      <Upload className={`w-5 h-5 ${isDragging ? "animate-bounce" : ""}`} />
-                    </div>
-
-                    {selectedFile ? (
-                      <div className="text-center w-full max-w-xs flex flex-col gap-1">
-                        <span className="text-[11px] text-[#113229] font-bold truncate max-w-full">
-                          {selectedFile.name}
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-bold">
-                          ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="text-center flex flex-col gap-1">
-                        <p className="text-[11px] text-[#102C23] font-bold">Drag & drop your recording here</p>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">or browse local files</p>
-                        <span className="text-[9px] text-[#D98A44] font-bold bg-[#D98A44]/10 px-2 py-0.5 rounded-full mt-1.5 self-center">
-                          MP3, WAV, MP4, MKV
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <button 
-                type="submit" 
-                disabled={uploading}
-                className="w-full py-3 rounded-xl bg-[#113229] hover:bg-[#0D241E] text-white font-extrabold text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-md hover:shadow-lg mt-2"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Ingesting Audio Stream...
-                  </>
-                ) : (
-                  <>
-                    {ingestTab === "link" ? (
-                      <>
-                        <LinkIcon className="w-3.5 h-3.5" /> Sync Remote Meeting Invite
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-3.5 h-3.5" /> Transcribe & Analyze File
-                      </>
-                    )}
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
+          <IngestMeetingCard
+            onMeetingAdded={(newMeeting) => {
+              setMeetings(prev => [newMeeting, ...prev]);
+            }}
+          />
 
           {/* AI Suggestions Desk */}
           <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 shadow-sm flex flex-col gap-5">

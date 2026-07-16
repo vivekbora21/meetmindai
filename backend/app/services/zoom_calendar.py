@@ -5,7 +5,7 @@ import httpx
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.models import ConnectedAccount, Meeting, Provider
+from app.models.models import ConnectedAccount, Meeting, Provider, CalendarEvent
 from app.integrations.registry import get_provider
 from app.utils.encryption import decrypt_value, encrypt_value
 
@@ -229,7 +229,7 @@ class ZoomCalendarService:
         Raises immediately on permission errors; re-raises transients for retry.
         """
         url = "https://api.zoom.us/v2/users/me/meetings"
-        params = {"type": "upcoming", "page_size": "100"}
+        params = {"type": "scheduled", "page_size": "100"}
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Accept": "application/json",
@@ -337,6 +337,68 @@ class ZoomCalendarService:
             join_url = mt.get("join_url")
             start_time = parse_zoom_datetime(start_str_raw)
 
+            # 1. Sync CalendarEvent
+            duration_mins = mt.get("duration") or 30
+            end_time = start_time + timedelta(minutes=duration_mins)
+
+            event_record = (
+                db.query(CalendarEvent)
+                .filter(
+                    CalendarEvent.user_id == user_id,
+                    CalendarEvent.provider == Provider.ZOOM,
+                    CalendarEvent.provider_event_id == provider_event_id,
+                )
+                .first()
+            )
+
+            if not event_record:
+                event_record = (
+                    db.query(CalendarEvent)
+                    .filter(
+                        CalendarEvent.user_id == user_id,
+                        CalendarEvent.provider == Provider.ZOOM,
+                        CalendarEvent.title == title,
+                        CalendarEvent.start_time == start_time,
+                        CalendarEvent.end_time == end_time,
+                    )
+                    .first()
+                )
+
+            timezone_str = mt.get("timezone") or "UTC"
+            attendees_parsed = []
+
+            if event_record:
+                event_record.title = title
+                event_record.description = description
+                event_record.start_time = start_time
+                event_record.end_time = end_time
+                event_record.timezone = timezone_str
+                event_record.organizer_email = account.email
+                event_record.join_url = join_url
+                event_record.meeting_provider = "Zoom"
+                event_record.is_online_meeting = True
+                event_record.status = "scheduled"
+                event_record.attendees = attendees_parsed
+            else:
+                event_record = CalendarEvent(
+                    user_id=user_id,
+                    provider=Provider.ZOOM,
+                    provider_event_id=provider_event_id,
+                    title=title,
+                    description=description,
+                    start_time=start_time,
+                    end_time=end_time,
+                    timezone=timezone_str,
+                    organizer_email=account.email,
+                    join_url=join_url,
+                    meeting_provider="Zoom",
+                    is_online_meeting=True,
+                    status="scheduled",
+                    attendees=attendees_parsed,
+                )
+                db.add(event_record)
+
+            # 2. Sync Meeting
             meeting_record = (
                 db.query(Meeting)
                 .filter(
@@ -397,6 +459,21 @@ class ZoomCalendarService:
                 m.sync_status = "cancelled"
                 m.join_status = "Cancelled"
                 m.status = "FAILED"
+
+        # Also mark CalendarEvent rows as cancelled
+        existing_events = (
+            db.query(CalendarEvent)
+            .filter(
+                CalendarEvent.user_id == user_id,
+                CalendarEvent.provider == Provider.ZOOM,
+                CalendarEvent.start_time >= start_dt,
+                CalendarEvent.start_time <= end_dt,
+            )
+            .all()
+        )
+        for e in existing_events:
+            if e.provider_event_id not in synced_event_ids:
+                e.status = "cancelled"
 
         db.commit()
         for m in synced_meetings:

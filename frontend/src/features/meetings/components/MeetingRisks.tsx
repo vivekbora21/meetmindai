@@ -1,12 +1,20 @@
 import React from "react";
 import { ShieldAlert } from "lucide-react";
 import { MeetingDetail, Risk } from "../types/meeting";
+import { InsightSkeleton } from "./InsightSkeleton";
 
 interface MeetingRisksProps {
   detail: MeetingDetail;
 }
 
 export const MeetingRisks: React.FC<MeetingRisksProps> = ({ detail }) => {
+  const status = (detail.risks_status || detail.ai_status || "").toUpperCase();
+  const isLoading = !detail.risks && !["COMPLETED", "SUCCESS", "FAILED", "ERROR", "SKIPPED"].includes(status);
+
+  if (isLoading) {
+    return <InsightSkeleton title="Risks" hint="Analyzing the discussion for blockers, concerns, and open risks." accentClassName="bg-rose-200" />;
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {detail.risks ? detail.risks.map((risk: Risk, idx: number) => (

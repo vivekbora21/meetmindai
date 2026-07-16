@@ -22,7 +22,7 @@ if not hasattr(bcrypt, "__about__"):
 orig_hashpw = bcrypt.hashpw
 
 
-def patched_hashpw(password, salt):
+def patched_hashpw(password: str | bytes, salt: bytes) -> bytes:
     if isinstance(password, str):
         password_bytes = password.encode("utf-8")
     else:
@@ -37,7 +37,7 @@ bcrypt.hashpw = patched_hashpw
 orig_checkpw = bcrypt.checkpw
 
 
-def patched_checkpw(password, hashed_password):
+def patched_checkpw(password: str | bytes, hashed_password: bytes) -> bool:
     if isinstance(password, str):
         password_bytes = password.encode("utf-8")
     else:

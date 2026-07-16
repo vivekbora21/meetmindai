@@ -33,21 +33,25 @@ class VoiceEmbeddingService:
     @property
     def model(self):
         if self._model is None:
-            # Lazy load the encoder classifier to keep startup quick
-            logger.info(
-                f"Loading SpeechBrain speaker embedding model on {self.device}..."
-            )
-            try:
-                from speechbrain.inference.speaker import EncoderClassifier
-
-                # Store the model inside a class variable
-                VoiceEmbeddingService._model = EncoderClassifier.from_hparams(
-                    source=self.model_source, run_opts={"device": self.device}
+            from app.ml.model_loader import ModelRegistry
+            if ModelRegistry._diarizer_model is not None:
+                VoiceEmbeddingService._model = ModelRegistry._diarizer_model
+            else:
+                # Lazy load the encoder classifier to keep startup quick
+                logger.info(
+                    f"Loading SpeechBrain speaker embedding model on {self.device}..."
                 )
-                logger.info("SpeechBrain speaker embedding model loaded successfully.")
-            except Exception as e:
-                logger.error(f"Failed to load SpeechBrain model: {e}")
-                raise e
+                try:
+                    from speechbrain.inference.speaker import EncoderClassifier
+
+                    # Store the model inside a class variable
+                    VoiceEmbeddingService._model = EncoderClassifier.from_hparams(
+                        source=self.model_source, run_opts={"device": self.device}
+                    )
+                    logger.info("SpeechBrain speaker embedding model loaded successfully.")
+                except Exception as e:
+                    logger.error(f"Failed to load SpeechBrain model: {e}")
+                    raise e
         return self._model
 
     def get_embedding(

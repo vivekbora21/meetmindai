@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Check, Loader2 } from "lucide-react";
 import { Speaker, MeetingDetail } from "../types/meeting";
 import { meetingService } from "../services/meeting.service";
@@ -21,6 +21,7 @@ export const RenameSpeakerDialog: React.FC<RenameSpeakerDialogProps> = ({
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (speaker) {
@@ -28,6 +29,44 @@ export const RenameSpeakerDialog: React.FC<RenameSpeakerDialogProps> = ({
       setError(null);
     }
   }, [speaker, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusableElements = dialogRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+        
+        const firstElement = focusableElements[0] as HTMLElement;
+        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen || !speaker) return null;
 
@@ -61,27 +100,35 @@ export const RenameSpeakerDialog: React.FC<RenameSpeakerDialogProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/80 p-6 shadow-2xl backdrop-blur-xl transition-all animate-in fade-in zoom-in-95 duration-200">
+      <div 
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dialog-title-rename-speaker"
+        className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/80 p-6 shadow-2xl backdrop-blur-xl transition-all animate-in fade-in zoom-in-95 duration-200"
+      >
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200/55 mb-4">
-          <h3 className="text-base font-bold font-outfit text-[#102C23]">
+          <h3 id="dialog-title-rename-speaker" className="text-base font-bold font-outfit text-[#102C23]">
             Rename Speaker
           </h3>
           <button 
             onClick={onClose} 
+            aria-label="Close dialog"
             className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
         {/* Content */}
         <form onSubmit={handleSave} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider font-outfit">
+            <label htmlFor="rename-speaker-input" className="text-xs font-bold text-slate-500 uppercase tracking-wider font-outfit">
               Current Label: <span className="text-[#113229]">{speaker.speaker_tag}</span>
             </label>
             <input
+              id="rename-speaker-input"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -91,7 +138,7 @@ export const RenameSpeakerDialog: React.FC<RenameSpeakerDialogProps> = ({
               autoFocus
             />
             {error && (
-              <span className="text-xs text-rose-500 font-semibold mt-1">
+              <span role="alert" aria-live="assertive" className="text-xs text-rose-500 font-semibold mt-1">
                 {error}
               </span>
             )}
@@ -114,11 +161,11 @@ export const RenameSpeakerDialog: React.FC<RenameSpeakerDialogProps> = ({
             >
               {saving ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> Saving...
                 </>
               ) : (
                 <>
-                  <Check className="w-3.5 h-3.5" /> Save Changes
+                  <Check className="w-3.5 h-3.5" aria-hidden="true" /> Save Changes
                 </>
               )}
             </button>

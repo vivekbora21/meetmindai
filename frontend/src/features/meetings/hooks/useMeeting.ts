@@ -2,7 +2,28 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { meetingService } from "../services/meeting.service";
 import { MeetingDetail } from "../types/meeting";
 
-const TERMINAL_STATUSES = ["Completed", "COMPLETED", "Failed", "FAILED", "Error", "ERROR"];
+const isInsightStillRunning = (detail: MeetingDetail | null) => {
+  if (!detail) return false;
+  const statusFields = [
+    detail.status,
+    detail.speaker_status,
+    detail.ai_status,
+    detail.embedding_status,
+    detail.kg_status,
+    detail.transcript_status,
+    detail.executive_summary_status,
+    detail.action_items_status,
+    detail.decisions_status,
+    detail.risks_status,
+    detail.technical_status,
+    detail.key_themes_status,
+  ].filter(Boolean);
+
+  return statusFields.some((status) => {
+    const norm = String(status).toUpperCase();
+    return !["COMPLETED", "SUCCESS", "FAILED", "ERROR", "SKIPPED", "CANCELLED"].includes(norm);
+  });
+};
 
 export function useMeeting(meetingId: string) {
   const [meetingDetail, setMeetingDetail] = useState<MeetingDetail | null>(null);
@@ -17,6 +38,7 @@ export function useMeeting(meetingId: string) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [runningAiAnalysis, setRunningAiAnalysis] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   // Audio playing state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -51,7 +73,7 @@ export function useMeeting(meetingId: string) {
 
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | undefined = undefined;
-    if (meetingDetail && !TERMINAL_STATUSES.includes(meetingDetail.status)) {
+    if (isInsightStillRunning(meetingDetail) || (meetingDetail?.recording_url && !meetingDetail?.transcripts?.length)) {
       intervalId = setInterval(() => {
         fetchMeetingDetailSilent();
       }, 3000);
@@ -114,6 +136,19 @@ export function useMeeting(meetingId: string) {
     }
   };
 
+  const handleSendMomEmail = async () => {
+    setSendingEmail(true);
+    try {
+      const res = await meetingService.sendMomEmail(meetingId);
+      alert(res.message || "MOM email dispatch initiated successfully!");
+    } catch (e) {
+      console.error("MOM email send error", e);
+      alert("Error sending MOM email. Please try again.");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -157,6 +192,7 @@ export function useMeeting(meetingId: string) {
     uploadingFile,
     transcribing,
     runningAiAnalysis,
+    sendingEmail,
     isPlaying,
     currentTime,
     activeDuration,
@@ -168,6 +204,7 @@ export function useMeeting(meetingId: string) {
     handleMediaUpload,
     handleTranscribe,
     handleRunAiAnalysis,
+    handleSendMomEmail,
     handleJiraSync,
     togglePlay,
     handleTimeUpdate,

@@ -1,6 +1,7 @@
 import time
 import os
-from fastapi import FastAPI, Request
+from typing import Callable, Dict, Any
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -44,7 +45,7 @@ app.add_middleware(
 
 # Simple rate limiter/latency logger middleware
 @app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
+async def add_process_time_header(request: Request, call_next: Callable) -> Response:
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
@@ -54,7 +55,7 @@ async def add_process_time_header(request: Request, call_next):
 
 # Standard healthcheck endpoint
 @app.get("/health")
-def healthcheck():
+def healthcheck() -> Dict[str, Any]:
     return {"status": "healthy", "timestamp": time.time()}
 
 
@@ -81,8 +82,10 @@ app.include_router(ai.meeting_router, prefix="/api/meetings", tags=["meetings"])
 
 
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     import asyncio
     from app.services.scheduler import start_scheduler
-
+    from app.events.handlers import register_event_handlers
+    
+    register_event_handlers()
     asyncio.create_task(start_scheduler())

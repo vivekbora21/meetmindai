@@ -1,39 +1,65 @@
 import os
 from dotenv import load_dotenv
 
+from app.config.database import database_settings
+from app.config.redis import redis_settings
+from app.config.auth import auth_settings
+from app.config.ai import ai_settings
+from app.config.storage import storage_settings
+from app.config.celery import celery_settings
+from app.config.logging import logging_settings
+from app.config.security import security_settings
+from app.config.email import email_settings
+
 load_dotenv()
 
-
+# Backward compatible get_env
 def get_env(name: str, default: str | None = None) -> str | None:
     return os.getenv(name, default)
 
-
 class Settings:
-    MICROSOFT_CLIENT_ID: str | None = get_env("MICROSOFT_CLIENT_ID")
-    MICROSOFT_CLIENT_SECRET: str | None = get_env("MICROSOFT_CLIENT_SECRET")
-    MICROSOFT_TENANT_ID: str = get_env("MICROSOFT_TENANT_ID", "common")
-    MICROSOFT_REDIRECT_URI: str | None = get_env("MICROSOFT_REDIRECT_URI")
+    @property
+    def MICROSOFT_CLIENT_ID(self): return auth_settings.MICROSOFT_CLIENT_ID
+    @property
+    def MICROSOFT_CLIENT_SECRET(self): return auth_settings.MICROSOFT_CLIENT_SECRET
+    @property
+    def MICROSOFT_TENANT_ID(self): return auth_settings.MICROSOFT_TENANT_ID
+    @property
+    def MICROSOFT_REDIRECT_URI(self): return auth_settings.MICROSOFT_REDIRECT_URI
 
-    GOOGLE_CLIENT_ID: str | None = get_env("GOOGLE_CLIENT_ID")
-    GOOGLE_CLIENT_SECRET: str | None = get_env("GOOGLE_CLIENT_SECRET")
-    GOOGLE_REDIRECT_URI: str | None = get_env("GOOGLE_REDIRECT_URI")
+    @property
+    def GOOGLE_CLIENT_ID(self): return auth_settings.GOOGLE_CLIENT_ID
+    @property
+    def GOOGLE_CLIENT_SECRET(self): return auth_settings.GOOGLE_CLIENT_SECRET
+    @property
+    def GOOGLE_REDIRECT_URI(self): return auth_settings.GOOGLE_REDIRECT_URI
 
-    ZOOM_CLIENT_ID: str | None = get_env("ZOOM_CLIENT_ID")
-    ZOOM_CLIENT_SECRET: str | None = get_env("ZOOM_CLIENT_SECRET")
-    ZOOM_REDIRECT_URI: str | None = get_env("ZOOM_REDIRECT_URI")
-    ZOOM_AUTH_URL: str = get_env("ZOOM_AUTH_URL", "https://zoom.us/oauth/authorize")
-    ZOOM_TOKEN_URL: str = get_env("ZOOM_TOKEN_URL", "https://zoom.us/oauth/token")
-    ZOOM_API_BASE: str = get_env("ZOOM_API_BASE", "https://api.zoom.us/v2")
+    @property
+    def ZOOM_CLIENT_ID(self): return auth_settings.ZOOM_CLIENT_ID
+    @property
+    def ZOOM_CLIENT_SECRET(self): return auth_settings.ZOOM_CLIENT_SECRET
+    @property
+    def ZOOM_REDIRECT_URI(self): return auth_settings.ZOOM_REDIRECT_URI
+    @property
+    def ZOOM_AUTH_URL(self): return auth_settings.ZOOM_AUTH_URL
+    @property
+    def ZOOM_TOKEN_URL(self): return auth_settings.ZOOM_TOKEN_URL
+    @property
+    def ZOOM_API_BASE(self): return auth_settings.ZOOM_API_BASE
 
-    JWT_SECRET: str = get_env(
-        "JWT_SECRET", "supersecretkeymeetingmind_secure_key_at_least_32_bytes_long"
-    )
-    JWT_ALGORITHM: str = get_env("JWT_ALGORITHM", "HS256")
-    JWT_EXPIRE_MINUTES: int = int(get_env("JWT_EXPIRE_MINUTES", "1440"))
-    DATABASE_URL: str = get_env(
-        "DATABASE_URL", "postgresql://postgres:password@localhost:5432/meetingmind"
-    )
-    REDIS_URL: str = get_env("REDIS_URL", "redis://localhost:6379/0")
+    @property
+    def JWT_SECRET(self): return auth_settings.JWT_SECRET
+    @property
+    def JWT_ALGORITHM(self): return auth_settings.JWT_ALGORITHM
+    @property
+    def JWT_EXPIRE_MINUTES(self): return auth_settings.JWT_EXPIRE_MINUTES
+    
+    @property
+    def DATABASE_URL(self): return database_settings.DATABASE_URL
+    @property
+    def REDIS_URL(self): return redis_settings.REDIS_URL
 
+    @property
+    def email(self): return email_settings
 
 settings = Settings()

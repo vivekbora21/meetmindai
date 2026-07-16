@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { 
   Search, Brain, ShieldAlert, Loader2, ChevronRight, Calendar, Clock, Video, Archive
 } from "lucide-react";
-import { getApiUrl } from "../../config";
 import Pagination from "../../components/Pagination";
 import { MeetingDetail } from "@/features/meetings/types/meeting";
+import { meetingService } from "@/features/meetings/services/meeting.service";
+import { IngestMeetingCard } from "@/features/meetings/components/IngestMeetingCard";
 
 const getMeetingStatusInfo = (m: MeetingDetail) => {
   const now = new Date();
@@ -103,7 +104,6 @@ export default function MeetingsPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
   useEffect(() => {
     fetchMeetings();
   }, []);
@@ -115,15 +115,10 @@ export default function MeetingsPage() {
 
   const fetchMeetings = async () => {
     try {
-      const res = await fetch(getApiUrl("/api/v1/meetings/"), {
-        credentials: "include"
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.length > 0) {
-          setMeetings(data);
-          return;
-        }
+      const data = await meetingService.getMeetings();
+      if (data && data.length > 0) {
+        setMeetings(data);
+        return;
       }
     } catch {
       console.warn("Backend not active for meetings fetch.");
@@ -180,177 +175,193 @@ export default function MeetingsPage() {
         </div>
       </section>
 
-      {/* Controls Container */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search meetings by title..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-white border border-slate-200 text-sm focus:outline-none focus:border-[#113229] text-slate-800 shadow-sm"
-          />
-          <kbd className="text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 select-none absolute right-3 top-3">
-            ⌘ K
-          </kbd>
-        </div>
-
-        {/* Tabs / Filter Buttons */}
-        <div className="flex bg-slate-100/85 p-1 rounded-full gap-0.5 border border-slate-200 self-start sm:self-auto">
-          {[
-            { id: "all", label: "All" },
-            { id: "completed", label: "Completed" },
-            { id: "processing", label: "Processing" },
-            { id: "failed", label: "Failed" }
-          ].map((tab) => (
-            <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`text-xs px-4 py-1.5 rounded-full font-bold transition-all ${
-                activeTab === tab.id 
-                  ? "bg-[#113229] text-white shadow-sm" 
-                  : "text-slate-500 hover:text-[#102C23]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Meetings List Feed */}
-      <div className="flex flex-col gap-4 mb-6">
-        {paginatedMeetings.map((meeting) => {
-          const statusInfo = getMeetingStatusInfo(meeting);
-          const isCompleted = statusInfo.statusLabel === "Completed";
-          const isFailed = statusInfo.statusLabel === "Failed";
-          const isProcessing = statusInfo.statusLabel === "Processing";
-          const isOngoing = statusInfo.statusLabel === "Ongoing";
-          const isScheduled = statusInfo.statusLabel === "Scheduled";
-          const isEnded = statusInfo.statusLabel === "Ended";
-
-          const isGoogleMeet = meeting.platform === "Google Meet";
-          const isTeams = meeting.platform === "Teams";
-
-          return (
-            <div 
-              key={meeting.id}
-              onClick={() => {
-                router.push(`/meetings/${meeting.id}`);
-              }}
-              className="p-5 bg-white border border-[#DEDDDA]/60 hover:border-[#113229]/40 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-all duration-300 group"
-            >
-              <div className="flex items-start gap-4 min-w-0">
-                {/* Status Circle Icon */}
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105 border border-slate-100 ${statusInfo.iconClass}`}>
-                  {isCompleted && <Brain className="w-5 h-5" />}
-                  {isFailed && <ShieldAlert className="w-5 h-5 text-rose-600" />}
-                  {isProcessing && <Loader2 className="w-5 h-5 animate-spin text-amber-600" />}
-                  {isOngoing && <Video className="w-5 h-5 text-emerald-600 animate-pulse" />}
-                  {isScheduled && <Calendar className="w-5 h-5 text-blue-500" />}
-                  {isEnded && <Clock className="w-5 h-5 text-slate-500" />}
-                </div>
-
-                <div className="flex flex-col min-w-0 gap-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-bold text-[#102C23] text-sm md:text-[14.5px] leading-snug truncate max-w-[200px] sm:max-w-xs md:max-w-md group-hover:text-[#113229] transition-colors">
-                      {meeting.title}
-                    </h3>
-                    
-                    {/* Platform badge */}
-                    <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border ${
-                      isGoogleMeet ? "bg-red-50 text-red-705 border-red-100" :
-                      isTeams ? "bg-indigo-50 text-indigo-705 border-indigo-100" :
-                      "bg-[#F9F8F6] text-slate-500 border-slate-200"
-                    }`}>
-                      {meeting.platform}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {new Date(meeting.meeting_date).toLocaleDateString("en-US", {
-                        weekday: "short", month: "short", day: "numeric"
-                      })}
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(meeting.meeting_date).toLocaleTimeString("en-US", {
-                        hour: "2-digit", minute: "2-digit", hour12: true
-                      })}
-                    </span>
-                    {meeting.duration_seconds && (
-                      <>
-                        <span>•</span>
-                        <span className="bg-slate-50 px-2 py-0.5 rounded text-slate-500 font-bold border border-slate-100">
-                          {Math.floor(meeting.duration_seconds / 60)} mins
-                        </span>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Summary Details */}
-                  <div className="flex items-center gap-1.5 text-xs mt-2 border-t border-slate-50 pt-2">
-                    {isCompleted ? (
-                      <span className="text-slate-650 flex items-center gap-2 font-medium">
-                        <span className="text-[#113229] font-extrabold text-xs">✓</span>{" "}
-                        {getMeetingSummaryText(meeting)}
-                      </span>
-                    ) : isFailed ? (
-                      <span className="text-rose-600 flex items-center gap-2 font-semibold">
-                        <span className="font-extrabold text-xs">⊗</span> {statusInfo.summaryText}
-                      </span>
-                    ) : isProcessing ? (
-                      <span className="text-amber-700 flex items-center gap-2 font-semibold animate-pulse">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" /> {statusInfo.summaryText}
-                      </span>
-                    ) : isOngoing ? (
-                      <span className="text-emerald-700 flex items-center gap-2 font-semibold animate-pulse">
-                        <Video className="w-3.5 h-3.5 text-emerald-600" /> Ongoing meeting...
-                      </span>
-                    ) : (
-                      <span className="text-slate-500 flex items-center gap-2 font-medium">
-                        <Clock className="w-3.5 h-3.5 text-slate-450" /> {statusInfo.summaryText}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between md:justify-end gap-4 border-t border-slate-50 pt-3 md:pt-0 md:border-0">
-                {/* Status Pill */}
-                <span className={`text-[10px] px-2.5 py-0.5 rounded-lg font-bold border capitalize ${statusInfo.badgeClass}`}>
-                  {statusInfo.statusLabel}
-                </span>
-
-                <div className="flex items-center gap-1 text-slate-350 group-hover:text-[#113229] transition-all transform group-hover:translate-x-1">
-                  <span className="text-[10px] font-extrabold uppercase opacity-0 group-hover:opacity-100 transition-opacity">View Insights</span>
-                  <ChevronRight className="w-4 h-4" />
-                </div>
-              </div>
+      {/* Main Grid Workspace */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Archive list */}
+        <section className="lg:col-span-8 flex flex-col gap-4">
+          {/* Controls Container */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Search meetings by title..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-white border border-slate-200 text-sm focus:outline-none focus:border-[#113229] text-slate-800 shadow-sm"
+              />
+              <kbd className="text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 select-none absolute right-3 top-3">
+                ⌘ K
+              </kbd>
             </div>
-          );
-        })}
 
-        {paginatedMeetings.length === 0 && (
-          <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm bg-white">
-            No meetings archived.
+            {/* Tabs / Filter Buttons */}
+            <div className="flex bg-slate-100/85 p-1 rounded-full gap-0.5 border border-slate-200 self-start sm:self-auto">
+              {[
+                { id: "all", label: "All" },
+                { id: "completed", label: "Completed" },
+                { id: "processing", label: "Processing" },
+                { id: "failed", label: "Failed" }
+              ].map((tab) => (
+                <button 
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`text-xs px-4 py-1.5 rounded-full font-bold transition-all ${
+                    activeTab === tab.id 
+                      ? "bg-[#113229] text-white shadow-sm" 
+                      : "text-slate-500 hover:text-[#102C23]"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Pagination component */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={(page) => setCurrentPage(page)}
-        totalItems={totalItems}
-        itemsPerPage={itemsPerPage}
-      />
+          {/* Meetings List Feed */}
+          <div className="flex flex-col gap-4 mb-6">
+            {paginatedMeetings.map((meeting) => {
+              const statusInfo = getMeetingStatusInfo(meeting);
+              const isCompleted = statusInfo.statusLabel === "Completed";
+              const isFailed = statusInfo.statusLabel === "Failed";
+              const isProcessing = statusInfo.statusLabel === "Processing";
+              const isOngoing = statusInfo.statusLabel === "Ongoing";
+              const isScheduled = statusInfo.statusLabel === "Scheduled";
+              const isEnded = statusInfo.statusLabel === "Ended";
+
+              const isGoogleMeet = meeting.platform === "Google Meet";
+              const isTeams = meeting.platform === "Teams";
+
+              return (
+                <div 
+                  key={meeting.id}
+                  onClick={() => {
+                    router.push(`/meetings/${meeting.id}`);
+                  }}
+                  className="p-5 bg-white border border-[#DEDDDA]/60 hover:border-[#113229]/40 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-all duration-300 group"
+                >
+                  <div className="flex items-start gap-4 min-w-0">
+                    {/* Status Circle Icon */}
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105 border border-slate-100 ${statusInfo.iconClass}`}>
+                      {isCompleted && <Brain className="w-5 h-5" />}
+                      {isFailed && <ShieldAlert className="w-5 h-5 text-rose-600" />}
+                      {isProcessing && <Loader2 className="w-5 h-5 animate-spin text-amber-600" />}
+                      {isOngoing && <Video className="w-5 h-5 text-emerald-600 animate-pulse" />}
+                      {isScheduled && <Calendar className="w-5 h-5 text-blue-500" />}
+                      {isEnded && <Clock className="w-5 h-5 text-slate-500" />}
+                    </div>
+
+                    <div className="flex flex-col min-w-0 gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-bold text-[#102C23] text-sm md:text-[14.5px] leading-snug truncate max-w-[200px] sm:max-w-xs md:max-w-md group-hover:text-[#113229] transition-colors">
+                          {meeting.title}
+                        </h3>
+                        
+                        {/* Platform badge */}
+                        <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border ${
+                          isGoogleMeet ? "bg-red-50 text-red-705 border-red-100" :
+                          isTeams ? "bg-indigo-50 text-indigo-705 border-indigo-100" :
+                          "bg-[#F9F8F6] text-slate-500 border-slate-200"
+                        }`}>
+                          {meeting.platform}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(meeting.meeting_date).toLocaleDateString("en-US", {
+                            weekday: "short", month: "short", day: "numeric"
+                          })}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(meeting.meeting_date).toLocaleTimeString("en-US", {
+                            hour: "2-digit", minute: "2-digit", hour12: true
+                          })}
+                        </span>
+                        {meeting.duration_seconds && (
+                          <>
+                            <span>•</span>
+                            <span className="bg-slate-50 px-2 py-0.5 rounded text-slate-500 font-bold border border-slate-100">
+                              {Math.floor(meeting.duration_seconds / 60)} mins
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Summary Details */}
+                      <div className="flex items-center gap-1.5 text-xs mt-2 border-t border-slate-50 pt-2">
+                        {isCompleted ? (
+                          <span className="text-slate-650 flex items-center gap-2 font-medium">
+                            <span className="text-[#113229] font-extrabold text-xs">✓</span>{" "}
+                            {getMeetingSummaryText(meeting)}
+                          </span>
+                        ) : isFailed ? (
+                          <span className="text-rose-600 flex items-center gap-2 font-semibold">
+                            <span className="font-extrabold text-xs">⊗</span> {statusInfo.summaryText}
+                          </span>
+                        ) : isProcessing ? (
+                          <span className="text-amber-700 flex items-center gap-2 font-semibold animate-pulse">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" /> {statusInfo.summaryText}
+                          </span>
+                        ) : isOngoing ? (
+                          <span className="text-emerald-700 flex items-center gap-2 font-semibold animate-pulse">
+                            <Video className="w-3.5 h-3.5 text-emerald-600" /> Ongoing meeting...
+                          </span>
+                        ) : (
+                          <span className="text-slate-500 flex items-center gap-2 font-medium">
+                            <Clock className="w-3.5 h-3.5 text-slate-450" /> {statusInfo.summaryText}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between md:justify-end gap-4 border-t border-slate-50 pt-3 md:pt-0 md:border-0">
+                    {/* Status Pill */}
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded-lg font-bold border capitalize ${statusInfo.badgeClass}`}>
+                      {statusInfo.statusLabel}
+                    </span>
+
+                    <div className="flex items-center gap-1 text-slate-350 group-hover:text-[#113229] transition-all transform group-hover:translate-x-1">
+                      <span className="text-[10px] font-extrabold uppercase opacity-0 group-hover:opacity-100 transition-opacity">View Insights</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {paginatedMeetings.length === 0 && (
+              <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm bg-white">
+                No meetings archived.
+              </div>
+            )}
+          </div>
+
+          {/* Pagination component */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) => setCurrentPage(page)}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+          />
+        </section>
+
+        {/* Right Column: Ingest Meeting */}
+        <section className="lg:col-span-4 flex flex-col gap-8">
+          {/* Tabbed Ingest Meeting Card */}
+          <IngestMeetingCard
+            onMeetingAdded={(newMeeting) => {
+              setMeetings(prev => [newMeeting, ...prev]);
+            }}
+          />
+        </section>
+      </div>
     </div>
   );
 }

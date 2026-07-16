@@ -1,11 +1,12 @@
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 import httpx
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.models import ConnectedAccount, Meeting, Provider, ScheduledMeeting
+from app.models.models import ConnectedAccount, Meeting, Provider, ScheduledMeeting, CalendarEvent
 from app.integrations.registry import get_provider
 from app.utils.encryption import decrypt_value
 
@@ -203,39 +204,22 @@ class GoogleCalendarService:
                     if not provider_event_id:
                         continue
 
-                    # If deleted or cancelled, or if it doesn't have Google Meet link
-                    is_google_meet = hangout_link and (
-                        "meet.google.com" in hangout_link or "hangouts" in hangout_link
-                    )
-
-                    # Check if we already have it in the database
-                    meeting_record = (
-                        db.query(Meeting)
-                        .filter(
-                            Meeting.organization_id == account.user.organization_id,
-                            Meeting.provider == "google",
-                            Meeting.provider_event_id == provider_event_id,
-                        )
-                        .first()
-                    )
-
-                    # Handle cancellation
-                    if ev_status == "cancelled" or not is_google_meet:
-                        if meeting_record:
-                            # Update existing to Cancelled instead of deleting
-                            meeting_record.sync_status = "cancelled"
-                            meeting_record.join_status = "Cancelled"
-                            meeting_record.status = "FAILED"
-                            synced_meetings.append(meeting_record)
-                        continue
-
-                    # Parse fields
                     title = ev.get("summary") or "Untitled Meeting"
                     description = ev.get("description") or ""
                     organizer_email = ev.get("organizer", {}).get("email")
 
-                    # Parse attendees list
+                    # Parse attendees list for CalendarEvent (detailed dict structure)
                     attendees_raw = ev.get("attendees", [])
+                    attendees_parsed = []
+                    for att in attendees_raw:
+                        email = att.get("email")
+                        if email:
+                            attendees_parsed.append({
+                                "name": att.get("displayName") or email.split("@")[0],
+                                "email": email,
+                                "response": att.get("responseStatus", "none")
+                            })
+
                     attendees_emails = [
                         a.get("email") for a in attendees_raw if a.get("email")
                     ]
@@ -254,17 +238,160 @@ class GoogleCalendarService:
                     start_time = parse_google_datetime(start_str_raw)
                     end_time = parse_google_datetime(end_str_raw)
 
-                    # Store as Meeting
+                    is_online_meeting = False
+                    meeting_provider = None
+                    join_url = hangout_link
+
+                    # Check conferenceData first
+                    conf_data = ev.get("conferenceData", {})
+                    entry_points = conf_data.get("entryPoints", [])
+                    for ep in entry_points:
+                        if ep.get("entryPointType") == "video" and ep.get("uri"):
+                            join_url = ep.get("uri")
+                            is_online_meeting = True
+                            break
+
+                    if join_url:
+                        is_online_meeting = True
+
+                    # Also check location and description for URLs
+                    loc = ev.get("location") or ""
+                    desc = ev.get("description") or ""
+                    
+                    url_pattern = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
+                    
+                    # Search in join_url, location, and description for signatures
+                    found_url = None
+                    for text in [join_url, loc, desc]:
+                        if not text:
+                            continue
+                        urls = url_pattern.findall(text)
+                        for u in urls:
+                            u_lower = u.lower()
+                            if "meet.google.com" in u_lower or "hangouts.google.com" in u_lower:
+                                found_url = u
+                                meeting_provider = "Google Meet"
+                                is_online_meeting = True
+                                break
+                            elif "zoom.us" in u_lower:
+                                found_url = u
+                                meeting_provider = "Zoom"
+                                is_online_meeting = True
+                                break
+                            elif "teams.microsoft.com" in u_lower or "teams.live.com" in u_lower:
+                                found_url = u
+                                meeting_provider = "Teams"
+                                is_online_meeting = True
+                                break
+                        if is_online_meeting and found_url:
+                            break
+
+                    if is_online_meeting:
+                        if found_url:
+                            join_url = found_url
+                        if not meeting_provider:
+                            # Try to identify provider from join_url
+                            j_lower = join_url.lower() if join_url else ""
+                            if "meet.google.com" in j_lower or "hangouts" in j_lower:
+                                meeting_provider = "Google Meet"
+                            elif "zoom" in j_lower:
+                                meeting_provider = "Zoom"
+                            elif "teams" in j_lower:
+                                meeting_provider = "Teams"
+                            else:
+                                meeting_provider = "Online Meeting"
+
+                    # If not an online meeting and not cancelled, skip it completely
+                    if not is_online_meeting and ev_status != "cancelled":
+                        continue
+
+                    # 1. Sync CalendarEvent
+                    event_record = (
+                        db.query(CalendarEvent)
+                        .filter(
+                            CalendarEvent.user_id == user_id,
+                            CalendarEvent.provider == Provider.GOOGLE,
+                            CalendarEvent.provider_event_id == provider_event_id,
+                        )
+                        .first()
+                    )
+
+                    if not event_record:
+                        event_record = (
+                            db.query(CalendarEvent)
+                            .filter(
+                                CalendarEvent.user_id == user_id,
+                                CalendarEvent.provider == Provider.GOOGLE,
+                                CalendarEvent.title == title,
+                                CalendarEvent.start_time == start_time,
+                                CalendarEvent.end_time == end_time,
+                            )
+                            .first()
+                        )
+
+                    if ev_status == "cancelled":
+                        if event_record:
+                            event_record.status = "cancelled"
+                    else:
+                        if event_record:
+                            event_record.title = title
+                            event_record.description = description
+                            event_record.start_time = start_time
+                            event_record.end_time = end_time
+                            event_record.timezone = timezone
+                            event_record.organizer_email = organizer_email
+                            event_record.join_url = join_url
+                            event_record.meeting_provider = meeting_provider
+                            event_record.is_online_meeting = is_online_meeting
+                            event_record.status = ev_status
+                            event_record.attendees = attendees_parsed
+                        else:
+                            event_record = CalendarEvent(
+                                user_id=user_id,
+                                provider=Provider.GOOGLE,
+                                provider_event_id=provider_event_id,
+                                title=title,
+                                description=description,
+                                start_time=start_time,
+                                end_time=end_time,
+                                timezone=timezone,
+                                organizer_email=organizer_email,
+                                join_url=join_url,
+                                meeting_provider=meeting_provider,
+                                is_online_meeting=is_online_meeting,
+                                status=ev_status,
+                                attendees=attendees_parsed,
+                            )
+                            db.add(event_record)
+
+                    # 2. Sync Meeting (only for actual online meetings)
+                    meeting_record = (
+                        db.query(Meeting)
+                        .filter(
+                            Meeting.organization_id == account.user.organization_id,
+                            Meeting.provider == "google",
+                            Meeting.provider_event_id == provider_event_id,
+                        )
+                        .first()
+                    )
+
+                    if ev_status == "cancelled" or not is_online_meeting:
+                        if meeting_record:
+                            meeting_record.sync_status = "cancelled"
+                            meeting_record.join_status = "Cancelled"
+                            meeting_record.status = "FAILED"
+                            synced_meetings.append(meeting_record)
+                        continue
+
                     if meeting_record:
                         meeting_record.title = title
                         meeting_record.description = description
                         meeting_record.meeting_date = start_time
-                        meeting_record.meeting_url = hangout_link
+                        meeting_record.meeting_url = join_url
                         meeting_record.organizer_email = organizer_email
                         meeting_record.attendees = attendees_emails
                         meeting_record.sync_status = "synced"
                         meeting_record.last_synced_at = datetime.utcnow()
-                        # Only reset join_status if it is cancelled or scheduled
                         if meeting_record.join_status in ("Cancelled", "Scheduled"):
                             meeting_record.join_status = "Scheduled"
                     else:
@@ -272,10 +399,10 @@ class GoogleCalendarService:
                             organization_id=account.user.organization_id,
                             title=title,
                             description=description,
-                            meeting_url=hangout_link,
-                            platform="Google Meet",
+                            meeting_url=join_url,
+                            platform=meeting_provider or "Google Meet",
                             meeting_date=start_time,
-                            status="UPLOADED",  # Map to base status
+                            status="UPLOADED",
                             provider="google",
                             provider_event_id=provider_event_id,
                             calendar_id="primary",
@@ -309,6 +436,22 @@ class GoogleCalendarService:
                         m.sync_status = "cancelled"
                         m.join_status = "Cancelled"
                         m.status = "FAILED"
+
+                # Also mark CalendarEvent rows as cancelled
+                existing_google_events = (
+                    db.query(CalendarEvent)
+                    .filter(
+                        CalendarEvent.user_id == user_id,
+                        CalendarEvent.provider == Provider.GOOGLE,
+                        CalendarEvent.start_time >= start_dt,
+                        CalendarEvent.start_time <= end_dt,
+                    )
+                    .all()
+                )
+
+                for e in existing_google_events:
+                    if e.provider_event_id not in synced_event_ids:
+                        e.status = "cancelled"
 
                 db.commit()
 

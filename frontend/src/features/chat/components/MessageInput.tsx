@@ -20,87 +20,53 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   if (isArchived) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", textAlign: "center", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "14px", padding: "12px 16px" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#64748b", fontWeight: 600, fontFamily: "'Inter', sans-serif" }}>
-          <Lock size={13} color="#94a3b8" />
+      <div className="flex flex-col items-center gap-2 text-center bg-slate-50 border border-slate-200 rounded-xl p-4 font-outfit">
+        <span className="flex items-center gap-1.5 text-xs text-slate-500 font-bold font-sans">
+          <Lock size={13} className="text-slate-400" aria-hidden="true" />
           This chat session is closed.
         </span>
         <button
           onClick={onReopen}
-          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 14px", borderRadius: "8px", border: "1px solid #e2e8f0", background: "#fff", fontSize: "11px", fontWeight: 700, color: "#113229", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-[#113229] cursor-pointer font-sans hover:bg-slate-50 transition-colors"
         >
-          <Unlock size={12} color="#113229" />
+          <Unlock size={12} className="text-[#113229]" aria-hidden="true" />
           Reopen Session
         </button>
       </div>
     );
   }
 
+  const isButtonDisabled = chatLoading || !chatInput.trim();
+
   return (
     <form
       onSubmit={onSubmit}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        background: "#f8fafc",
-        border: "1.5px solid #e2e8f0",
-        borderRadius: "14px",
-        padding: "8px 12px",
-        transition: "border-color 0.15s, background 0.15s",
-      }}
-      onFocus={() => {}}
+      className="flex items-center gap-2 bg-slate-50 border-[1.5px] border-slate-200 rounded-xl px-3.5 py-2 transition-all duration-150 focus-within:border-[#113229] focus-within:bg-white font-outfit"
     >
-      <Sparkles size={14} color="#cbd5e1" style={{ flexShrink: 0 }} />
+      <label htmlFor="chat-message-query-input" className="sr-only">
+        Ask anything about this meeting
+      </label>
+      <Sparkles size={14} className="text-slate-350 flex-shrink-0" aria-hidden="true" />
       <input
+        id="chat-message-query-input"
         type="text"
         placeholder="Ask anything about this meeting..."
         value={chatInput}
         onChange={(e) => setChatInput(e.target.value)}
         disabled={chatLoading}
-        style={{
-          flex: 1,
-          background: "transparent",
-          border: "none",
-          outline: "none",
-          fontSize: "13px",
-          color: "#102C23",
-          fontFamily: "'Inter', sans-serif",
-          fontWeight: 450,
-        }}
-        onFocus={(e) => {
-          const form = e.currentTarget.closest("form");
-          if (form) {
-            (form as HTMLElement).style.borderColor = "#113229";
-            (form as HTMLElement).style.background = "#fff";
-          }
-        }}
-        onBlur={(e) => {
-          const form = e.currentTarget.closest("form");
-          if (form) {
-            (form as HTMLElement).style.borderColor = "#e2e8f0";
-            (form as HTMLElement).style.background = "#f8fafc";
-          }
-        }}
+        className="flex-1 bg-transparent border-none outline-none text-xs text-[#102C23] font-sans font-medium placeholder-slate-400 disabled:opacity-50"
       />
       <button
         type="submit"
-        disabled={chatLoading || !chatInput.trim()}
-        style={{
-          padding: "7px",
-          borderRadius: "10px",
-          background: chatLoading || !chatInput.trim() ? "#94a3b8" : "linear-gradient(135deg, #113229, #0D241E)",
-          border: "none",
-          cursor: chatLoading || !chatInput.trim() ? "not-allowed" : "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          transition: "all 0.15s",
-          boxShadow: chatInput.trim() ? "0 2px 8px rgba(15,118,110,0.3)" : "none",
-        }}
+        disabled={isButtonDisabled}
+        aria-label="Send message"
+        className={`p-1.5 rounded-lg border-none flex items-center justify-center flex-shrink-0 transition-all ${
+          isButtonDisabled 
+            ? "bg-slate-300 text-white cursor-not-allowed shadow-none" 
+            : "bg-gradient-to-br from-[#113229] to-[#0D241E] text-white cursor-pointer hover:scale-103 shadow-md shadow-[#113229]/20"
+        }`}
       >
-        <Send size={14} color="#fff" />
+        <Send size={14} className="text-white" aria-hidden="true" />
       </button>
     </form>
   );

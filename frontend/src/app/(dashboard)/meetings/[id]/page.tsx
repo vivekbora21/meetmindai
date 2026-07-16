@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useState } from "react";
+import { use } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Brain, Loader2, MessageSquare, MessageSquareOff } from "lucide-react";
+import { ArrowLeft, Brain, Loader2, Mail } from "lucide-react";
 import { getApiUrl } from "../../../config";
 
 // Feature custom hooks
@@ -23,12 +23,10 @@ import { ParticipantsPanel } from "@/features/meetings/components/ParticipantsPa
 import { RecordingUploadZone } from "@/features/meetings/components/RecordingUploadZone";
 import { IngestionPipelineTracker } from "@/features/meetings/components/IngestionPipelineTracker";
 import { AiAnalysisBanner } from "@/features/meetings/components/AiAnalysisBanner";
-import { ChatWindow } from "@/features/chat/components/ChatWindow";
 
 export default function MeetingDetail({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
-  const [showChat, setShowChat] = useState(true);
 
   const {
     meetingDetail,
@@ -39,6 +37,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     uploadingFile,
     transcribing,
     runningAiAnalysis,
+    sendingEmail,
+    handleSendMomEmail,
     isPlaying,
     currentTime,
     activeDuration,
@@ -78,6 +78,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   // Normalize status to handle both "Completed" and "COMPLETED" from backend
   const statusNorm = (meetingDetail.status || "").toUpperCase();
   const isCompleted = statusNorm === "COMPLETED";
+  const transcriptReady = Boolean(meetingDetail.transcripts?.length);
+  const canShowWorkspace = Boolean(meetingDetail.recording_url) && (transcriptReady || isCompleted);
 
   return (
     <div className="min-h-screen bg-[#F9F8F6] p-4 md:p-8 flex flex-col gap-6 selection:bg-[#113229] selection:text-white text-[#102C23]">
@@ -89,31 +91,31 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-
-        {meetingDetail.recording_url && isCompleted && (
+        {canShowWorkspace && (
           <button
-            onClick={() => setShowChat(!showChat)}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-bold font-outfit border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors text-slate-700 bg-white shadow-sm"
+            onClick={handleSendMomEmail}
+            disabled={sendingEmail}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#113229] hover:bg-[#102C23] text-white text-xs font-bold transition-all shadow-sm hover:shadow disabled:opacity-50"
           >
-            {showChat ? (
+            {sendingEmail ? (
               <>
-                <MessageSquareOff className="w-4 h-4 text-slate-500" />
-                <span>Full Screen (Hide Chat)</span>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Sending Email...
               </>
             ) : (
               <>
-                <MessageSquare className="w-4 h-4 text-[#113229]" />
-                <span>Split Screen (Show Chat)</span>
+                <Mail className="w-4 h-4" />
+                Send MOM Email
               </>
             )}
           </button>
         )}
       </header>
 
-      {/* Main Grid Workspace */}
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Side: Meeting Intelligence & Tabs */}
-        <section className={`${showChat ? "lg:col-span-7" : "lg:col-span-12"} flex flex-col gap-6 transition-all duration-300`}>
+      {/* Main Workspace */}
+      <main className="w-full flex flex-col gap-8 items-start">
+        {/* Meeting Intelligence & Tabs */}
+        <section className="w-full flex flex-col gap-6">
           <MeetingHeader detail={meetingDetail} />
 
           {/* No recording yet — show upload zone */}
@@ -126,8 +128,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
             />
           )}
 
-          {/* Recording present but pipeline not complete — show tracker */}
-          {meetingDetail.recording_url && !isCompleted && (
+          {/* Recording present but transcript not ready yet — show tracker */}
+          {meetingDetail.recording_url && !canShowWorkspace && (
             <IngestionPipelineTracker
               detail={meetingDetail}
               transcribing={transcribing}
@@ -135,8 +137,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
             />
           )}
 
-          {/* Pipeline complete — show player and content tabs */}
-          {meetingDetail.recording_url && isCompleted && (
+          {/* Transcript ready or pipeline complete — show the workspace progressively */}
+          {canShowWorkspace && (
             <>
               <MeetingPlayer
                 audioRef={audioRef}
@@ -154,11 +156,9 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 <MeetingTabs activeTab={activeTab} setActiveTab={setActiveTab} />
                 {activeTab === "summary" && (
                   <>
-                    {/* Show banner if AI analysis is missing, skipped or failed */}
-                    {(!meetingDetail.executive_summary ||
-                      meetingDetail.ai_status === "FAILED" ||
-                      meetingDetail.ai_status === "SKIPPED" ||
-                      (!meetingDetail.ai_status && !meetingDetail.executive_summary)) && (
+                    {/* Show banner if AI analysis is still running or not started */}
+                    {(!meetingDetail.executive_summary &&
+                      !["FAILED", "SKIPPED", "COMPLETED", "SUCCESS", "ERROR"].includes((meetingDetail.ai_status || "").toUpperCase())) && (
                       <AiAnalysisBanner
                         aiStatus={meetingDetail.ai_status}
                         onRun={handleRunAiAnalysis}
@@ -201,11 +201,6 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
             </>
           )}
         </section>
-
-        {/* Right Side: RAG Chat Panel */}
-        {showChat && (
-          <ChatWindow meetingId={id} status={meetingDetail.status} />
-        )}
       </main>
     </div>
   );

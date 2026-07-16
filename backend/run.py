@@ -136,24 +136,89 @@ def start_server():
         sys.exit(0)
 
 
-def start_celery():
+def start_celery(worker_type: str = "all"):
+    import time
+    
+    worker_configs = {
+        "critical": {
+            "name": "critical_worker",
+            "queues": "critical",
+            "concurrency": 2
+        },
+        "embedding": {
+            "name": "embedding_worker",
+            "queues": "background",
+            "concurrency": 2
+        },
+        "speaker": {
+            "name": "speaker_worker",
+            "queues": "speaker",
+            "concurrency": 2
+        },
+        "maintenance": {
+            "name": "maintenance_worker",
+            "queues": "maintenance,celery",
+            "concurrency": 2
+        }
+    }
+
+    processes = []
+
     try:
-        # Run Celery worker
-        command = [
-            sys.executable,
-            "-m",
-            "celery",
-            "-A",
-            "app.celery_app",
-            "worker",
-            "--loglevel=info",
-        ]
-        process = Popen(command)
-        process.wait()
+        if worker_type == "all":
+            print("Starting all specialized Celery workers...")
+            for w_type, config in worker_configs.items():
+                cmd = [
+                    sys.executable,
+                    "-m",
+                    "celery",
+                    "-A",
+                    "app.celery_app",
+                    "worker",
+                    "-Q",
+                    config["queues"],
+                    "-n",
+                    f"{config['name']}@%h",
+                    f"--concurrency={config['concurrency']}",
+                    "--loglevel=info",
+                ]
+                print(f"Launching worker: {config['name']} for queues: {config['queues']}")
+                processes.append(Popen(cmd))
+
+            # Monitor child processes
+            while processes:
+                for p in list(processes):
+                    if p.poll() is not None:
+                        processes.remove(p)
+                time.sleep(1)
+        else:
+            config = worker_configs[worker_type]
+            cmd = [
+                sys.executable,
+                "-m",
+                "celery",
+                "-A",
+                "app.celery_app",
+                "worker",
+                "-Q",
+                config["queues"],
+                "-n",
+                f"{config['name']}@%h",
+                f"--concurrency={config['concurrency']}",
+                "--loglevel=info",
+            ]
+            print(f"Starting specialized worker: {config['name']} for queues: {config['queues']}")
+            process = Popen(cmd)
+            process.wait()
+
     except KeyboardInterrupt:
-        print("Terminating the Celery worker...")
-        process.terminate()
-        process.wait()
+        print("\nTerminating Celery workers...")
+        for p in processes:
+            try:
+                p.terminate()
+                p.wait()
+            except Exception:
+                pass
         sys.exit(0)
 
 
@@ -163,6 +228,12 @@ if __name__ == "__main__":
         "command",
         choices=["server", "celery"],
         help="Command to run: 'server' to start uvicorn, 'celery' to start celery worker.",
+    )
+    parser.add_argument(
+        "--worker-type",
+        choices=["all", "critical", "embedding", "speaker", "maintenance"],
+        default="all",
+        help="Type of Celery worker to start when command is 'celery'. Default is 'all'.",
     )
     args = parser.parse_args()
 
@@ -185,4 +256,4 @@ if __name__ == "__main__":
     if args.command == "server":
         start_server()
     elif args.command == "celery":
-        start_celery()
+        start_celery(args.worker_type)

@@ -56,8 +56,11 @@ export default function Navbar({
         </div>
 
         {/* Notification Bell */}
-        <button className="p-2 text-slate-500 hover:text-[#102C23] transition-colors relative rounded-lg hover:bg-[#F9F8F6]">
-          <Bell className="w-5 h-5" />
+        <button 
+          aria-label="View notifications"
+          className="p-2 text-slate-500 hover:text-[#102C23] transition-colors relative rounded-lg hover:bg-[#F9F8F6]"
+        >
+          <Bell className="w-5 h-5" aria-hidden="true" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#113229] rounded-full border border-white" />
         </button>
 
@@ -74,6 +77,9 @@ export default function Navbar({
           ) : (
             <button 
               onClick={() => setDropdownOpen(!dropdownOpen)}
+              aria-haspopup="true"
+              aria-expanded={dropdownOpen}
+              aria-label="User account options menu"
               className="flex items-center gap-2.5 border-l border-slate-200 pl-5 cursor-pointer group focus:outline-none"
             >
               <div className="w-9 h-9 rounded-full bg-[#113229] flex items-center justify-center text-xs font-bold text-white uppercase shadow-sm">
@@ -87,13 +93,17 @@ export default function Navbar({
                   {userRole}
                 </span>
               </div>
-              <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-650 transition-colors" />
+              <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-650 transition-colors" aria-hidden="true" />
             </button>
           )}
 
           {/* Dropdown Menu */}
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-100">
+            <div 
+              role="menu"
+              aria-label="User account options"
+              className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-100"
+            >
               <div className="px-4 py-2 border-b border-slate-100">
                 <p className="text-xs font-bold text-slate-800">{userName}</p>
                 <p className="text-[10px] text-slate-400 font-medium capitalize mt-0.5">{userRole} Account</p>
@@ -101,19 +111,21 @@ export default function Navbar({
               
               <div className="p-1.5 flex flex-col gap-0.5">
                 <button 
+                  role="menuitem"
                   onClick={() => {
                     setDropdownOpen(false);
                     router.push("/settings");
                   }}
                   className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-[#F9F8F6] transition-colors"
                 >
-                  <Settings className="w-4 h-4 text-slate-400" /> Settings
+                  <Settings className="w-4 h-4 text-slate-400" aria-hidden="true" /> Settings
                 </button>
                 <button 
+                  role="menuitem"
                   onClick={onLogout}
                   className="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-left text-xs font-semibold text-red-600 hover:bg-red-50/50 transition-colors"
                 >
-                  <LogOut className="w-4 h-4 text-red-500" /> Sign Out
+                  <LogOut className="w-4 h-4 text-red-500" aria-hidden="true" /> Sign Out
                 </button>
               </div>
             </div>

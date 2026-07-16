@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { chatService } from "../services/chat.service";
 import { ChatMessage, ChatSession } from "../types/chat";
 
-export function useChat(meetingId: string) {
+export function useChat(meetingId: string | null) {
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -63,9 +63,7 @@ export function useChat(meetingId: string) {
   }, [meetingId, fetchChatSession]);
 
   useEffect(() => {
-    if (meetingId) {
-      initializeSessions();
-    }
+    initializeSessions();
   }, [meetingId, initializeSessions]);
 
   const handleNewChat = async () => {

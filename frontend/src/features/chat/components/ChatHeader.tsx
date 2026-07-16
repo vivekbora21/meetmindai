@@ -35,36 +35,16 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   exportPDF
 }) => {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        borderBottom: "1px solid #e2e8f0",
-        paddingBottom: "12px",
-        marginBottom: "12px",
-        width: "100%",
-        boxSizing: "border-box",
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 0, paddingRight: "8px" }}>
+    <div className="flex items-center justify-between border-b border-[#e2e8f0]/80 pb-3 mb-3 w-full box-border font-outfit">
+      <div className="flex-1 min-w-0 pr-2">
         {isEditingTitle ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div className="flex items-center gap-1.5">
             <input
               type="text"
               value={newTitleVal}
               onChange={(e) => setNewTitleVal(e.target.value)}
-              style={{
-                padding: "4px 8px",
-                border: "1.5px solid #113229",
-                borderRadius: "8px",
-                fontSize: "12px",
-                outline: "none",
-                width: "100%",
-                color: "#102C23",
-                fontFamily: "'Inter', sans-serif",
-                fontWeight: 500,
-              }}
+              aria-label="Edit chat title"
+              className="px-2.5 py-1 border-[1.5px] border-[#113229] rounded-lg text-xs outline-none w-full text-[#102C23] font-sans font-medium bg-[#F9F8F6]/30 focus:bg-white transition-colors"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleRenameTitle();
                 if (e.key === "Escape") setIsEditingTitle(false);
@@ -73,280 +53,113 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             />
             <button
               onClick={handleRenameTitle}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "#113229",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "4px",
-              }}
+              aria-label="Confirm rename"
+              className="bg-none border-none cursor-pointer text-[#113229] flex items-center justify-center p-1 hover:scale-105 transition-transform"
             >
-              <Check size={16} strokeWidth={2.5} />
+              <Check size={16} className="stroke-[2.5]" aria-hidden="true" />
             </button>
           </div>
         ) : (
-          <div
-            style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}
+          <button
+            type="button"
             onClick={() => {
               setNewTitleVal(title || "New Chat");
               setIsEditingTitle(true);
             }}
-            className="group"
+            aria-label={`Rename conversation: ${title || "New Chat"}`}
+            className="flex items-center gap-1.5 cursor-pointer group bg-transparent border-0 p-0 text-left focus:outline-none"
           >
-            <h3
-              style={{
-                margin: 0,
-                fontWeight: 750,
-                fontSize: "13px",
-                color: "#102C23",
-                fontFamily: "'Outfit', sans-serif",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
+            <h3 className="m-0 font-extrabold text-[13px] text-[#102C23] font-outfit whitespace-nowrap overflow-hidden text-ellipsis group-hover:text-[#113229] transition-colors">
               {title || "New Chat"}
             </h3>
             <Edit3
               size={12}
-              style={{
-                color: "#94a3b8",
-                opacity: 0.6,
-                transition: "opacity 0.2s",
-                flexShrink: 0,
-              }}
-              className="group-hover:opacity-100"
+              className="text-slate-400 opacity-60 transition-opacity flex-shrink-0 group-hover:opacity-100"
+              aria-hidden="true"
             />
-          </div>
+          </button>
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", position: "relative" }}>
+      <div className="flex items-center gap-2 relative">
         {isArchived ? (
           <button
             onClick={() => handleToggleArchive(false)}
             title="Reopen Conversation"
-            style={{
-              padding: "6px",
-              borderRadius: "8px",
-              background: "#ecfdf5",
-              color: "#059669",
-              border: "1px solid #a7f3d0",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#d1fae5";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#ecfdf5";
-            }}
+            aria-label="Reopen Conversation"
+            className="p-1.5 rounded-lg bg-teal-50 text-teal-600 border border-teal-200 cursor-pointer flex items-center justify-center transition-all hover:bg-teal-100"
           >
-            <Unlock size={13} />
+            <Unlock size={13} aria-hidden="true" />
           </button>
         ) : (
           <button
             onClick={() => handleToggleArchive(true)}
             title="End Session"
-            style={{
-              padding: "6px",
-              borderRadius: "8px",
-              background: "#fff",
-              color: "#64748b",
-              border: "1px solid #e2e8f0",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#fef2f2";
-              e.currentTarget.style.color = "#ef4444";
-              e.currentTarget.style.borderColor = "#fca5a5";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#fff";
-              e.currentTarget.style.color = "#64748b";
-              e.currentTarget.style.borderColor = "#e2e8f0";
-            }}
+            aria-label="End Session"
+            className="p-1.5 rounded-lg bg-white text-slate-500 border border-slate-200 cursor-pointer flex items-center justify-center transition-all hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300"
           >
-            <Lock size={13} />
+            <Lock size={13} aria-hidden="true" />
           </button>
         )}
 
         <button
           onClick={handleClearChat}
           title="Clear current session messages"
-          style={{
-            padding: "6px",
-            borderRadius: "8px",
-            background: "#fff",
-            color: "#64748b",
-            border: "1px solid #e2e8f0",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "all 0.15s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#f8fafc";
-            e.currentTarget.style.color = "#102C23";
-            e.currentTarget.style.borderColor = "#cbd5e1";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#fff";
-            e.currentTarget.style.color = "#64748b";
-            e.currentTarget.style.borderColor = "#e2e8f0";
-          }}
+          aria-label="Clear current session messages"
+          className="p-1.5 rounded-lg bg-white text-slate-500 border border-slate-200 cursor-pointer flex items-center justify-center transition-all hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300"
         >
-          <Trash2 size={13} />
+          <Trash2 size={13} aria-hidden="true" />
         </button>
 
-        <div style={{ position: "relative" }}>
+        <div className="relative">
           <button
             onClick={() => setShowExportMenu(!showExportMenu)}
             title="Export Chat"
-            style={{
-              padding: "6px",
-              borderRadius: "8px",
-              background: "#fff",
-              color: "#64748b",
-              border: "1px solid #e2e8f0",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f0fdfa";
-              e.currentTarget.style.color = "#113229";
-              e.currentTarget.style.borderColor = "#99f6e4";
-            }}
-            onMouseLeave={(e) => {
-              if (!showExportMenu) {
-                e.currentTarget.style.background = "#fff";
-                e.currentTarget.style.color = "#64748b";
-                e.currentTarget.style.borderColor = "#e2e8f0";
-              }
-            }}
+            aria-label="Export Chat options"
+            aria-expanded={showExportMenu}
+            className={`p-1.5 rounded-lg border cursor-pointer flex items-center justify-center transition-all ${
+              showExportMenu 
+                ? "bg-teal-50 text-[#113229] border-teal-200" 
+                : "bg-white text-slate-500 border-slate-200 hover:bg-[#e6f4f1]/50 hover:text-[#113229] hover:border-[#113229]/30"
+            }`}
           >
-            <Download size={13} />
+            <Download size={13} aria-hidden="true" />
           </button>
           {showExportMenu && (
-            <div
-              style={{
-                position: "absolute",
-                right: 0,
-                marginTop: "6px",
-                width: "160px",
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                borderRadius: "12px",
-                boxShadow:
-                  "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-                zIndex: 20,
-                padding: "4px 0",
-                overflow: "hidden",
-              }}
+            <div 
+              role="menu"
+              aria-label="Export Chat options"
+              className="absolute right-0 mt-1.5 w-40 bg-white border border-[#e2e8f0]/85 rounded-xl shadow-lg z-20 py-1 overflow-hidden animate-fade-in-up"
             >
               <button
+                role="menuitem"
                 onClick={() => {
                   copyToClipboard();
                   setShowExportMenu(false);
                 }}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "8px 12px",
-                  fontSize: "12px",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "#475569",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  fontFamily: "'Inter', sans-serif",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f8fafc";
-                  e.currentTarget.style.color = "#102C23";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "none";
-                  e.currentTarget.style.color = "#475569";
-                }}
+                className="w-full text-left px-3 py-2 text-xs bg-none border-none cursor-pointer text-slate-600 flex items-center gap-2 font-sans font-medium hover:bg-slate-50 hover:text-slate-800 transition-colors"
               >
-                <Copy size={13} /> Copy to Clipboard
+                <Copy size={13} aria-hidden="true" /> Copy to Clipboard
               </button>
               <button
+                role="menuitem"
                 onClick={() => {
                   exportMarkdown();
                   setShowExportMenu(false);
                 }}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "8px 12px",
-                  fontSize: "12px",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "#475569",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  fontFamily: "'Inter', sans-serif",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f8fafc";
-                  e.currentTarget.style.color = "#102C23";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "none";
-                  e.currentTarget.style.color = "#475569";
-                }}
+                className="w-full text-left px-3 py-2 text-xs bg-none border-none cursor-pointer text-slate-600 flex items-center gap-2 font-sans font-medium hover:bg-slate-50 hover:text-slate-800 transition-colors"
               >
-                <FileText size={13} /> Export Markdown
+                <FileText size={13} aria-hidden="true" /> Export Markdown
               </button>
               <button
+                role="menuitem"
                 onClick={() => {
                   exportPDF();
                   setShowExportMenu(false);
                 }}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "8px 12px",
-                  fontSize: "12px",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "#475569",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  fontFamily: "'Inter', sans-serif",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f8fafc";
-                  e.currentTarget.style.color = "#102C23";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "none";
-                  e.currentTarget.style.color = "#475569";
-                }}
+                className="w-full text-left px-3 py-2 text-xs bg-none border-none cursor-pointer text-slate-600 flex items-center gap-2 font-sans font-medium hover:bg-slate-50 hover:text-slate-800 transition-colors"
               >
-                <FileText size={13} /> Print / Export PDF
+                <FileText size={13} aria-hidden="true" /> Print / Export PDF
               </button>
             </div>
           )}

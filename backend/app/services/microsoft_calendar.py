@@ -392,6 +392,13 @@ class MicrosoftCalendarService:
                             .first()
                         )
 
+                    # Check if it's an online meeting. If not, skip it.
+                    if not is_online_meeting:
+                        if status_str == "cancelled" and event_record:
+                            event_record.status = "cancelled"
+                            synced_events.append(event_record)
+                        continue
+
                     if event_record:
                         event_record.title = title
                         event_record.description = description

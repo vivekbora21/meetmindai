@@ -1,8 +1,11 @@
 import os
 import torch
+import logging
 from typing import List, Dict, Any
 from faster_whisper import WhisperModel
 from app.config.settings import get_env
+
+logger = logging.getLogger("meeting.transcription")
 
 
 class WhisperService:
@@ -15,12 +18,16 @@ class WhisperService:
     @property
     def model(self):
         if self._model is None:
-            print(
-                f"[Whisper] Loading model '{self.model_size}' on '{self.device}' with '{self.compute_type}'..."
-            )
-            self._model = WhisperModel(
-                self.model_size, device=self.device, compute_type=self.compute_type
-            )
+            from app.ml.model_loader import ModelRegistry
+            if ModelRegistry._whisper is not None:
+                self._model = ModelRegistry._whisper
+            else:
+                logger.info(
+                    f"[Whisper] Loading model '{self.model_size}' on '{self.device}' with '{self.compute_type}'..."
+                )
+                self._model = WhisperModel(
+                    self.model_size, device=self.device, compute_type=self.compute_type
+                )
         return self._model
 
     def transcribe(
@@ -30,7 +37,7 @@ class WhisperService:
         Transcribes the audio file using faster-whisper with Silero VAD filter.
         Returns a list of segment dictionaries with start_ms, end_ms, speaker_tag, and text.
         """
-        print(f"[Whisper] Transcribing {audio_path}...")
+        logger.info(f"[Whisper] Transcribing {audio_path}...")
         if not os.path.exists(audio_path):
             raise FileNotFoundError(
                 f"Audio file not found for transcription: {audio_path}"
@@ -89,17 +96,17 @@ class WhisperService:
 
                 last_end = segment.end
 
-            print(f"[Whisper] Speech-to-Text Transcription Completed:")
-            print(
+            logger.debug(f"[Whisper] Speech-to-Text Transcription Completed:")
+            logger.debug(
                 f"  - Detected Language: {info.language} (Probability: {info.language_probability:.2f})"
             )
-            print(f"  - Total Audio Duration: {info.duration:.2f} seconds")
-            print(f"  - Total Segments Extracted: {len(results)}")
+            logger.debug(f"  - Total Audio Duration: {info.duration:.2f} seconds")
+            logger.debug(f"  - Total Segments Extracted: {len(results)}")
 
             return results
 
         except Exception as e:
-            print(f"[Whisper] Transcription failed: {e}")
+            logger.error(f"[Whisper] Transcription failed: {e}")
             raise e
 
     def transcribe_stream(
@@ -109,7 +116,7 @@ class WhisperService:
         Transcribes the audio file and yields each segment as it is produced.
         Optionally populates info_container with transcription metadata.
         """
-        print(f"[Whisper] Transcribing incrementally {audio_path}...")
+        logger.info(f"[Whisper] Transcribing incrementally {audio_path}...")
         if not os.path.exists(audio_path):
             raise FileNotFoundError(
                 f"Audio file not found for transcription: {audio_path}"

@@ -80,5 +80,12 @@ export interface MeetingDetail {
   ai_status?: string | null;
   embedding_status?: string | null;
   kg_status?: string | null;
+  transcript_status?: string | null;
+  executive_summary_status?: string | null;
+  action_items_status?: string | null;
+  decisions_status?: string | null;
+  risks_status?: string | null;
+  technical_status?: string | null;
+  key_themes_status?: string | null;
   error_message?: string | null;
 }

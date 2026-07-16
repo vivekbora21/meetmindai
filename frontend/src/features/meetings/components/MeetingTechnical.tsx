@@ -1,6 +1,7 @@
 import React from "react";
 import { FileAudio, Code2 } from "lucide-react";
 import { MeetingDetail } from "../types/meeting";
+import { InsightSkeleton } from "./InsightSkeleton";
 
 interface MeetingTechnicalProps {
   detail: MeetingDetail;
@@ -8,6 +9,20 @@ interface MeetingTechnicalProps {
 }
 
 export const MeetingTechnical: React.FC<MeetingTechnicalProps> = ({ detail, audioSrc }) => {
+  const status = (detail.technical_status || detail.embedding_status || detail.kg_status || detail.ai_status || "").toUpperCase();
+  const isLoading =
+    !detail.technical_context &&
+    !["COMPLETED", "SUCCESS", "FAILED", "ERROR", "SKIPPED"].includes(status);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <InsightSkeleton title="Technical Analysis" hint="Mapping repositories, files, APIs, and storage references." accentClassName="bg-indigo-200" />
+        <InsightSkeleton title="Knowledge Graph" hint="Building the relationship graph from the transcript and entities." accentClassName="bg-violet-200" />
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {detail.recording_url && (

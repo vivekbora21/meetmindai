@@ -86,6 +86,13 @@ class MeetingListOut(BaseModel):
     embedding_status: str
     speaker_status: Optional[str] = None
     kg_status: Optional[str] = None
+    transcript_status: Optional[str] = None
+    executive_summary_status: Optional[str] = None
+    action_items_status: Optional[str] = None
+    decisions_status: Optional[str] = None
+    risks_status: Optional[str] = None
+    technical_status: Optional[str] = None
+    key_themes_status: Optional[str] = None
     platform: str
     duration_seconds: int
     meeting_date: datetime
@@ -95,6 +102,8 @@ class MeetingListOut(BaseModel):
     original_filename: Optional[str] = None
     file_size: Optional[int] = None
     content_type: Optional[str] = None
+    provider: Optional[str] = None
+    provider_event_id: Optional[str] = None
 
     # Detailed fields for dashboard/calendar
     executive_summary: Optional[str] = None
@@ -115,6 +124,13 @@ class MeetingDetailOut(BaseModel):
     embedding_status: str
     speaker_status: Optional[str] = None
     kg_status: Optional[str] = None
+    transcript_status: Optional[str] = None
+    executive_summary_status: Optional[str] = None
+    action_items_status: Optional[str] = None
+    decisions_status: Optional[str] = None
+    risks_status: Optional[str] = None
+    technical_status: Optional[str] = None
+    key_themes_status: Optional[str] = None
     platform: str
     recording_url: Optional[str]
     meeting_url: Optional[str]

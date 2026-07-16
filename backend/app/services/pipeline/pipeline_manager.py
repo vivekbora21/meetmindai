@@ -13,17 +13,37 @@ class PipelineManager:
         Resets all statuses and kicks off the transcribe_audio Celery task.
         """
         from app.tasks.meeting_tasks import transcribe_audio
+        from app.utils.logging_pipeline import PipelineTracker
 
         meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
         if not meeting:
             logger.error(f"PipelineManager | Meeting {meeting_id} not found.")
             return
 
+        # Ensure pipeline tracker is initialized
+        tracker = PipelineTracker(meeting_id)
+        if not tracker.redis_client.hexists(tracker.redis_key, "start_time"):
+            tracker.start_pipeline()
+            tracker.start_stage(1)
+            tracker.end_stage(1, status="SKIPPED")
+        else:
+            upload_status = tracker.redis_client.hget(tracker.redis_key, "upload_status")
+            if upload_status == b"PENDING" or upload_status == "PENDING":
+                tracker.start_stage(1)
+                tracker.end_stage(1, status="SKIPPED")
+
         meeting.status = "PROCESSING"
+        meeting.transcript_status = "PENDING"
         meeting.speaker_status = "PENDING"
         meeting.embedding_status = "PENDING"
         meeting.ai_status = "PENDING"
         meeting.kg_status = "PENDING"
+        meeting.executive_summary_status = "PENDING"
+        meeting.action_items_status = "PENDING"
+        meeting.decisions_status = "PENDING"
+        meeting.risks_status = "PENDING"
+        meeting.technical_status = "PENDING"
+        meeting.key_themes_status = "PENDING"
         db.commit()
 
         logger.info(
@@ -42,10 +62,17 @@ class PipelineManager:
 
         return {
             "status": meeting.status,
+            "transcript_status": meeting.transcript_status,
             "speaker_status": meeting.speaker_status,
             "embedding_status": meeting.embedding_status,
             "ai_status": meeting.ai_status,
             "kg_status": meeting.kg_status,
+            "executive_summary_status": meeting.executive_summary_status,
+            "action_items_status": meeting.action_items_status,
+            "decisions_status": meeting.decisions_status,
+            "risks_status": meeting.risks_status,
+            "technical_status": meeting.technical_status,
+            "key_themes_status": meeting.key_themes_status,
         }
 
     @staticmethod
@@ -79,6 +106,7 @@ class PipelineManager:
                 )
                 return False
             meeting.status = "PROCESSING"
+            meeting.transcript_status = "PENDING"
             db.commit()
             transcribe_audio.delay(meeting_id, file_path)
             return True

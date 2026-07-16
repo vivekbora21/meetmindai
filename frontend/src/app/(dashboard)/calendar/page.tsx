@@ -51,6 +51,8 @@ interface ProcessedMeeting {
   action_items_count?: number | null;
   decisions_count?: number | null;
   attendees?: Attendee[] | null;
+  provider?: string | null;
+  provider_event_id?: string | null;
 }
 
 interface CalendarEvent {
@@ -284,12 +286,14 @@ export default function CalendarPage() {
       }
 
       // 4. Map processed meetings — only include those from connected platforms
-      //    (or locally uploaded meetings which are platform-agnostic)
+      //    (excluding manually uploaded/extracted/local meetings)
       const mappedMeetings: CalendarEvent[] = processedMeetings
       .filter((m: ProcessedMeeting) => {
-        const baseProvider = getMeetingBaseProvider(m.platform || "upload");
-        // Always show uploaded/local meetings; hide platform-specific ones if not connected
-        if (baseProvider === "upload") return true;
+        // Exclude manually added meetings (where platform is upload/Upload, or no provider, or provider is upload)
+        if (!m.platform || m.platform.toLowerCase() === "upload" || !m.provider || m.provider === "upload") {
+          return false;
+        }
+        const baseProvider = getMeetingBaseProvider(m.platform || "");
         return connectedProviderKeys.has(baseProvider);
       })
       .map((m: ProcessedMeeting) => {
@@ -300,8 +304,8 @@ export default function CalendarPage() {
         return {
           id: m.id,
           user_id: m.organization_id || "",
-          provider: m.platform || "meetingmind",
-          provider_event_id: m.id,
+          provider: m.provider || m.platform || "meetingmind",
+          provider_event_id: m.provider_event_id || m.id,
           title: m.title || "Untitled Meeting",
           description: m.description || m.executive_summary || "No description available.",
           start_time: startDateStr,
@@ -321,12 +325,41 @@ export default function CalendarPage() {
         };
       });
 
-      // 4. Combine and de-duplicate
+      // 4. Combine and de-duplicate by normalized join URL or provider_event_id when available
       const combinedMap = new Map<string, CalendarEvent>();
-      calendarEvents.forEach(e => combinedMap.set(e.id, e));
-      mappedMeetings.forEach(e => {
-        if (!combinedMap.has(e.id)) {
-          combinedMap.set(e.id, e);
+      
+      const getDeduplicationKey = (event: { join_url?: string | null; provider_event_id?: string | null; id: string }) => {
+        if (event.join_url) {
+          try {
+            const url = new URL(event.join_url);
+            url.search = "";
+            return url.toString().toLowerCase().trim();
+          } catch {
+            return event.join_url.toLowerCase().trim();
+          }
+        }
+        return event.provider_event_id || event.id;
+      };
+
+      // First, insert all calendar events
+      calendarEvents.forEach(e => {
+        const key = getDeduplicationKey(e);
+        combinedMap.set(key, e);
+      });
+
+      // Then, merge processed meeting details
+      mappedMeetings.forEach(m => {
+        const key = getDeduplicationKey(m);
+        const existing = combinedMap.get(key);
+        if (existing) {
+          combinedMap.set(key, {
+            ...existing,
+            ...m,
+            id: existing.id // Keep the CalendarEvent DB ID
+          });
+        } else {
+          // If not in calendarEvents, we still add it
+          combinedMap.set(key, m);
         }
       });
 
@@ -677,7 +710,7 @@ export default function CalendarPage() {
             className="p-1.5 bg-[#F9F8F6] hover:bg-slate-100 text-slate-400 hover:text-slate-800 rounded-xl transition-all border border-slate-200 active:scale-95 cursor-pointer"
             aria-label="Close details"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
 
@@ -718,7 +751,7 @@ export default function CalendarPage() {
 
                   {/* Bullet Circle dot on timeline */}
                   <div className="relative z-10 flex items-center justify-center w-6 h-6 rounded-full bg-white border border-slate-200 mt-1 transition-all group-hover:scale-110 shadow-sm">
-                    <span className={`w-2 h-2 rounded-full ${category.dot}`} />
+                    <span className={`w-2 h-2 rounded-full ${category.dot}`} aria-hidden="true" />
                   </div>
 
                   {/* Meeting description card block */}
@@ -732,7 +765,7 @@ export default function CalendarPage() {
                           </span>
                           {event.is_online_meeting && (
                             <span className="bg-[#F9F8F6] border border-slate-200 text-slate-500 text-[7.5px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-0.5">
-                              <Video className="w-2 h-2" />
+                              <Video className="w-2 h-2" aria-hidden="true" />
                               {event.meeting_provider || "Online"}
                             </span>
                           )}
@@ -759,7 +792,7 @@ export default function CalendarPage() {
 
                       {event.organizer_email && (
                         <span className="text-[9px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
-                          <User className="w-2.5 h-2.5 text-slate-300" />
+                          <User className="w-2.5 h-2.5 text-slate-300" aria-hidden="true" />
                           By: {event.organizer_email}
                         </span>
                       )}
@@ -768,7 +801,7 @@ export default function CalendarPage() {
                       {event.executive_summary ? (
                         <div className="bg-white/95 rounded-xl p-2.5 border border-slate-200/60 mt-2 text-[10px] text-slate-650 leading-relaxed font-medium shadow-sm">
                           <div className="flex items-center gap-1 mb-1 text-teal-800 font-black text-[8px] uppercase tracking-wider">
-                            <Sparkles className="w-3 h-3 text-teal-600 animate-pulse" />
+                            <Sparkles className="w-3 h-3 text-teal-600 animate-pulse" aria-hidden="true" />
                             AI Intelligence Summary
                           </div>
                           <p className="italic font-normal text-slate-600">
@@ -777,13 +810,13 @@ export default function CalendarPage() {
                           <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                             {event.action_items_count !== undefined && event.action_items_count > 0 && (
                               <span className="bg-indigo-50 border border-indigo-100 text-indigo-700 text-[8px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                                <CheckSquare className="w-2.5 h-2.5 text-indigo-500" />
+                                <CheckSquare className="w-2.5 h-2.5 text-indigo-500" aria-hidden="true" />
                                 {event.action_items_count} Action{event.action_items_count > 1 ? 's' : ''}
                               </span>
                             )}
                             {event.decisions_count !== undefined && event.decisions_count > 0 && (
                               <span className="bg-amber-50 border border-amber-100 text-amber-700 text-[8px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                                <Zap className="w-2.5 h-2.5 text-amber-500" />
+                                <Zap className="w-2.5 h-2.5 text-amber-500" aria-hidden="true" />
                                 {event.decisions_count} Decision{event.decisions_count > 1 ? 's' : ''}
                               </span>
                             )}
@@ -819,18 +852,20 @@ export default function CalendarPage() {
                         {isProcessed ? (
                           <button
                             onClick={() => router.push(`/meetings/${event.id}`)}
+                            aria-label={`View AI insights for ${event.title}`}
                             className="bg-white hover:bg-[#F9F8F6] text-[#113229] px-2.5 py-1.5 rounded-xl text-[9px] font-bold border border-teal-200/50 flex items-center gap-1 active:scale-95 transition-all shadow-sm cursor-pointer"
                           >
-                            <Brain className="w-3 h-3 text-[#113229]" />
+                            <Brain className="w-3 h-3 text-[#113229]" aria-hidden="true" />
                             Insights
                           </button>
                         ) : (
                           <button
                             disabled
+                            aria-label={`AI Insights are processing for ${event.title}`}
                             className="bg-[#F9F8F6] text-slate-400 px-2.5 py-1.5 rounded-xl text-[9px] font-bold border border-slate-200 flex items-center gap-1 opacity-60 cursor-not-allowed select-none"
                             title="AI Insights are processing"
                           >
-                            <Brain className="w-3 h-3 text-slate-400" />
+                            <Brain className="w-3 h-3 text-slate-400" aria-hidden="true" />
                             Insights
                           </button>
                         )}
@@ -840,9 +875,10 @@ export default function CalendarPage() {
                             href={event.join_url!}
                             target="_blank"
                             rel="noopener noreferrer"
+                            aria-label={`Join online meeting for ${event.title}`}
                             className="bg-[#113229] hover:bg-[#115e59] text-white px-2.5 py-1.5 rounded-xl text-[9px] font-bold flex items-center gap-1 active:scale-95 transition-all shadow-sm"
                           >
-                            <ExternalLink className="w-3 h-3 text-white" />
+                            <ExternalLink className="w-3 h-3 text-white" aria-hidden="true" />
                             Join
                           </a>
                         ) : (
@@ -889,7 +925,7 @@ export default function CalendarPage() {
         <div>
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-white shadow-sm rounded-2xl border border-slate-200/80 text-[#113229] flex items-center justify-center">
-              <CalendarIcon className="w-5.5 h-5.5" />
+              <CalendarIcon className="w-5.5 h-5.5" aria-hidden="true" />
             </div>
             <div>
               <h1 className="text-2xl font-extrabold font-outfit text-slate-900 tracking-tight flex items-center gap-2">
@@ -934,9 +970,11 @@ export default function CalendarPage() {
           <button
             onClick={() => loadAllEvents(true)}
             disabled={loading || syncing}
+            aria-label="Sync Calendar Events"
+            aria-busy={syncing}
             className="flex items-center gap-2 bg-[#113229] hover:bg-[#115e59] active:scale-95 disabled:opacity-55 text-white px-4 py-2.5 rounded-2xl text-[11px] font-bold transition-all shadow-sm hover:shadow-md cursor-pointer select-none"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} aria-hidden="true" />
             Sync Calendar
           </button>
         </div>
@@ -945,7 +983,7 @@ export default function CalendarPage() {
       {/* Main Grid View */}
       {loading && !syncing ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-8 h-8 text-[#113229] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[#113229] animate-spin" aria-hidden="true" />
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Hydrating Calendar Intel...</span>
         </div>
       ) : (
@@ -964,19 +1002,20 @@ export default function CalendarPage() {
                     className="p-2 hover:bg-white text-slate-500 hover:text-slate-800 transition-all border-r border-slate-200/70 active:scale-95"
                     aria-label="Prev month"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4" aria-hidden="true" />
                   </button>
                   <button
                     onClick={nextMonth}
                     className="p-2 hover:bg-white text-slate-500 hover:text-slate-800 transition-all active:scale-95"
                     aria-label="Next month"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
 
                 <button
                   onClick={goToToday}
+                  aria-label="Go to today"
                   className="px-3.5 py-2 bg-[#F9F8F6] hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-sm"
                 >
                   Today
@@ -996,6 +1035,8 @@ export default function CalendarPage() {
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat === "All" ? null : cat)}
+                      aria-pressed={isActive}
+                      aria-label={`Filter meetings by ${cat} category`}
                       className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-all active:scale-95 ${
                         isActive 
                           ? "bg-slate-900 text-white border-slate-950 shadow-sm" 
@@ -1055,6 +1096,14 @@ export default function CalendarPage() {
                   <button
                     key={idx}
                     onClick={() => handleDayClick(cell.dateKey)}
+                    aria-label={`${
+                      new Date(cell.dateKey + "T00:00:00").toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric"
+                      })
+                    }${isToday ? ", today" : ""}${isSelected ? ", selected day" : ""}, ${filteredEvents.length} meeting${filteredEvents.length !== 1 ? "s" : ""}`}
+                    aria-pressed={isSelected}
                     className={`${cellClasses} ${heatStyle}`}
                   >
                     {/* Day number & today marker */}
@@ -1093,14 +1142,14 @@ export default function CalendarPage() {
                               key={evIdx}
                               className={`text-[9px] font-bold px-1.5 py-1 rounded-xl truncate flex items-center gap-1 transition-all ${category.pillBg} ${category.text}`}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${category.dot} flex-shrink-0`} />
+                              <span className={`w-1.5 h-1.5 rounded-full ${category.dot} flex-shrink-0`} aria-hidden="true" />
                               <span className="truncate leading-none">{event.title}</span>
                             </div>
                           );
                         })}
                         {filteredEvents.length > (selectedDateKey ? 1 : 2) && (
                           <div className="text-[8.5px] font-extrabold text-[#113229] pl-1.5 mt-0.5 flex items-center gap-1">
-                            <Plus className="w-2 h-2" /> {filteredEvents.length - (selectedDateKey ? 1 : 2)} more
+                            <Plus className="w-2 h-2" aria-hidden="true" /> {filteredEvents.length - (selectedDateKey ? 1 : 2)} more
                           </div>
                         )}
                       </div>
@@ -1183,7 +1232,7 @@ export default function CalendarPage() {
         <div className="relative z-10 flex flex-col gap-3 flex-shrink-0 text-left">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-[#e6f4f1] text-[#113229] rounded-xl border border-teal-100/50 flex items-center justify-center">
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-4 h-4" aria-hidden="true" />
             </div>
             <h3 className="font-extrabold text-xs text-slate-800 tracking-wider uppercase">Schedule Intelligence & Health</h3>
           </div>
@@ -1230,7 +1279,7 @@ export default function CalendarPage() {
                 <span className="text-[9px] text-slate-400 font-semibold block mt-0.5">Maximum productivity window</span>
               </div>
               <div className="p-2 bg-[#e6f4f1]/50 border border-teal-150 rounded-xl text-[#113229] hidden md:block">
-                <Brain className="w-5 h-5" />
+                <Brain className="w-5 h-5" aria-hidden="true" />
               </div>
             </div>
 

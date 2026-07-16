@@ -6,7 +6,11 @@ from app.models.models import Transcript, MeetingSpeaker, Meeting
 logger = logging.getLogger(__name__)
 
 
-class TranscriptRepository:
+from app.repositories.base import BaseRepository
+
+class TranscriptRepository(BaseRepository[Transcript]):
+    def __init__(self):
+        super().__init__(Transcript)
     def get_transcript_segments(self, db: Session, meeting_id: str) -> List[Transcript]:
         """Retrieves transcript segments for a given meeting ordered by start time."""
         return (
