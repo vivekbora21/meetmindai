@@ -1,6 +1,8 @@
 import asyncio
 import logging
+import time
 from datetime import datetime, timedelta
+from typing import Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, text
 
@@ -54,41 +56,89 @@ class BackgroundSchedulerService:
 
     async def run_jobs(self):
         """Executes all background tasks with retry logic and detailed logging."""
-        logger.info("Scheduler execution cycle started.")
+        start_time = time.time()
+        logger.debug("Scheduler execution cycle started.")
+
+        summary = {
+            "accounts_checked": 0,
+            "tokens_refreshed": 0,
+            "calendars_synced": 0,
+            "meetings_imported": 0,
+            "errors": 0,
+        }
 
         # 1. Expired token refresh
         try:
-            await self.refresh_expired_tokens()
+            refreshed, checked = await self.refresh_expired_tokens()
+            summary["tokens_refreshed"] += refreshed
+            summary["accounts_checked"] += checked
         except Exception as e:
+            summary["errors"] += 1
             logger.error(f"Scheduler | Error refreshing expired tokens: {e}")
 
         # 2. Calendar synchronization
         try:
-            await self.sync_calendars()
+            synced, imported, checked = await self.sync_calendars()
+            summary["calendars_synced"] += synced
+            summary["meetings_imported"] += imported
+            summary["accounts_checked"] += checked
         except Exception as e:
+            summary["errors"] += 1
             logger.error(f"Scheduler | Error syncing calendars: {e}")
 
         # 3. Prepare upcoming meetings for bot joining (starts in 2 to 5 minutes)
         try:
             await self.prepare_upcoming_meetings()
         except Exception as e:
+            summary["errors"] += 1
             logger.error(f"Scheduler | Error preparing upcoming meetings: {e}")
 
-        # 4. Cleanup duplicate meetings
-        try:
-            await self.cleanup_duplicate_meetings()
-        except Exception as e:
-            logger.error(f"Scheduler | Error cleaning up duplicate meetings: {e}")
+        # 4. Cleanup duplicate meetings (only if we imported meetings)
+        if summary["meetings_imported"] > 0:
+            try:
+                await self.cleanup_duplicate_meetings()
+            except Exception as e:
+                summary["errors"] += 1
+                logger.error(f"Scheduler | Error cleaning up duplicate meetings: {e}")
 
         # 5. Retry failed synchronizations
         try:
-            await self.retry_failed_syncs()
+            synced, imported, checked = await self.retry_failed_syncs()
+            summary["calendars_synced"] += synced
+            summary["meetings_imported"] += imported
+            summary["accounts_checked"] += checked
         except Exception as e:
+            summary["errors"] += 1
             logger.error(f"Scheduler | Error retrying failed syncs: {e}")
 
-        logger.info("Scheduler execution cycle completed.")
+        duration = time.time() - start_time
+        logger.debug("Scheduler execution cycle completed.")
 
-    async def refresh_expired_tokens(self):
+        # Structured logger summary
+        has_activity = (
+            summary["accounts_checked"] > 0
+            or summary["tokens_refreshed"] > 0
+            or summary["calendars_synced"] > 0
+            or summary["meetings_imported"] > 0
+            or summary["errors"] > 0
+        )
+
+        summary_msg = (
+            f"Scheduler Summary\n"
+            f"  Accounts Checked : {summary['accounts_checked']}\n"
+            f"  Tokens Refreshed : {summary['tokens_refreshed']}\n"
+            f"  Calendars Synced : {summary['calendars_synced']}\n"
+            f"  Meetings Imported: {summary['meetings_imported']}\n"
+            f"  Errors           : {summary['errors']}\n"
+            f"  Duration         : {duration:.2f} sec"
+        )
+
+        if has_activity:
+            logger.info(summary_msg)
+        else:
+            logger.debug(summary_msg)
+
+    async def refresh_expired_tokens(self) -> Tuple[int, int]:
         """Refreshes tokens that are expired or expiring in the next 5 minutes."""
         expiry_threshold = datetime.utcnow() + timedelta(minutes=5)
         expiring_accounts = (
@@ -100,12 +150,15 @@ class BackgroundSchedulerService:
             .all()
         )
 
-        logger.info(
-            f"Scheduler | Found {len(expiring_accounts)} accounts needing token refresh."
+        checked_count = len(expiring_accounts)
+        refreshed_count = 0
+
+        logger.debug(
+            f"Scheduler | Found {checked_count} accounts needing token refresh."
         )
         for acc in expiring_accounts:
             try:
-                logger.info(
+                logger.debug(
                     f"Scheduler | Refreshing tokens for {acc.provider} account: {acc.email}"
                 )
                 provider_name = (
@@ -127,6 +180,7 @@ class BackgroundSchedulerService:
                 )
                 acc.connection_status = "Connected"
                 self.db.commit()
+                refreshed_count += 1
             except Exception as e:
                 self.db.rollback()
                 logger.error(
@@ -135,34 +189,54 @@ class BackgroundSchedulerService:
                 acc.connection_status = "Expired"
                 acc.sync_errors = f"Token refresh failed: {str(e)}"
                 self.db.commit()
+        return refreshed_count, checked_count
 
-    async def sync_calendars(self):
+    async def sync_calendars(self) -> Tuple[int, int, int]:
         """Synchronizes calendars for connected accounts configured with auto_sync."""
+        sync_threshold = datetime.utcnow() - timedelta(minutes=15)
         accounts = (
             self.db.query(ConnectedAccount)
             .filter(
                 ConnectedAccount.connection_status == "Connected",
                 ConnectedAccount.auto_sync == True,
+                or_(
+                    ConnectedAccount.last_sync.is_(None),
+                    ConnectedAccount.last_sync <= sync_threshold,
+                ),
             )
             .all()
         )
 
-        logger.info(f"Scheduler | Syncing calendars for {len(accounts)} accounts.")
+        checked_count = len(accounts)
+        synced_count = 0
+        meetings_imported = 0
+
+        logger.debug(f"Scheduler | Syncing calendars for {checked_count} accounts.")
         for acc in accounts:
             try:
-                logger.info(
+                logger.debug(
                     f"Scheduler | Triggering auto calendar sync for {acc.provider} - {acc.email}"
                 )
+                imported_list = []
                 if acc.provider == Provider.GOOGLE:
-                    await self.google_calendar.sync_calendar_events(
+                    imported_list = await self.google_calendar.sync_calendar_events(
                         self.db, acc.user_id
                     )
                 elif acc.provider == Provider.MICROSOFT:
-                    await self.microsoft_calendar.sync_calendar_events(
+                    imported_list = await self.microsoft_calendar.sync_calendar_events(
                         self.db, acc.user_id
                     )
                 elif acc.provider == Provider.ZOOM or acc.provider == "zoom":
-                    await self.zoom_calendar.sync_calendar_events(self.db, acc.user_id)
+                    imported_list = await self.zoom_calendar.sync_calendar_events(
+                        self.db, acc.user_id
+                    )
+
+                if imported_list:
+                    meetings_imported += len(imported_list)
+
+                acc.last_sync = datetime.utcnow()
+                self.db.commit()
+                synced_count += 1
             except Exception as e:
                 error_str = str(e)
                 # 403 / needs_reauthorization = permanent permission error.
@@ -194,6 +268,7 @@ class BackgroundSchedulerService:
                         self.db.commit()
                     except Exception:
                         self.db.rollback()
+        return synced_count, meetings_imported, checked_count
 
     async def prepare_upcoming_meetings(self):
         """
@@ -215,12 +290,12 @@ class BackgroundSchedulerService:
             .all()
         )
 
-        logger.info(
+        logger.debug(
             f"Scheduler | Preparing {len(upcoming_meetings)} upcoming meetings for bot joining."
         )
         for m in upcoming_meetings:
             try:
-                logger.info(
+                logger.debug(
                     f"Scheduler | Setting meeting '{m.title}' to 'Ready to Join' status."
                 )
                 m.join_status = "Ready to Join"
@@ -244,7 +319,7 @@ class BackgroundSchedulerService:
                 """)).fetchall()
 
         if duplicates:
-            logger.info(
+            logger.debug(
                 f"Scheduler | Found {len(duplicates)} duplicate group records. Cleaning up..."
             )
             for dup in duplicates:
@@ -264,46 +339,58 @@ class BackgroundSchedulerService:
                 # Keep the first, delete the rest
                 primary = meetings[0]
                 for m in meetings[1:]:
-                    logger.info(
+                    logger.debug(
                         f"Scheduler | Deleting duplicate meeting record ID: {m.id}"
                     )
                     self.db.delete(m)
             self.db.commit()
 
-    async def retry_failed_syncs(self):
+    async def retry_failed_syncs(self) -> Tuple[int, int, int]:
         """Retries calendar synchronization for accounts with transient sync errors.
         Accounts in 'needs_reauthorization' status are deliberately excluded.
         """
         failed_accounts = (
             self.db.query(ConnectedAccount)
             .filter(
-                ConnectedAccount.connection_status
-                == "Connected",  # excludes needs_reauthorization
+                ConnectedAccount.connection_status == "Connected",
                 ConnectedAccount.sync_errors.isnot(None),
             )
             .all()
         )
 
-        logger.info(
-            f"Scheduler | Retrying {len(failed_accounts)} accounts with transient sync errors."
+        checked_count = len(failed_accounts)
+        synced_count = 0
+        meetings_imported = 0
+
+        logger.debug(
+            f"Scheduler | Retrying {checked_count} accounts with transient sync errors."
         )
         for acc in failed_accounts:
             try:
-                logger.info(
+                logger.debug(
                     f"Scheduler | Retrying calendar sync for {acc.provider} - {acc.email}"
                 )
+                imported_list = []
                 if acc.provider == Provider.GOOGLE:
-                    await self.google_calendar.sync_calendar_events(
+                    imported_list = await self.google_calendar.sync_calendar_events(
                         self.db, acc.user_id
                     )
                 elif acc.provider == Provider.MICROSOFT:
-                    await self.microsoft_calendar.sync_calendar_events(
+                    imported_list = await self.microsoft_calendar.sync_calendar_events(
                         self.db, acc.user_id
                     )
                 elif acc.provider == Provider.ZOOM or acc.provider == "zoom":
-                    await self.zoom_calendar.sync_calendar_events(self.db, acc.user_id)
+                    imported_list = await self.zoom_calendar.sync_calendar_events(
+                        self.db, acc.user_id
+                    )
+
+                if imported_list:
+                    meetings_imported += len(imported_list)
+
                 acc.sync_errors = None
+                acc.last_sync = datetime.utcnow()
                 self.db.commit()
+                synced_count += 1
             except Exception as e:
                 if _is_permission_error(e):
                     # Escalate to permanent – stop retrying.
@@ -325,6 +412,7 @@ class BackgroundSchedulerService:
                         f"Scheduler | Retry still failing for {acc.provider} "
                         f"account {acc.id}: {e}"
                     )
+        return synced_count, meetings_imported, checked_count
 
 
 async def start_scheduler():

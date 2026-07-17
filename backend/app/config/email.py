@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class EmailSettings(BaseSettings):
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
@@ -14,5 +15,6 @@ class EmailSettings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "ignore"
+
 
 email_settings = EmailSettings()

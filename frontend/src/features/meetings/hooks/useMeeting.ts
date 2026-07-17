@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useModalStore } from "@/store/useModalStore";
 import { meetingService } from "../services/meeting.service";
 import { MeetingDetail } from "../types/meeting";
 
@@ -26,6 +27,7 @@ const isInsightStillRunning = (detail: MeetingDetail | null) => {
 };
 
 export function useMeeting(meetingId: string) {
+  const { showModal } = useModalStore();
   const [meetingDetail, setMeetingDetail] = useState<MeetingDetail | null>(null);
   const [activeTab, setActiveTab] = useState<"summary" | "timeline" | "actions" | "decisions" | "risks" | "technical" | "participants" | "decisions_risks">("summary");
   
@@ -93,7 +95,11 @@ export function useMeeting(meetingId: string) {
       setSelectedFile(null);
     } catch (e) {
       console.error("Upload error", e);
-      alert("Error uploading file.");
+      showModal({
+        title: "Upload Failed",
+        message: "Error uploading file.",
+        type: "error"
+      });
     } finally {
       setUploadingFile(false);
     }
@@ -106,7 +112,11 @@ export function useMeeting(meetingId: string) {
       setMeetingDetail(data);
     } catch (e) {
       console.error("Transcription trigger error", e);
-      alert("Error triggering transcription.");
+      showModal({
+        title: "Transcription Failed",
+        message: "Error triggering transcription.",
+        type: "error"
+      });
     } finally {
       setTranscribing(false);
     }
@@ -130,7 +140,11 @@ export function useMeeting(meetingId: string) {
       await fetchMeetingDetailSilent();
     } catch (e) {
       console.error("AI analysis trigger error", e);
-      alert("Error triggering AI analysis. Please try again.");
+      showModal({
+        title: "Analysis Failed",
+        message: "Error triggering AI analysis. Please try again.",
+        type: "error"
+      });
     } finally {
       setRunningAiAnalysis(false);
     }
@@ -140,10 +154,18 @@ export function useMeeting(meetingId: string) {
     setSendingEmail(true);
     try {
       const res = await meetingService.sendMomEmail(meetingId);
-      alert(res.message || "MOM email dispatch initiated successfully!");
+      showModal({
+        title: "Email Dispatched",
+        message: res.message || "MOM email dispatch initiated successfully!",
+        type: "success"
+      });
     } catch (e) {
       console.error("MOM email send error", e);
-      alert("Error sending MOM email. Please try again.");
+      showModal({
+        title: "Dispatch Failed",
+        message: "Error sending MOM email. Please try again.",
+        type: "error"
+      });
     } finally {
       setSendingEmail(false);
     }

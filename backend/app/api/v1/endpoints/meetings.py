@@ -19,6 +19,7 @@ from app.services.meeting.meeting_service import meeting_service
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+
 @router.get("/", response_model=List[MeetingListOut])
 def get_meetings(
     include_future: bool = False,
@@ -26,7 +27,10 @@ def get_meetings(
     db: Session = Depends(get_db),
 ):
     meeting_repository.clean_stuck_meetings(db, current_user.organization_id)
-    return meeting_repository.get_user_meetings(db, current_user.organization_id, include_future)
+    return meeting_repository.get_user_meetings(
+        db, current_user.organization_id, include_future
+    )
+
 
 @router.get("/{meeting_id}", response_model=MeetingDetailOut)
 def get_meeting(
@@ -44,7 +48,10 @@ def get_meeting(
 
     return meeting
 
-@router.post("/upload", response_model=MeetingListOut, status_code=status.HTTP_202_ACCEPTED)
+
+@router.post(
+    "/upload", response_model=MeetingListOut, status_code=status.HTTP_202_ACCEPTED
+)
 def upload_meeting(
     title: str = Form(...),
     meeting_date: Optional[str] = Form(None),
@@ -53,18 +60,30 @@ def upload_meeting(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return meeting_service.create_from_upload(db, current_user, title, meeting_date, platform, file)
+    return meeting_service.create_from_upload(
+        db, current_user, title, meeting_date, platform, file
+    )
 
-@router.post("/join-link", response_model=MeetingListOut, status_code=status.HTTP_202_ACCEPTED)
+
+@router.post(
+    "/join-link", response_model=MeetingListOut, status_code=status.HTTP_202_ACCEPTED
+)
 def join_meeting_by_link(
     request: JoinMeetingLinkRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     return meeting_service.create_from_link(
-        db, current_user, request.title, request.meeting_url, request.platform, 
-        request.meeting_date, request.scheduled_start, request.scheduled_end
+        db,
+        current_user,
+        request.title,
+        request.meeting_url,
+        request.platform,
+        request.meeting_date,
+        request.scheduled_start,
+        request.scheduled_end,
     )
+
 
 @router.post("/{meeting_id}/upload-media", response_model=MeetingDetailOut)
 def upload_meeting_media(
@@ -75,6 +94,7 @@ def upload_meeting_media(
 ):
     return meeting_service.upload_media(db, current_user, meeting_id, file)
 
+
 @router.post("/{meeting_id}/transcribe", response_model=MeetingDetailOut)
 def transcribe_meeting(
     meeting_id: str,
@@ -82,6 +102,7 @@ def transcribe_meeting(
     db: Session = Depends(get_db),
 ):
     return meeting_service.transcribe_meeting(db, current_user, meeting_id)
+
 
 @router.put("/{meeting_id}/speakers/{speaker_id}", response_model=MeetingDetailOut)
 def rename_speaker(
@@ -91,7 +112,10 @@ def rename_speaker(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return meeting_service.rename_speaker(db, current_user, meeting_id, speaker_id, request.display_name)
+    return meeting_service.rename_speaker(
+        db, current_user, meeting_id, speaker_id, request.display_name
+    )
+
 
 @router.post("/{meeting_id}/retry", response_model=MeetingDetailOut)
 def retry_meeting_stage(
@@ -101,6 +125,7 @@ def retry_meeting_stage(
     db: Session = Depends(get_db),
 ):
     return meeting_service.retry_stage(db, current_user, meeting_id, stage)
+
 
 @router.post("/{meeting_id}/send-mom")
 def send_meeting_mom_email(
@@ -113,7 +138,7 @@ def send_meeting_mom_email(
         raise HTTPException(status_code=404, detail="Meeting not found")
 
     from app.tasks.meeting_tasks import send_mom_email
+
     send_mom_email.delay(meeting_id)
 
     return {"status": "success", "message": "MOM email dispatch initiated"}
-

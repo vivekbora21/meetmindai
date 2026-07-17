@@ -15,7 +15,11 @@ from app.models.models import (
 
 
 def log_activity(
-    db: Session, user_id: str, action: str, details: str | None = None, ip: str = "127.0.0.1"
+    db: Session,
+    user_id: str,
+    action: str,
+    details: str | None = None,
+    ip: str = "127.0.0.1",
 ) -> None:
     activity = ActivityLog(
         user_id=user_id, action=action, details=details, ip_address=ip

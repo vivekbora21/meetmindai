@@ -3,16 +3,29 @@ from fastapi import UploadFile, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
-from app.models.models import User, Meeting, ScheduledMeeting, AgentLiveSession, MeetingSpeaker
+from app.models.models import (
+    User,
+    Meeting,
+    ScheduledMeeting,
+    AgentLiveSession,
+    MeetingSpeaker,
+)
 from app.models.enums import MeetingStatus, AIStatus
 from app.repositories.meeting_repository import meeting_repository
 from app.services.media_service import MediaService
 from app.services.cache_service import MeetingContextCache
 from app.services.pipeline.pipeline_manager import PipelineManager
 
+
 class MeetingService:
     def create_from_upload(
-        self, db: Session, current_user: User, title: str, meeting_date: Optional[str], platform: str, file: UploadFile
+        self,
+        db: Session,
+        current_user: User,
+        title: str,
+        meeting_date: Optional[str],
+        platform: str,
+        file: UploadFile,
     ) -> Meeting:
         parsed_date = datetime.utcnow()
         if meeting_date:
@@ -38,10 +51,11 @@ class MeetingService:
                 "technical_status": AIStatus.PENDING.value,
                 "key_themes_status": AIStatus.PENDING.value,
                 "platform": platform,
-            }
+            },
         )
 
         from app.utils.logging_pipeline import PipelineTracker
+
         tracker = PipelineTracker(meeting.id)
         tracker.start_pipeline()
         tracker.start_stage(1)  # Stage 1: Upload
@@ -54,7 +68,9 @@ class MeetingService:
             tracker.end_stage(1, status="FAILED")
             meeting.status = MeetingStatus.FAILED.value
             db.commit()
-            raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {save_err}")
+            raise HTTPException(
+                status_code=500, detail=f"Failed to save uploaded file: {save_err}"
+            )
 
         try:
             PipelineManager.trigger_pipeline(db, meeting.id, saved_file_path)
@@ -64,8 +80,15 @@ class MeetingService:
         return meeting
 
     def create_from_link(
-        self, db: Session, current_user: User, title: str, meeting_url: str, platform: str, 
-        meeting_date: Optional[datetime], scheduled_start: Optional[datetime], scheduled_end: Optional[datetime]
+        self,
+        db: Session,
+        current_user: User,
+        title: str,
+        meeting_url: str,
+        platform: str,
+        meeting_date: Optional[datetime],
+        scheduled_start: Optional[datetime],
+        scheduled_end: Optional[datetime],
     ) -> Meeting:
         parsed_date = meeting_date or datetime.utcnow()
         start = scheduled_start or parsed_date
@@ -89,7 +112,7 @@ class MeetingService:
                 "key_themes_status": AIStatus.PENDING.value,
                 "platform": platform,
                 "meeting_url": meeting_url,
-            }
+            },
         )
 
         scheduled_meeting = ScheduledMeeting(
@@ -116,13 +139,16 @@ class MeetingService:
 
         try:
             from app.tasks.meeting_tasks import join_scheduled_meeting
+
             join_scheduled_meeting.apply_async(args=[scheduled_meeting.id], eta=start)
         except Exception as e:
             print(f"Failed to start live agent: {e}")
 
         return meeting
 
-    def upload_media(self, db: Session, current_user: User, meeting_id: str, file: UploadFile) -> Meeting:
+    def upload_media(
+        self, db: Session, current_user: User, meeting_id: str, file: UploadFile
+    ) -> Meeting:
         meeting = meeting_repository.get(db, meeting_id, current_user.organization_id)
         if not meeting:
             raise HTTPException(status_code=404, detail="Meeting not found")
@@ -132,6 +158,7 @@ class MeetingService:
         MeetingContextCache.invalidate(meeting_id)
 
         from app.utils.logging_pipeline import PipelineTracker
+
         tracker = PipelineTracker(meeting.id)
         tracker.start_pipeline()
         tracker.start_stage(1)  # Stage 1: Upload
@@ -144,8 +171,10 @@ class MeetingService:
             tracker.end_stage(1, status="FAILED")
             meeting.status = MeetingStatus.FAILED.value
             db.commit()
-            raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {save_err}")
-            
+            raise HTTPException(
+                status_code=500, detail=f"Failed to save uploaded file: {save_err}"
+            )
+
         try:
             PipelineManager.trigger_pipeline(db, meeting.id, saved_file_path)
         except Exception as e:
@@ -153,7 +182,9 @@ class MeetingService:
 
         return meeting
 
-    def transcribe_meeting(self, db: Session, current_user: User, meeting_id: str) -> Meeting:
+    def transcribe_meeting(
+        self, db: Session, current_user: User, meeting_id: str
+    ) -> Meeting:
         meeting = meeting_repository.get(db, meeting_id, current_user.organization_id)
         if not meeting:
             raise HTTPException(status_code=404, detail="Meeting not found")
@@ -166,7 +197,7 @@ class MeetingService:
         meeting.status = MeetingStatus.PROCESSING.value
         db.commit()
         MeetingContextCache.invalidate(meeting_id)
-        
+
         try:
             PipelineManager.trigger_pipeline(db, meeting.id, saved_file_path)
         except Exception as e:
@@ -174,16 +205,27 @@ class MeetingService:
 
         return meeting
 
-    def rename_speaker(self, db: Session, current_user: User, meeting_id: str, speaker_id: str, display_name: str) -> Meeting:
+    def rename_speaker(
+        self,
+        db: Session,
+        current_user: User,
+        meeting_id: str,
+        speaker_id: str,
+        display_name: str,
+    ) -> Meeting:
         meeting = meeting_repository.get(db, meeting_id, current_user.organization_id)
         if not meeting:
             raise HTTPException(status_code=404, detail="Meeting not found")
 
-        speaker = db.query(MeetingSpeaker).filter(
-            MeetingSpeaker.id == speaker_id,
-            MeetingSpeaker.meeting_id == meeting_id,
-        ).first()
-        
+        speaker = (
+            db.query(MeetingSpeaker)
+            .filter(
+                MeetingSpeaker.id == speaker_id,
+                MeetingSpeaker.meeting_id == meeting_id,
+            )
+            .first()
+        )
+
         if not speaker:
             raise HTTPException(status_code=404, detail="Speaker not found")
 
@@ -196,16 +238,21 @@ class MeetingService:
 
         return meeting
 
-    def retry_stage(self, db: Session, current_user: User, meeting_id: str, stage: str) -> Meeting:
+    def retry_stage(
+        self, db: Session, current_user: User, meeting_id: str, stage: str
+    ) -> Meeting:
         meeting = meeting_repository.get(db, meeting_id, current_user.organization_id)
         if not meeting:
             raise HTTPException(status_code=404, detail="Meeting not found")
 
         success = PipelineManager.retry_stage(db, meeting_id, stage)
         if not success:
-            raise HTTPException(status_code=400, detail=f"Failed to retry stage: {stage}")
+            raise HTTPException(
+                status_code=400, detail=f"Failed to retry stage: {stage}"
+            )
 
         db.refresh(meeting)
         return meeting
+
 
 meeting_service = MeetingService()

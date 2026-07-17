@@ -1,10 +1,12 @@
 from typing import Callable, Dict, List
 from pydantic import BaseModel
 
+
 class EventPayload(BaseModel):
     meeting_id: str
     event_type: str
     data: dict = {}
+
 
 class EventRouter:
     def __init__(self):
@@ -19,5 +21,6 @@ class EventRouter:
         listeners = self._listeners.get(event_type, [])
         for listener in listeners:
             listener(payload)
+
 
 event_router = EventRouter()

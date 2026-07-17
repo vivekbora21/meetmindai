@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
+import { GlobalModal } from "@/components/ui/GlobalModal";
 import "./globals.css";
 
 const inter = Inter({
@@ -31,6 +32,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable} antialiased min-h-screen bg-[var(--background)] text-[var(--foreground)]`}>
         {children}
+        <GlobalModal />
       </body>
     </html>
   );

@@ -86,6 +86,6 @@ async def startup_event() -> None:
     import asyncio
     from app.services.scheduler import start_scheduler
     from app.events.handlers import register_event_handlers
-    
+
     register_event_handlers()
     asyncio.create_task(start_scheduler())

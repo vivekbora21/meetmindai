@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
+
 class AuthSettings(BaseSettings):
     JWT_SECRET: str = "supersecretkeymeetingmind_secure_key_at_least_32_bytes_long"
     JWT_ALGORITHM: str = "HS256"
@@ -23,5 +24,6 @@ class AuthSettings(BaseSettings):
     ZOOM_API_BASE: str = "https://api.zoom.us/v2"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
 
 auth_settings = AuthSettings()

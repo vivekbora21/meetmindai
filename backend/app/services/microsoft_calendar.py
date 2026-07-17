@@ -70,7 +70,7 @@ class MicrosoftCalendarService:
         Automatically handles access token refreshes if expired.
         """
         # Calendar Sync Structured Logging
-        logger.info(
+        logger.debug(
             f"Calendar Sync Requested: [User ID: {user_id}] [Provider Requested: {Provider.MICROSOFT}]"
         )
 
@@ -93,7 +93,7 @@ class MicrosoftCalendarService:
                 detail="ConnectedAccount not found. Please connect your Microsoft account first.",
             )
 
-        logger.info(
+        logger.debug(
             f"ConnectedAccount Found: [Stored Provider: {account.provider}] [Stored User ID: {account.user_id}] "
             f"[Token Expiry: {account.expires_at}]"
         )
@@ -103,7 +103,7 @@ class MicrosoftCalendarService:
             not account.expires_at
             or account.expires_at <= datetime.utcnow() + timedelta(seconds=60)
         ):
-            logger.info(
+            logger.debug(
                 f"Microsoft access token expired or near expiry for user {user_id}. Refreshing..."
             )
             if not account.refresh_token:
@@ -128,7 +128,7 @@ class MicrosoftCalendarService:
                 account.token_type = new_tokens.get("token_type", "Bearer")
                 account.connection_status = "Connected"
                 db.commit()
-                logger.info(
+                logger.debug(
                     f"Successfully refreshed and saved new Microsoft tokens for user {user_id}."
                 )
             except HTTPException as he:
@@ -171,12 +171,12 @@ class MicrosoftCalendarService:
         async with httpx.AsyncClient() as client:
             # Step A: Fetch all user's personal calendars
             try:
-                logger.info(f"Listing all calendars for user {user_id}")
+                logger.debug(f"Listing all calendars for user {user_id}")
                 cals_url = "https://graph.microsoft.com/v1.0/me/calendars"
                 cals_resp = await client.get(cals_url, headers=headers, timeout=10.0)
                 if cals_resp.status_code == 200:
                     calendars = cals_resp.json().get("value", [])
-                    logger.info(
+                    logger.debug(
                         f"Found {len(calendars)} personal calendars for user {user_id}"
                     )
                     for cal in calendars:
@@ -189,7 +189,7 @@ class MicrosoftCalendarService:
                             )
                             if view_resp.status_code == 200:
                                 evs = view_resp.json().get("value", [])
-                                logger.info(
+                                logger.debug(
                                     f"Fetched {len(evs)} events from calendar '{cal_name}'"
                                 )
                                 all_graph_events.extend(evs)
@@ -249,18 +249,18 @@ class MicrosoftCalendarService:
                         is_personal = True
 
                 if is_personal:
-                    logger.info(
+                    logger.debug(
                         f"Skipping Teams groups sync for user {user_id} (not supported for personal accounts: {account.email})"
                     )
                 else:
-                    logger.info(f"Listing joined Teams groups for user {user_id}")
+                    logger.debug(f"Listing joined Teams groups for user {user_id}")
                     teams_url = "https://graph.microsoft.com/v1.0/me/joinedTeams"
                     teams_resp = await client.get(
                         teams_url, headers=headers, timeout=10.0
                     )
                     if teams_resp.status_code == 200:
                         teams = teams_resp.json().get("value", [])
-                        logger.info(
+                        logger.debug(
                             f"Found {len(teams)} joined Teams/Groups for user {user_id}"
                         )
                         for team in teams:
@@ -274,7 +274,7 @@ class MicrosoftCalendarService:
                                 )
                                 if t_resp.status_code == 200:
                                     t_evs = t_resp.json().get("value", [])
-                                    logger.info(
+                                    logger.debug(
                                         f"Fetched {len(t_evs)} events from Teams Group '{team_name}'"
                                     )
                                     all_graph_events.extend(t_evs)
@@ -301,7 +301,7 @@ class MicrosoftCalendarService:
                             log_msg += f" - {error_msg}"
                         if teams_resp.status_code == 403:
                             log_msg += " (Note: Teams/Groups API requires the 'Team.ReadBasic.All' scope and is not supported for personal Microsoft accounts like outlook.com/hotmail.com)"
-                            logger.info(log_msg)
+                            logger.debug(log_msg)
                         else:
                             logger.warning(log_msg)
             except Exception as e:
@@ -438,7 +438,7 @@ class MicrosoftCalendarService:
                 for e in synced_events:
                     db.refresh(e)
 
-                logger.info(
+                logger.debug(
                     f"Successfully synced and committed {len(synced_events)} total events for user {user_id}."
                 )
                 return synced_events

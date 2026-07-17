@@ -4,18 +4,26 @@ from app.database.connection import Base
 
 ModelType = TypeVar("ModelType", bound=Base)
 
+
 class BaseRepository(Generic[ModelType]):
     def __init__(self, model: Type[ModelType]):
         self.model = model
 
-    def get(self, db: Session, id: Any, organization_id: Optional[str] = None) -> Optional[ModelType]:
+    def get(
+        self, db: Session, id: Any, organization_id: Optional[str] = None
+    ) -> Optional[ModelType]:
         query = db.query(self.model).filter(self.model.id == id)
         if organization_id and hasattr(self.model, "organization_id"):
             query = query.filter(self.model.organization_id == organization_id)
         return query.first()
 
     def get_multi(
-        self, db: Session, *, skip: int = 0, limit: int = 100, organization_id: Optional[str] = None
+        self,
+        db: Session,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        organization_id: Optional[str] = None
     ) -> List[ModelType]:
         query = db.query(self.model)
         if organization_id and hasattr(self.model, "organization_id"):
@@ -37,7 +45,9 @@ class BaseRepository(Generic[ModelType]):
         db.refresh(db_obj)
         return db_obj
 
-    def delete(self, db: Session, *, id: Any, organization_id: Optional[str] = None) -> ModelType:
+    def delete(
+        self, db: Session, *, id: Any, organization_id: Optional[str] = None
+    ) -> ModelType:
         obj = self.get(db=db, id=id, organization_id=organization_id)
         if obj:
             db.delete(obj)

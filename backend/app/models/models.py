@@ -159,18 +159,10 @@ class Meeting(Base):
     action_items_status = Column(
         String(50), default="PENDING", server_default="PENDING"
     )
-    decisions_status = Column(
-        String(50), default="PENDING", server_default="PENDING"
-    )
-    risks_status = Column(
-        String(50), default="PENDING", server_default="PENDING"
-    )
-    technical_status = Column(
-        String(50), default="PENDING", server_default="PENDING"
-    )
-    key_themes_status = Column(
-        String(50), default="PENDING", server_default="PENDING"
-    )
+    decisions_status = Column(String(50), default="PENDING", server_default="PENDING")
+    risks_status = Column(String(50), default="PENDING", server_default="PENDING")
+    technical_status = Column(String(50), default="PENDING", server_default="PENDING")
+    key_themes_status = Column(String(50), default="PENDING", server_default="PENDING")
     platform = Column(String(50), default="Upload")  # Upload, Google Meet, Teams, Jira
     meeting_date = Column(DateTime, server_default=func.now())
     created_at = Column(DateTime, server_default=func.now())

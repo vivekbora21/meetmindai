@@ -1,9 +1,10 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
+
 class AISettings(BaseSettings):
     LLM_PROVIDER: str = "openrouter"
-    
+
     # OpenRouter
     OPENROUTER_API_KEY: Optional[str] = None
     OPENROUTER_MODEL: str = "google/gemma-2-9b-it:free"
@@ -23,7 +24,7 @@ class AISettings(BaseSettings):
     # Groq
     GROQ_API_KEY: Optional[str] = None
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
-    
+
     # AI General Config (From ai_config.py)
     MODEL_NAME: str = "gemini-2.5-flash"
     AI_TIMEOUT: float = 30.0
@@ -36,5 +37,6 @@ class AISettings(BaseSettings):
     WHISPER_MODEL_SIZE: str = "base"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
 
 ai_settings = AISettings()

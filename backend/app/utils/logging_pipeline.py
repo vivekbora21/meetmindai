@@ -12,11 +12,13 @@ import os
 pipeline_logger = logging.getLogger("meeting.pipeline")
 performance_logger = logging.getLogger("meeting.performance")
 
+
 class ColoredFormatter(logging.Formatter):
     """
     Console log formatter supporting customized color themes.
     Colors log lines depending on log level, logger name, and message content.
     """
+
     BLUE = "\033[94m"
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
@@ -48,11 +50,13 @@ class ColoredFormatter(logging.Formatter):
             return f"{color}{log_msg}{self.RESET}"
         return log_msg
 
+
 class HTTPNoiseFilter(logging.Filter):
     """
     Custom logging filter to suppress HTTP request logs (HEAD, GET, redirects, 200 OK)
     and specific model key matching/downloading info lines.
     """
+
     def filter(self, record: logging.LogRecord) -> bool:
         # If it's WARNING or higher, let it through
         if record.levelno >= logging.WARNING:
@@ -76,18 +80,22 @@ class HTTPNoiseFilter(logging.Filter):
             return False
         return True
 
+
 def setup_logging(log_level: str = "INFO"):
     """
     Sets up the structured logging configuration, suppressing third-party loggers
     and configuring the custom colored formatter.
     """
+    log_level = log_level.upper()
+    third_party_level = log_level if log_level == "DEBUG" else "WARNING"
+    celery_level = log_level if log_level == "DEBUG" else "WARNING"
+    task_level = log_level
+
     logging_config = {
         "version": 1,
         "disable_existing_loggers": False,
         "filters": {
-            "noise_filter": {
-                "()": "app.utils.logging_pipeline.HTTPNoiseFilter"
-            }
+            "noise_filter": {"()": "app.utils.logging_pipeline.HTTPNoiseFilter"}
         },
         "formatters": {
             "colored": {
@@ -96,7 +104,7 @@ def setup_logging(log_level: str = "INFO"):
             },
             "standard": {
                 "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            }
+            },
         },
         "handlers": {
             "console": {
@@ -112,35 +120,182 @@ def setup_logging(log_level: str = "INFO"):
         },
         "loggers": {
             # Third-party loggers to suppress
-            "httpx": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "requests": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "urllib3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "transformers": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "sentence_transformers": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "huggingface_hub": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "torch": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "faster_whisper": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "speechbrain": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "pyannote": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "pyannote.audio": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "matplotlib": {"level": "WARNING", "handlers": ["console"], "propagate": False},
-            "alembic": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+            "celery": {
+                "level": celery_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "celery.worker": {
+                "level": celery_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "celery.redirected": {
+                "level": celery_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "celery.app.trace": {
+                "level": task_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "celery.worker.strategy": {
+                "level": task_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "kombu": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "amqp": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "redis": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "httpcore": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "torchaudio": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "httpx": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "requests": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "urllib3": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "transformers": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "sentence_transformers": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "huggingface_hub": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "torch": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "faster_whisper": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "speechbrain": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "pyannote": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "pyannote.audio": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "matplotlib": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "alembic": {
+                "level": third_party_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
             "uvicorn": {"level": "INFO", "handlers": ["console"], "propagate": False},
-            "uvicorn.access": {"level": "WARNING", "handlers": ["console"], "propagate": False},
+            "uvicorn.access": {
+                "level": "WARNING",
+                "handlers": ["console"],
+                "propagate": False,
+            },
             # Application loggers
-            "meeting.pipeline": {"level": "INFO", "handlers": ["console"], "propagate": False},
-            "meeting.transcription": {"level": "INFO", "handlers": ["console"], "propagate": False},
-            "meeting.summary": {"level": "INFO", "handlers": ["console"], "propagate": False},
-            "meeting.embedding": {"level": "INFO", "handlers": ["console"], "propagate": False},
-            "meeting.graph": {"level": "INFO", "handlers": ["console"], "propagate": False},
-            "meeting.speaker": {"level": "INFO", "handlers": ["console"], "propagate": False},
-            "meeting.performance": {"level": "INFO", "handlers": ["console"], "propagate": False},
-            "meeting.api": {"level": "INFO", "handlers": ["console"], "propagate": False},
-            "meeting.database": {"level": "INFO", "handlers": ["console"], "propagate": False},
-            "meeting.worker": {"level": "INFO", "handlers": ["console"], "propagate": False},
-        }
+            "meeting.pipeline": {
+                "level": log_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "meeting.transcription": {
+                "level": log_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "meeting.summary": {
+                "level": log_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "meeting.embedding": {
+                "level": log_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "meeting.graph": {
+                "level": log_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "meeting.speaker": {
+                "level": log_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "meeting.performance": {
+                "level": log_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "meeting.api": {
+                "level": log_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "meeting.database": {
+                "level": log_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+            "meeting.worker": {
+                "level": log_level,
+                "handlers": ["console"],
+                "propagate": False,
+            },
+        },
     }
     logging.config.dictConfig(logging_config)
+
 
 def format_duration(seconds: float) -> str:
     """Formats duration into 'Xm Ys' or 'X sec' format."""
@@ -152,11 +307,13 @@ def format_duration(seconds: float) -> str:
     else:
         return f"{seconds} sec"
 
+
 class PipelineTracker:
     """
     Manages tracking pipeline stage execution, durations, and metadata in Redis.
     Compiles final performance reports when all stages complete.
     """
+
     STAGE_MAP = {
         1: ("upload", "Upload"),
         2: ("audio_extraction", "Audio Extraction"),
@@ -201,7 +358,9 @@ class PipelineTracker:
         self.redis_client.hset(self.redis_key, f"{stage_key}_start", time.time())
         self.redis_client.hset(self.redis_key, f"{stage_key}_status", "RUNNING")
 
-    def end_stage(self, stage_num: int, status: str = "COMPLETED", metadata: Optional[dict] = None) -> float:
+    def end_stage(
+        self, stage_num: int, status: str = "COMPLETED", metadata: Optional[dict] = None
+    ) -> float:
         """Records end timestamp, calculates duration, saves metadata, and checks completion."""
         stage_key, stage_name = self.STAGE_MAP[stage_num]
         end_time = time.time()
@@ -211,7 +370,7 @@ class PipelineTracker:
             duration = end_time - float(start_time_str)
 
         metadata_str = json.dumps(metadata or {})
-        
+
         # Save results in Redis
         self.redis_client.hset(self.redis_key, f"{stage_key}_duration", duration)
         self.redis_client.hset(self.redis_key, f"{stage_key}_status", status)
@@ -219,11 +378,15 @@ class PipelineTracker:
 
         # Log completion immediately
         if status != "SKIPPED":
-            log_msg = self._format_stage_log(stage_num, stage_name, duration, metadata or {})
+            log_msg = self._format_stage_log(
+                stage_num, stage_name, duration, metadata or {}
+            )
             pipeline_logger.info(log_msg)
 
         # Atomically increment completed count
-        completed_count = self.redis_client.hincrby(self.redis_key, "completed_stages_count", 1)
+        completed_count = self.redis_client.hincrby(
+            self.redis_key, "completed_stages_count", 1
+        )
 
         # Check if all stages are done and print final report
         if completed_count >= 8:
@@ -231,7 +394,9 @@ class PipelineTracker:
 
         return duration
 
-    def _format_stage_log(self, stage_num: int, name: str, duration: float, metadata: dict) -> str:
+    def _format_stage_log(
+        self, stage_num: int, name: str, duration: float, metadata: dict
+    ) -> str:
         duration_str = format_duration(duration)
         separator = "\n----------------------------------\n" if stage_num > 1 else ""
 
@@ -301,7 +466,7 @@ class PipelineTracker:
 
         # Load all stage data
         pipe_data = self.redis_client.hgetall(self.redis_key)
-        
+
         def get_float(field: str) -> float:
             val = pipe_data.get(field.encode("utf-8"))
             return float(val) if val else 0.0
@@ -316,14 +481,16 @@ class PipelineTracker:
         embeddings = get_float("embeddings_duration")
         knowledge_graph = get_float("knowledge_graph_duration")
 
-        total_stages_duration = audio_extraction + transcription + summary + embeddings + knowledge_graph
+        total_stages_duration = (
+            audio_extraction + transcription + summary + embeddings + knowledge_graph
+        )
 
         stages_list = [
             ("Audio Extraction", audio_extraction),
             ("Transcription", transcription),
             ("Summary", summary),
             ("Embeddings", embeddings),
-            ("Knowledge Graph", knowledge_graph)
+            ("Knowledge Graph", knowledge_graph),
         ]
         # Sort to find slowest & second slowest
         stages_list.sort(key=lambda x: x[1], reverse=True)
@@ -358,8 +525,11 @@ class PipelineTracker:
         # Trigger MOM email task
         try:
             from app.tasks.meeting_tasks import send_mom_email
+
             send_mom_email.delay(self.meeting_id)
-            pipeline_logger.info(f"Triggered send_mom_email task for meeting: {self.meeting_id}")
+            pipeline_logger.info(
+                f"Triggered send_mom_email task for meeting: {self.meeting_id}"
+            )
         except Exception as e:
             pipeline_logger.error(f"Failed to trigger send_mom_email task: {e}")
 
@@ -381,10 +551,14 @@ def track_stage_ctx(meeting_id: str, stage_num: int):
         tracker.end_stage(stage_num, status="FAILED", metadata=meta_container)
         raise e
     else:
-        tracker.end_stage(stage_num, status=status_container["status"], metadata=meta_container)
+        tracker.end_stage(
+            stage_num, status=status_container["status"], metadata=meta_container
+        )
+
 
 def track_stage_dec(stage_num: int):
     """Decorator to track start/end of a pipeline stage in functions where meeting_id is the first or keyword arg."""
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -407,5 +581,7 @@ def track_stage_dec(stage_num: int):
                 if isinstance(result, dict):
                     meta.update(result)
                 return result
+
         return wrapper
+
     return decorator

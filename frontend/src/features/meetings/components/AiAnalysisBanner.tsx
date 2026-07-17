@@ -16,9 +16,10 @@ export const AiAnalysisBanner: React.FC<AiAnalysisBannerProps> = ({
   onRun,
   isRunning,
 }) => {
-  const isFailed = aiStatus === "FAILED";
-  const isSkipped = aiStatus === "SKIPPED";
-  const isRunningRemotely = aiStatus === "RUNNING";
+  const aiStatusNorm = (aiStatus || "").toUpperCase();
+  const isFailed = aiStatusNorm === "FAILED" || aiStatusNorm === "ERROR";
+  const isSkipped = aiStatusNorm === "SKIPPED";
+  const isRunningRemotely = aiStatusNorm === "RUNNING" || aiStatusNorm === "PROCESSING";
 
   const statusMessage = isFailed
     ? "AI analysis failed during processing."

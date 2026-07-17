@@ -34,6 +34,7 @@ class VoiceEmbeddingService:
     def model(self):
         if self._model is None:
             from app.ml.model_loader import ModelRegistry
+
             if ModelRegistry._diarizer_model is not None:
                 VoiceEmbeddingService._model = ModelRegistry._diarizer_model
             else:
@@ -48,7 +49,9 @@ class VoiceEmbeddingService:
                     VoiceEmbeddingService._model = EncoderClassifier.from_hparams(
                         source=self.model_source, run_opts={"device": self.device}
                     )
-                    logger.info("SpeechBrain speaker embedding model loaded successfully.")
+                    logger.info(
+                        "SpeechBrain speaker embedding model loaded successfully."
+                    )
                 except Exception as e:
                     logger.error(f"Failed to load SpeechBrain model: {e}")
                     raise e

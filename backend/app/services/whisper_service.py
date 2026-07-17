@@ -19,10 +19,11 @@ class WhisperService:
     def model(self):
         if self._model is None:
             from app.ml.model_loader import ModelRegistry
+
             if ModelRegistry._whisper is not None:
                 self._model = ModelRegistry._whisper
             else:
-                logger.info(
+                logger.debug(
                     f"[Whisper] Loading model '{self.model_size}' on '{self.device}' with '{self.compute_type}'..."
                 )
                 self._model = WhisperModel(
@@ -37,7 +38,7 @@ class WhisperService:
         Transcribes the audio file using faster-whisper with Silero VAD filter.
         Returns a list of segment dictionaries with start_ms, end_ms, speaker_tag, and text.
         """
-        logger.info(f"[Whisper] Transcribing {audio_path}...")
+        logger.debug(f"[Whisper] Transcribing {audio_path}...")
         if not os.path.exists(audio_path):
             raise FileNotFoundError(
                 f"Audio file not found for transcription: {audio_path}"
@@ -116,7 +117,7 @@ class WhisperService:
         Transcribes the audio file and yields each segment as it is produced.
         Optionally populates info_container with transcription metadata.
         """
-        logger.info(f"[Whisper] Transcribing incrementally {audio_path}...")
+        logger.debug(f"[Whisper] Transcribing incrementally {audio_path}...")
         if not os.path.exists(audio_path):
             raise FileNotFoundError(
                 f"Audio file not found for transcription: {audio_path}"

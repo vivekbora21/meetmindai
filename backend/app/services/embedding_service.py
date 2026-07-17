@@ -61,6 +61,7 @@ class EmbeddingService:
         try:
             if self._embeddings_model is None:
                 from app.ml.model_loader import ModelRegistry
+
                 if ModelRegistry._embedder is not None:
                     self._embeddings_model = ModelRegistry._embedder
                 else:

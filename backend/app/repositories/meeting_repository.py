@@ -5,13 +5,18 @@ from app.repositories.base import BaseRepository
 from app.models.models import Meeting
 from app.models.enums import MeetingStatus, AIStatus
 
+
 class MeetingRepository(BaseRepository[Meeting]):
     def __init__(self):
         super().__init__(Meeting)
 
-    def get_user_meetings(self, db: Session, organization_id: str, include_future: bool = False) -> List[Meeting]:
-        query = db.query(self.model).filter(self.model.organization_id == organization_id)
-        
+    def get_user_meetings(
+        self, db: Session, organization_id: str, include_future: bool = False
+    ) -> List[Meeting]:
+        query = db.query(self.model).filter(
+            self.model.organization_id == organization_id
+        )
+
         if not include_future:
             now = datetime.utcnow()
             query = query.filter(
@@ -19,10 +24,12 @@ class MeetingRepository(BaseRepository[Meeting]):
                 | (self.model.status.notin_(MeetingStatus.uploaded_values()))
                 | (self.model.recording_url.isnot(None))
             )
-            
+
         return query.order_by(self.model.meeting_date.desc()).all()
 
-    def clean_stuck_meetings(self, db: Session, organization_id: str, threshold_minutes: int = 15) -> int:
+    def clean_stuck_meetings(
+        self, db: Session, organization_id: str, threshold_minutes: int = 15
+    ) -> int:
         stale_threshold = datetime.utcnow() - timedelta(minutes=threshold_minutes)
         stuck_meetings = (
             db.query(self.model)
@@ -39,7 +46,7 @@ class MeetingRepository(BaseRepository[Meeting]):
             )
             .all()
         )
-        
+
         count = 0
         if stuck_meetings:
             for m in stuck_meetings:
@@ -54,7 +61,8 @@ class MeetingRepository(BaseRepository[Meeting]):
                     m.kg_status = AIStatus.FAILED.value
                 count += 1
             db.commit()
-            
+
         return count
+
 
 meeting_repository = MeetingRepository()

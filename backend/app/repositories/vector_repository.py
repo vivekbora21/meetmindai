@@ -3,11 +3,14 @@ from sqlalchemy.orm import Session
 from app.repositories.base import BaseRepository
 from app.models.models import Transcript
 
+
 class VectorRepository(BaseRepository[Transcript]):
     def __init__(self):
         super().__init__(Transcript)
 
-    def similarity_search(self, db: Session, meeting_id: str, query_embedding: List[float], limit: int = 5) -> List[Transcript]:
+    def similarity_search(
+        self, db: Session, meeting_id: str, query_embedding: List[float], limit: int = 5
+    ) -> List[Transcript]:
         """
         Uses pgvector's L2 distance operator (<->) to find similar transcripts.
         Assumes pgvector is installed and the embedding column is configured correctly.
@@ -20,5 +23,6 @@ class VectorRepository(BaseRepository[Transcript]):
             .limit(limit)
             .all()
         )
+
 
 vector_repository = VectorRepository()

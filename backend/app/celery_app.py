@@ -7,10 +7,12 @@ REDIS_URL = get_env("REDIS_URL", "redis://localhost:6379/0")
 
 celery_app = Celery("meetingmind_workers", broker=REDIS_URL, backend=REDIS_URL)
 
+
 @setup_logging.connect
 def on_setup_logging(**kwargs):
     from app.utils.logging_pipeline import setup_logging as app_setup_logging
     from app.config.logging import logging_settings
+
     app_setup_logging(logging_settings.LOG_LEVEL)
 
 
@@ -39,15 +41,17 @@ celery_app.conf.update(
         "app.tasks.meeting_tasks.generate_cache": {"queue": "maintenance"},
         "app.tasks.meeting_tasks.join_scheduled_meeting": {"queue": "critical"},
         "app.tasks.meeting_tasks.send_mom_email": {"queue": "maintenance"},
-    }
+    },
 )
 
 # Explicitly import tasks so the worker registers them
 celery_app.conf.imports = ("app.tasks.meeting_tasks",)
 
+
 @worker_process_init.connect
 def init_worker(**kwargs):
     from app.events.handlers import register_event_handlers
     from app.ml.model_loader import ModelRegistry
+
     register_event_handlers()
     ModelRegistry.load_models()

@@ -105,6 +105,7 @@ def transcribe_audio(self, meeting_id: str, file_path: str):
         )
 
         from app.utils.logging_pipeline import PipelineTracker
+
         tracker = PipelineTracker(meeting_id)
 
         try:
@@ -113,7 +114,9 @@ def transcribe_audio(self, meeting_id: str, file_path: str):
                 extraction_success = media_service.extract_audio(
                     verified_path, extracted_wav_path
                 )
-                tracker.end_stage(2, status="COMPLETED" if extraction_success else "FAILED")
+                tracker.end_stage(
+                    2, status="COMPLETED" if extraction_success else "FAILED"
+                )
             except Exception as e:
                 tracker.end_stage(2, status="FAILED")
                 raise e
@@ -223,6 +226,7 @@ def speaker_diarization(self, meeting_id: str):
     """
     db: Session = SessionLocal()
     from app.utils.logging_pipeline import PipelineTracker
+
     tracker = PipelineTracker(meeting_id)
     tracker.start_stage(5)  # Stage 5: Speaker Diarization
     try:
@@ -391,6 +395,7 @@ def generate_embeddings(self, meeting_id: str):
     """
     db: Session = SessionLocal()
     from app.utils.logging_pipeline import PipelineTracker
+
     tracker = PipelineTracker(meeting_id)
     tracker.start_stage(6)  # Stage 6: Embeddings
     try:
@@ -420,7 +425,9 @@ def generate_embeddings(self, meeting_id: str):
             meeting.technical_status = "PENDING"
         db.commit()
 
-        tracker.end_stage(6, status="COMPLETED", metadata={"chunks": chunk_count, "batch_size": 32})
+        tracker.end_stage(
+            6, status="COMPLETED", metadata={"chunks": chunk_count, "batch_size": 32}
+        )
 
     except Exception as exc:
         tracker.end_stage(6, status="FAILED")
@@ -489,6 +496,7 @@ def generate_cache(self, meeting_id: str):
     """
     db: Session = SessionLocal()
     from app.utils.logging_pipeline import PipelineTracker
+
     tracker = PipelineTracker(meeting_id)
     tracker.start_stage(8)  # Stage 8: Cache
     try:
@@ -497,7 +505,9 @@ def generate_cache(self, meeting_id: str):
         logger.info(
             f"CeleryTask | generate_cache | Successfully populated cache for meeting: {meeting_id}"
         )
-        tracker.end_stage(8, status="COMPLETED", metadata={"size_chars": len(context_str)})
+        tracker.end_stage(
+            8, status="COMPLETED", metadata={"size_chars": len(context_str)}
+        )
     except Exception as e:
         tracker.end_stage(8, status="FAILED")
         logger.error(
@@ -515,6 +525,7 @@ def generate_ai_analysis(self, meeting_id: str):
     """
     db: Session = SessionLocal()
     from app.utils.logging_pipeline import PipelineTracker
+
     tracker = PipelineTracker(meeting_id)
     tracker.start_stage(4)  # Stage 4: AI Summary
     try:
@@ -689,9 +700,9 @@ def generate_ai_analysis(self, meeting_id: str):
                 question = Question(meeting_id=meeting_id, question_text=q_text)
                 db.add(question)
 
-            logger.info(f"AI saved | Meeting ID: {meeting_id}")
+            logger.debug(f"AI saved | Meeting ID: {meeting_id}")
             db.commit()
-            logger.info(f"Database committed | Meeting ID: {meeting_id}")
+            logger.debug(f"Database committed | Meeting ID: {meeting_id}")
 
             meeting.ai_status = "SUCCESS"
             meeting.executive_summary_status = "COMPLETED"
@@ -701,7 +712,7 @@ def generate_ai_analysis(self, meeting_id: str):
             meeting.key_themes_status = "COMPLETED"
             meeting.technical_status = "COMPLETED"
             db.commit()
-            logger.info(
+            logger.debug(
                 f"Meeting updated | Meeting ID: {meeting_id} | ai_status: {meeting.ai_status}"
             )
 
@@ -709,10 +720,26 @@ def generate_ai_analysis(self, meeting_id: str):
                 4,
                 status="COMPLETED",
                 metadata={
-                    "provider": gemini_service.current_provider.title() if hasattr(gemini_service, "current_provider") else "Gemini",
-                    "model": gemini_service.model_name if hasattr(gemini_service, "model_name") else "gemini-1.5-flash",
-                    "prompt_tokens": gemini_service.last_prompt_tokens if hasattr(gemini_service, "last_prompt_tokens") else 0,
-                    "completion_tokens": gemini_service.last_completion_tokens if hasattr(gemini_service, "last_completion_tokens") else 0,
+                    "provider": (
+                        gemini_service.current_provider.title()
+                        if hasattr(gemini_service, "current_provider")
+                        else "Gemini"
+                    ),
+                    "model": (
+                        gemini_service.model_name
+                        if hasattr(gemini_service, "model_name")
+                        else "gemini-1.5-flash"
+                    ),
+                    "prompt_tokens": (
+                        gemini_service.last_prompt_tokens
+                        if hasattr(gemini_service, "last_prompt_tokens")
+                        else 0
+                    ),
+                    "completion_tokens": (
+                        gemini_service.last_completion_tokens
+                        if hasattr(gemini_service, "last_completion_tokens")
+                        else 0
+                    ),
                 },
             )
 
@@ -730,7 +757,7 @@ def generate_ai_analysis(self, meeting_id: str):
             meeting.key_themes_status = "FAILED"
             meeting.executive_summary = "AI analysis unavailable."
             db.commit()
-            logger.info(
+            logger.debug(
                 f"Meeting updated | Meeting ID: {meeting_id} | ai_status: {meeting.ai_status} (FAILED)"
             )
             tracker.end_stage(4, status="FAILED")
@@ -759,7 +786,7 @@ def generate_ai_analysis(self, meeting_id: str):
             meeting.key_themes_status = "FAILED"
             meeting.executive_summary = "AI analysis unavailable."
             db.commit()
-            logger.info(
+            logger.debug(
                 f"Meeting updated | Meeting ID: {meeting_id} | ai_status: {meeting.ai_status} (EXCEPTION)"
             )
         # Trigger Knowledge Graph anyway
@@ -784,6 +811,7 @@ def generate_knowledge_graph(self, meeting_id: str):
     """
     db: Session = SessionLocal()
     from app.utils.logging_pipeline import PipelineTracker
+
     tracker = PipelineTracker(meeting_id)
     tracker.start_stage(7)  # Stage 7: Knowledge Graph
     try:
@@ -814,13 +842,23 @@ def generate_knowledge_graph(self, meeting_id: str):
         db.commit()
 
         # Query counts
-        node_count = db.query(KnowledgeGraphNode).filter(KnowledgeGraphNode.organization_id == meeting.organization_id).count()
-        edge_count = db.query(KnowledgeGraphEdge).filter(KnowledgeGraphEdge.organization_id == meeting.organization_id).count()
+        node_count = (
+            db.query(KnowledgeGraphNode)
+            .filter(KnowledgeGraphNode.organization_id == meeting.organization_id)
+            .count()
+        )
+        edge_count = (
+            db.query(KnowledgeGraphEdge)
+            .filter(KnowledgeGraphEdge.organization_id == meeting.organization_id)
+            .count()
+        )
 
         logger.info(
             f"Knowledge Graph stage completed successfully for meeting: {meeting_id}"
         )
-        tracker.end_stage(7, status="COMPLETED", metadata={"nodes": node_count, "edges": edge_count})
+        tracker.end_stage(
+            7, status="COMPLETED", metadata={"nodes": node_count, "edges": edge_count}
+        )
 
     except Exception as exc:
         tracker.end_stage(7, status="FAILED")
@@ -957,13 +995,13 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
 
     # Check if both diarization and AI analysis have run successfully
     if meeting.speaker_status != "COMPLETED" or meeting.ai_status != "SUCCESS":
-        logger.info(
+        logger.debug(
             f"auto_detect_speaker_names | Skipping because stages not completed. "
             f"speaker_status={meeting.speaker_status}, ai_status={meeting.ai_status}"
         )
         return
 
-    logger.info(
+    logger.debug(
         f"auto_detect_speaker_names | Running speaker name identification for meeting {meeting_id}"
     )
 
@@ -978,7 +1016,7 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
     )
 
     if not unconfirmed_speakers:
-        logger.info(
+        logger.debug(
             "auto_detect_speaker_names | No unconfirmed speakers found. Skipping."
         )
         return
@@ -990,7 +1028,7 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
             generic_speakers.append(spk)
 
     if not generic_speakers:
-        logger.info(
+        logger.debug(
             "auto_detect_speaker_names | No generic unconfirmed speakers found. Skipping."
         )
         return
@@ -1027,16 +1065,18 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
     )
 
     if not detected_mapping:
-        logger.info("auto_detect_speaker_names | No speaker names detected by LLM.")
+        logger.debug("auto_detect_speaker_names | No speaker names detected by LLM.")
         return
 
-    logger.info(f"auto_detect_speaker_names | LLM detected mapping: {detected_mapping}")
+    logger.debug(
+        f"auto_detect_speaker_names | LLM detected mapping: {detected_mapping}"
+    )
 
     updated = False
     for spk in generic_speakers:
         detected_name = detected_mapping.get(spk.display_name)
         if detected_name:
-            logger.info(
+            logger.debug(
                 f"auto_detect_speaker_names | Mapping '{spk.display_name}' to '{detected_name}'"
             )
             spk.display_name = detected_name
@@ -1047,7 +1087,7 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
         db.commit()
         # Invalidate cache so the frontend gets the fresh names
         MeetingContextCache.invalidate(meeting_id)
-        logger.info(
+        logger.debug(
             "auto_detect_speaker_names | Database updated and cache invalidated."
         )
 
@@ -1062,9 +1102,9 @@ def send_mom_email(meeting_id: str):
     db = SessionLocal()
     try:
         from app.services.email_service import EmailService
+
         EmailService.send_mom_email(db, meeting_id)
     except Exception as e:
         logger.error(f"send_mom_email task failed: {e}")
     finally:
         db.close()
-

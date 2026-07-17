@@ -27,7 +27,9 @@ class PipelineManager:
             tracker.start_stage(1)
             tracker.end_stage(1, status="SKIPPED")
         else:
-            upload_status = tracker.redis_client.hget(tracker.redis_key, "upload_status")
+            upload_status = tracker.redis_client.hget(
+                tracker.redis_key, "upload_status"
+            )
             if upload_status == b"PENDING" or upload_status == "PENDING":
                 tracker.start_stage(1)
                 tracker.end_stage(1, status="SKIPPED")

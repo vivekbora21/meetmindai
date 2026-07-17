@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Brain, Loader2, Mail } from "lucide-react";
+import { ArrowLeft, Brain, Loader2, Mail, AlertCircle } from "lucide-react";
 import { getApiUrl } from "../../../config";
 
 // Feature custom hooks
@@ -78,6 +78,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
   // Normalize status to handle both "Completed" and "COMPLETED" from backend
   const statusNorm = (meetingDetail.status || "").toUpperCase();
   const isCompleted = statusNorm === "COMPLETED";
+  const isFailed = statusNorm === "FAILED" || statusNorm === "ERROR";
+  const showNote = !isCompleted && !isFailed && !meetingDetail.executive_summary;
   const transcriptReady = Boolean(meetingDetail.transcripts?.length);
   const canShowWorkspace = Boolean(meetingDetail.recording_url) && (transcriptReady || isCompleted);
 
@@ -152,24 +154,81 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                 onScrub={handleScrub}
               />
 
+              {isFailed && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-100/60 flex items-center gap-3.5 shadow-sm mt-2">
+                  <div className="p-2 bg-rose-100 rounded-xl text-rose-700 flex-shrink-0 animate-pulse">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-bold text-rose-950 font-outfit uppercase tracking-wider">
+                      Processing Issues Encountered
+                    </span>
+                    <span className="text-[11px] text-rose-800/80 font-semibold leading-relaxed">
+                      Some stages of the AI ingestion pipeline failed. Insights may be incomplete. You can trigger a retry below or restart the full pipeline in the dashboard.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col gap-4 mt-2">
                 <MeetingTabs activeTab={activeTab} setActiveTab={setActiveTab} />
                 {activeTab === "summary" && (
                   <>
-                    {/* Show banner if AI analysis is still running or not started */}
-                    {(!meetingDetail.executive_summary &&
-                      !["FAILED", "SKIPPED", "COMPLETED", "SUCCESS", "ERROR"].includes((meetingDetail.ai_status || "").toUpperCase())) && (
-                      <AiAnalysisBanner
-                        aiStatus={meetingDetail.ai_status}
-                        onRun={handleRunAiAnalysis}
-                        isRunning={runningAiAnalysis}
-                      />
+                    {showNote ? (
+                      <div className="flex flex-col gap-4">
+                        <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow transition-all duration-300">
+                          <div className="p-3 bg-[#113229]/5 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Loader2 className="w-5 h-5 text-[#113229] animate-spin" />
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <h4 className="text-xs font-bold text-[#102C23] font-outfit uppercase tracking-wider">
+                              Transcription in Progress
+                            </h4>
+                            <p className="text-xs text-slate-500 leading-relaxed font-semibold font-outfit">
+                              Transcription is taking place. AI summary will be shown after completion.
+                            </p>
+                          </div>
+                        </div>
+                        <FullTranscript detail={meetingDetail} />
+                      </div>
+                    ) : (
+                      <>
+                        {/* Show banner if AI analysis is still running or not started */}
+                        {!meetingDetail.executive_summary && (
+                          <AiAnalysisBanner
+                            aiStatus={meetingDetail.ai_status}
+                            onRun={handleRunAiAnalysis}
+                            isRunning={runningAiAnalysis}
+                          />
+                        )}
+                        <MeetingSummary detail={meetingDetail} />
+                        <FullTranscript detail={meetingDetail} />
+                      </>
                     )}
-                    <MeetingSummary detail={meetingDetail} />
-                    <FullTranscript detail={meetingDetail} />
                   </>
                 )}
-                {activeTab === "timeline" && <MeetingTimeline detail={meetingDetail} />}
+                {activeTab === "timeline" && (
+                  showNote ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow transition-all duration-300">
+                        <div className="p-3 bg-[#113229]/5 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Loader2 className="w-5 h-5 text-[#113229] animate-spin" />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <h4 className="text-xs font-bold text-[#102C23] font-outfit uppercase tracking-wider">
+                            Transcription in Progress
+                          </h4>
+                          <p className="text-xs text-slate-500 leading-relaxed font-semibold font-outfit">
+                            Transcription is taking place. AI summary will be shown after completion.
+                          </p>
+                        </div>
+                      </div>
+                      <FullTranscript detail={meetingDetail} />
+                    </div>
+                  ) : (
+                    <MeetingTimeline detail={meetingDetail} />
+                  )
+                )}
                 {activeTab === "participants" && (
                   <ParticipantsPanel
                     detail={meetingDetail}
@@ -183,20 +242,79 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
                   />
                 )}
                 {activeTab === "actions" && (
-                  <MeetingActionItems
-                    detail={meetingDetail}
-                    jiraSyncing={jiraSyncing}
-                    jiraStatus={jiraStatus}
-                    onJiraSync={handleJiraSync}
-                  />
+                  showNote ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow transition-all duration-300">
+                        <div className="p-3 bg-[#113229]/5 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Loader2 className="w-5 h-5 text-[#113229] animate-spin" />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <h4 className="text-xs font-bold text-[#102C23] font-outfit uppercase tracking-wider">
+                            Transcription in Progress
+                          </h4>
+                          <p className="text-xs text-slate-500 leading-relaxed font-semibold font-outfit">
+                            Transcription is taking place. AI summary will be shown after completion.
+                          </p>
+                        </div>
+                      </div>
+                      <FullTranscript detail={meetingDetail} />
+                    </div>
+                  ) : (
+                    <MeetingActionItems
+                      detail={meetingDetail}
+                      jiraSyncing={jiraSyncing}
+                      jiraStatus={jiraStatus}
+                      onJiraSync={handleJiraSync}
+                    />
+                  )
                 )}
                 {activeTab === "decisions_risks" && (
-                  <div className="flex flex-col gap-6">
-                    <MeetingDecisions detail={meetingDetail} />
-                    <MeetingRisks detail={meetingDetail} />
-                  </div>
+                  showNote ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow transition-all duration-300">
+                        <div className="p-3 bg-[#113229]/5 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Loader2 className="w-5 h-5 text-[#113229] animate-spin" />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <h4 className="text-xs font-bold text-[#102C23] font-outfit uppercase tracking-wider">
+                            Transcription in Progress
+                          </h4>
+                          <p className="text-xs text-slate-500 leading-relaxed font-semibold font-outfit">
+                            Transcription is taking place. AI summary will be shown after completion.
+                          </p>
+                        </div>
+                      </div>
+                      <FullTranscript detail={meetingDetail} />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-6">
+                      <MeetingDecisions detail={meetingDetail} />
+                      <MeetingRisks detail={meetingDetail} />
+                    </div>
+                  )
                 )}
-                {activeTab === "technical" && <MeetingTechnical detail={meetingDetail} audioSrc={audioSrc} />}
+                {activeTab === "technical" && (
+                  showNote ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow transition-all duration-300">
+                        <div className="p-3 bg-[#113229]/5 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Loader2 className="w-5 h-5 text-[#113229] animate-spin" />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <h4 className="text-xs font-bold text-[#102C23] font-outfit uppercase tracking-wider">
+                            Transcription in Progress
+                          </h4>
+                          <p className="text-xs text-slate-500 leading-relaxed font-semibold font-outfit">
+                            Transcription is taking place. AI summary will be shown after completion.
+                          </p>
+                        </div>
+                      </div>
+                      <FullTranscript detail={meetingDetail} />
+                    </div>
+                  ) : (
+                    <MeetingTechnical detail={meetingDetail} audioSrc={audioSrc} />
+                  )
+                )}
               </div>
             </>
           )}

@@ -6,7 +6,13 @@ import httpx
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.models import ConnectedAccount, Meeting, Provider, ScheduledMeeting, CalendarEvent
+from app.models.models import (
+    ConnectedAccount,
+    Meeting,
+    Provider,
+    ScheduledMeeting,
+    CalendarEvent,
+)
 from app.integrations.registry import get_provider
 from app.utils.encryption import decrypt_value
 
@@ -60,7 +66,7 @@ class GoogleCalendarService:
         Retrieves upcoming meetings for the next 30 days and syncs them in the database.
         Automatically handles access token refreshes if expired.
         """
-        logger.info(
+        logger.debug(
             f"Google Calendar Sync Requested: [User ID: {user_id}] [Provider Requested: {Provider.GOOGLE}]"
         )
 
@@ -82,7 +88,7 @@ class GoogleCalendarService:
                 detail="ConnectedAccount not found. Please connect your Google account first.",
             )
 
-        logger.info(
+        logger.debug(
             f"ConnectedAccount Found: [Stored Provider: {account.provider}] [Stored User ID: {account.user_id}] "
             f"[Token Expiry: {account.expires_at}]"
         )
@@ -92,7 +98,7 @@ class GoogleCalendarService:
             not account.expires_at
             or account.expires_at <= datetime.utcnow() + timedelta(seconds=60)
         ):
-            logger.info(
+            logger.debug(
                 f"Google access token expired or near expiry for user {user_id}. Refreshing..."
             )
             if not account.refresh_token:
@@ -118,7 +124,7 @@ class GoogleCalendarService:
                 )
                 account.connection_status = "Connected"
                 db.commit()
-                logger.info(
+                logger.debug(
                     f"Successfully refreshed and saved new Google tokens for user {user_id}."
                 )
             except HTTPException as he:
@@ -169,7 +175,7 @@ class GoogleCalendarService:
                 response = await client.get(
                     url, params=params, headers=headers, timeout=10.0
                 )
-                logger.info(f"Google Calendar Response Status: {response.status_code}")
+                logger.debug(f"Google Calendar Response Status: {response.status_code}")
 
                 if response.status_code == 401:
                     logger.error(
@@ -188,7 +194,7 @@ class GoogleCalendarService:
                     )
 
                 events_data = response.json().get("items", [])
-                logger.info(
+                logger.debug(
                     f"Retrieved {len(events_data)} calendar events from Google Calendar."
                 )
 
@@ -214,11 +220,14 @@ class GoogleCalendarService:
                     for att in attendees_raw:
                         email = att.get("email")
                         if email:
-                            attendees_parsed.append({
-                                "name": att.get("displayName") or email.split("@")[0],
-                                "email": email,
-                                "response": att.get("responseStatus", "none")
-                            })
+                            attendees_parsed.append(
+                                {
+                                    "name": att.get("displayName")
+                                    or email.split("@")[0],
+                                    "email": email,
+                                    "response": att.get("responseStatus", "none"),
+                                }
+                            )
 
                     attendees_emails = [
                         a.get("email") for a in attendees_raw if a.get("email")
@@ -257,9 +266,9 @@ class GoogleCalendarService:
                     # Also check location and description for URLs
                     loc = ev.get("location") or ""
                     desc = ev.get("description") or ""
-                    
+
                     url_pattern = re.compile(r'https?://[^\s<>"]+|www\.[^\s<>"]+')
-                    
+
                     # Search in join_url, location, and description for signatures
                     found_url = None
                     for text in [join_url, loc, desc]:
@@ -268,7 +277,10 @@ class GoogleCalendarService:
                         urls = url_pattern.findall(text)
                         for u in urls:
                             u_lower = u.lower()
-                            if "meet.google.com" in u_lower or "hangouts.google.com" in u_lower:
+                            if (
+                                "meet.google.com" in u_lower
+                                or "hangouts.google.com" in u_lower
+                            ):
                                 found_url = u
                                 meeting_provider = "Google Meet"
                                 is_online_meeting = True
@@ -278,7 +290,10 @@ class GoogleCalendarService:
                                 meeting_provider = "Zoom"
                                 is_online_meeting = True
                                 break
-                            elif "teams.microsoft.com" in u_lower or "teams.live.com" in u_lower:
+                            elif (
+                                "teams.microsoft.com" in u_lower
+                                or "teams.live.com" in u_lower
+                            ):
                                 found_url = u
                                 meeting_provider = "Teams"
                                 is_online_meeting = True
@@ -458,7 +473,7 @@ class GoogleCalendarService:
                 for m in synced_meetings:
                     db.refresh(m)
 
-                logger.info(
+                logger.debug(
                     f"Successfully synced and committed {len(synced_meetings)} Google Meet meetings for user {user_id}."
                 )
                 return synced_meetings

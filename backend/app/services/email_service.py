@@ -28,14 +28,20 @@ class EmailService:
         action_items: List[ActionItem],
         decisions: List[Decision],
         risks: List[Risk],
-        questions: List[Question]
+        questions: List[Question],
     ) -> str:
         """
         Generates a premium, highly polished HTML Minutes of Meeting (MOM) template
         matching enterprise SaaS designs (Notion, Linear, Zoom AI Companion).
         """
-        date_str = meeting.meeting_date.strftime("%B %d, %Y") if meeting.meeting_date else "N/A"
-        time_str = meeting.meeting_date.strftime("%I:%M %p") if meeting.meeting_date else "N/A"
+        date_str = (
+            meeting.meeting_date.strftime("%B %d, %Y")
+            if meeting.meeting_date
+            else "N/A"
+        )
+        time_str = (
+            meeting.meeting_date.strftime("%I:%M %p") if meeting.meeting_date else "N/A"
+        )
         duration_min = meeting.duration_seconds // 60 if meeting.duration_seconds else 0
 
         # Attendees & Participants list
@@ -52,7 +58,7 @@ class EmailService:
             except Exception:
                 pass
         attendees_pills = ""
-        for att in attendees_list[:5]: # Cap at 5 display list
+        for att in attendees_list[:5]:  # Cap at 5 display list
             attendees_pills += f'<span style="display: inline-block; background-color: #F1F5F9; color: #475569; font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: 4px; margin-right: 4px; margin-bottom: 4px;">{att}</span>'
         if len(attendees_list) > 5:
             attendees_pills += f'<span style="display: inline-block; background-color: #E2E8F0; color: #64748B; font-size: 12px; font-weight: 500; padding: 3px 8px; border-radius: 4px;">+{len(attendees_list) - 5} more</span>'
@@ -123,7 +129,11 @@ class EmailService:
         if decisions:
             items = ""
             for dec in decisions:
-                rationale_str = f'<div style="font-size: 12.5px; color: #64748B; margin-top: 4px; line-height: 1.4;"><strong>Rationale:</strong> {dec.rationale}</div>' if dec.rationale else ""
+                rationale_str = (
+                    f'<div style="font-size: 12.5px; color: #64748B; margin-top: 4px; line-height: 1.4;"><strong>Rationale:</strong> {dec.rationale}</div>'
+                    if dec.rationale
+                    else ""
+                )
                 items += f"""
                 <div style="background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
                     <div style="display: table; width: 100%;">
@@ -228,8 +238,12 @@ class EmailService:
             blocker_cards = ""
             for r in risks:
                 sev = (r.severity or "Medium").upper()
-                mitigation_str = f'<div style="font-size: 12.5px; color: #64748B; margin-top: 4px;"><strong>Mitigation:</strong> {r.mitigation}</div>' if r.mitigation else ""
-                
+                mitigation_str = (
+                    f'<div style="font-size: 12.5px; color: #64748B; margin-top: 4px;"><strong>Mitigation:</strong> {r.mitigation}</div>'
+                    if r.mitigation
+                    else ""
+                )
+
                 if sev in ("CRITICAL", "HIGH"):
                     blocker_cards += f"""
                     <div style="background-color: #FFF5F5; border: 1px solid #FEE2E2; border-left: 4px solid #DC2626; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
@@ -433,7 +447,9 @@ class EmailService:
             return
 
         # Fetch relations
-        action_items = db.query(ActionItem).filter(ActionItem.meeting_id == meeting_id).all()
+        action_items = (
+            db.query(ActionItem).filter(ActionItem.meeting_id == meeting_id).all()
+        )
         decisions = db.query(Decision).filter(Decision.meeting_id == meeting_id).all()
         risks = db.query(Risk).filter(Risk.meeting_id == meeting_id).all()
         questions = db.query(Question).filter(Question.meeting_id == meeting_id).all()
@@ -442,7 +458,7 @@ class EmailService:
         recipients = set()
         if meeting.organizer_email:
             recipients.add(meeting.organizer_email)
-        
+
         if meeting.attendees:
             try:
                 for att in meeting.attendees:
@@ -457,20 +473,32 @@ class EmailService:
 
         # Fallback to org users if none found
         if not recipients:
-            org_users = db.query(User).filter(User.organization_id == meeting.organization_id).all()
+            org_users = (
+                db.query(User)
+                .filter(User.organization_id == meeting.organization_id)
+                .all()
+            )
             for u in org_users:
                 recipients.add(u.email)
 
         recipients_list = list(recipients)
         if not recipients_list:
-            logger.warning(f"[EmailService] No recipients found for meeting {meeting_id}. Aborting.")
+            logger.warning(
+                f"[EmailService] No recipients found for meeting {meeting_id}. Aborting."
+            )
             return
 
         # Generate HTML MOM content
-        html_content = cls.generate_mom_html(meeting, action_items, decisions, risks, questions)
+        html_content = cls.generate_mom_html(
+            meeting, action_items, decisions, risks, questions
+        )
 
         # 1. Always save a copy locally in uploads directory for preview and debugging
-        previews_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", "mom_previews")
+        previews_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "uploads",
+            "mom_previews",
+        )
         os.makedirs(previews_dir, exist_ok=True)
         preview_file_path = os.path.join(previews_dir, f"mom_{meeting_id}.html")
         try:
@@ -482,14 +510,18 @@ class EmailService:
 
         # 2. Check SMTP Settings. If not configured, exit gracefully
         if not email_settings.SMTP_USER or not email_settings.SMTP_PASSWORD:
-            logger.warning("[EmailService] SMTP credentials are not configured in environment. MOM Email delivery skipped (HTML saved locally).")
+            logger.warning(
+                "[EmailService] SMTP credentials are not configured in environment. MOM Email delivery skipped (HTML saved locally)."
+            )
             return
 
         # 3. Create MIMEMultipart email message
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = f"Minutes of Meeting: {meeting.title}"
-            msg["From"] = f"{email_settings.SMTP_FROM_NAME} <{email_settings.SMTP_FROM_EMAIL}>"
+            msg["From"] = (
+                f"{email_settings.SMTP_FROM_NAME} <{email_settings.SMTP_FROM_EMAIL}>"
+            )
             msg["To"] = ", ".join(recipients_list)
 
             # Plain text fallback
@@ -500,22 +532,30 @@ class EmailService:
                 text_fallback += "Action Items:\n"
                 for item in action_items:
                     text_fallback += f"- {item.description} (Assignee: {item.assigned_user.name if item.assigned_user else 'Unassigned'})\n"
-            
+
             msg.attach(MIMEText(text_fallback, "plain"))
             msg.attach(MIMEText(html_content, "html"))
 
             # Send via SMTP
-            logger.info(f"[EmailService] Dispatching MOM email to recipients: {recipients_list}")
-            
+            logger.info(
+                f"[EmailService] Dispatching MOM email to recipients: {recipients_list}"
+            )
+
             if email_settings.SMTP_SSL:
-                server = smtplib.SMTP_SSL(email_settings.SMTP_HOST, email_settings.SMTP_PORT)
+                server = smtplib.SMTP_SSL(
+                    email_settings.SMTP_HOST, email_settings.SMTP_PORT
+                )
             else:
-                server = smtplib.SMTP(email_settings.SMTP_HOST, email_settings.SMTP_PORT)
+                server = smtplib.SMTP(
+                    email_settings.SMTP_HOST, email_settings.SMTP_PORT
+                )
                 if email_settings.SMTP_TLS:
                     server.starttls()
 
             server.login(email_settings.SMTP_USER, email_settings.SMTP_PASSWORD)
-            server.sendmail(email_settings.SMTP_FROM_EMAIL, recipients_list, msg.as_string())
+            server.sendmail(
+                email_settings.SMTP_FROM_EMAIL, recipients_list, msg.as_string()
+            )
             server.quit()
             logger.info("[EmailService] MOM email sent successfully.")
 

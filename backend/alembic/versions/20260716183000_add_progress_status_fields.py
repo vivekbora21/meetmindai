@@ -8,7 +8,6 @@ Create Date: 2026-07-16 18:30:00.000000
 from alembic import op
 import sqlalchemy as sa
 
-
 # revision identifiers, used by Alembic.
 revision = "20260716183000"
 down_revision = "58c204fc5453"
@@ -19,31 +18,66 @@ depends_on = None
 def upgrade() -> None:
     op.add_column(
         "meetings",
-        sa.Column("transcript_status", sa.String(length=50), server_default="PENDING", nullable=True),
+        sa.Column(
+            "transcript_status",
+            sa.String(length=50),
+            server_default="PENDING",
+            nullable=True,
+        ),
     )
     op.add_column(
         "meetings",
-        sa.Column("executive_summary_status", sa.String(length=50), server_default="PENDING", nullable=True),
+        sa.Column(
+            "executive_summary_status",
+            sa.String(length=50),
+            server_default="PENDING",
+            nullable=True,
+        ),
     )
     op.add_column(
         "meetings",
-        sa.Column("action_items_status", sa.String(length=50), server_default="PENDING", nullable=True),
+        sa.Column(
+            "action_items_status",
+            sa.String(length=50),
+            server_default="PENDING",
+            nullable=True,
+        ),
     )
     op.add_column(
         "meetings",
-        sa.Column("decisions_status", sa.String(length=50), server_default="PENDING", nullable=True),
+        sa.Column(
+            "decisions_status",
+            sa.String(length=50),
+            server_default="PENDING",
+            nullable=True,
+        ),
     )
     op.add_column(
         "meetings",
-        sa.Column("risks_status", sa.String(length=50), server_default="PENDING", nullable=True),
+        sa.Column(
+            "risks_status",
+            sa.String(length=50),
+            server_default="PENDING",
+            nullable=True,
+        ),
     )
     op.add_column(
         "meetings",
-        sa.Column("technical_status", sa.String(length=50), server_default="PENDING", nullable=True),
+        sa.Column(
+            "technical_status",
+            sa.String(length=50),
+            server_default="PENDING",
+            nullable=True,
+        ),
     )
     op.add_column(
         "meetings",
-        sa.Column("key_themes_status", sa.String(length=50), server_default="PENDING", nullable=True),
+        sa.Column(
+            "key_themes_status",
+            sa.String(length=50),
+            server_default="PENDING",
+            nullable=True,
+        ),
     )
 
 

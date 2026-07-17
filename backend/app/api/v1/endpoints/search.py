@@ -498,7 +498,6 @@ def get_global_chat_history(
     return sessions
 
 
-
 @router.get("/chat/{session_id}", response_model=ChatSessionDetailOut)
 def get_chat_session(
     session_id: str,
@@ -684,7 +683,7 @@ def chat_in_session(
                 db.query(Meeting)
                 .filter(
                     Meeting.organization_id == current_user.organization_id,
-                    Meeting.status == "COMPLETED"
+                    Meeting.status == "COMPLETED",
                 )
                 .order_by(Meeting.meeting_date.desc())
                 .limit(5)
@@ -694,7 +693,9 @@ def chat_in_session(
                 context_str = "Context from recent meetings:\n"
                 for m in recent_meetings:
                     if m.executive_summary:
-                        context_str += f"Meeting '{m.title}' Summary: {m.executive_summary}\n\n"
+                        context_str += (
+                            f"Meeting '{m.title}' Summary: {m.executive_summary}\n\n"
+                        )
             else:
                 context_str = "No recent meetings context available. Answer based on general knowledge."
 

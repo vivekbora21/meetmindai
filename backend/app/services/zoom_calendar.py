@@ -101,7 +101,7 @@ class ZoomCalendarService:
         """
         Main sync entry point called by the scheduler and /api/calendar/events.
         """
-        logger.info(
+        logger.debug(
             f"[Zoom Sync] Requested | user_id={user_id} provider={Provider.ZOOM}"
         )
 
@@ -179,7 +179,7 @@ class ZoomCalendarService:
         ):
             return  # Still valid
 
-        logger.info(f"[Zoom Sync] Token near expiry - refreshing | user_id={user_id}")
+        logger.debug(f"[Zoom Sync] Token near expiry - refreshing | user_id={user_id}")
 
         if not account.refresh_token:
             raise HTTPException(
@@ -202,7 +202,7 @@ class ZoomCalendarService:
                 account.scope = new_tokens["scope"]
             account.connection_status = "Connected"
             db.commit()
-            logger.info(f"[Zoom Sync] Token refreshed | user_id={user_id}")
+            logger.debug(f"[Zoom Sync] Token refreshed | user_id={user_id}")
         except HTTPException as he:
             account.connection_status = "Expired"
             db.commit()
@@ -241,7 +241,7 @@ class ZoomCalendarService:
                     url, params=params, headers=headers, timeout=10.0
                 )
 
-                logger.info(
+                logger.debug(
                     f"[Zoom Sync] API response | user_id={user_id} "
                     f"endpoint={url} http_status={response.status_code} "
                     f"account_email={account.email}"
@@ -249,7 +249,7 @@ class ZoomCalendarService:
 
                 if response.status_code == 200:
                     meetings_data = response.json().get("meetings", [])
-                    logger.info(
+                    logger.debug(
                         f"[Zoom Sync] Got {len(meetings_data)} meetings | user_id={user_id}"
                     )
                     return self._upsert_meetings(db, account, meetings_data, user_id)
@@ -479,7 +479,7 @@ class ZoomCalendarService:
         for m in synced_meetings:
             db.refresh(m)
 
-        logger.info(
+        logger.debug(
             f"[Zoom Sync] Committed {len(synced_meetings)} meetings | user_id={user_id}"
         )
         return synced_meetings

@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { useModalStore } from "@/store/useModalStore";
 import { chatService } from "../services/chat.service";
 import { ChatMessage, ChatSession } from "../types/chat";
 
 export function useChat(meetingId: string | null) {
+  const { showModal } = useModalStore();
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -80,15 +82,23 @@ export function useChat(meetingId: string | null) {
 
   const handleClearChat = async () => {
     if (!activeSessionId) return;
-    if (!confirm("Are you sure you want to clear this session's history?")) return;
-    try {
-      const ok = await chatService.clearSessionMessages(activeSessionId);
-      if (ok) {
-        setChatMessages([]);
+    
+    showModal({
+      title: "Clear Chat",
+      message: "Are you sure you want to clear this session's history?",
+      type: "confirm",
+      confirmText: "Clear History",
+      onConfirm: async () => {
+        try {
+          const ok = await chatService.clearSessionMessages(activeSessionId);
+          if (ok) {
+            setChatMessages([]);
+          }
+        } catch (e) {
+          console.error("Failed to clear chat messages", e);
+        }
       }
-    } catch (e) {
-      console.error("Failed to clear chat messages", e);
-    }
+    });
   };
 
   const handleToggleArchive = async (archiveVal: boolean) => {
@@ -170,7 +180,11 @@ export function useChat(meetingId: string | null) {
         fetchSessionsListSilent();
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(errorData.detail || "Failed to get AI answer.");
+        showModal({
+          title: "Error",
+          message: errorData.detail || "Failed to get AI answer.",
+          type: "error"
+        });
         setChatLoading(false);
         setChatStatus("idle");
       }
@@ -195,7 +209,11 @@ export function useChat(meetingId: string | null) {
       .map(m => `${m.role === "user" ? "User" : "MeetingMind AI"}: ${m.text}`)
       .join("\n\n");
     navigator.clipboard.writeText(formatted);
-    alert("Chat history copied to clipboard!");
+    showModal({
+      title: "Copied",
+      message: "Chat history copied to clipboard!",
+      type: "success"
+    });
   };
 
   const exportMarkdown = () => {

@@ -5,6 +5,7 @@ import time
 
 logger = logging.getLogger("meeting.worker")
 
+
 class ModelRegistry:
     _whisper = None
     _embedder = None
@@ -21,7 +22,7 @@ class ModelRegistry:
             args = sys.argv
             for i, arg in enumerate(args):
                 if arg == "-Q" and i + 1 < len(args):
-                    for q in args[i+1].split(","):
+                    for q in args[i + 1].split(","):
                         queues.add(q.strip())
                 elif arg.startswith("--queues="):
                     for q in arg.split("=")[1].split(","):
@@ -39,69 +40,96 @@ class ModelRegistry:
         has_background = "background" in queues or not queues
         has_speaker = "speaker" in queues or not queues
 
-        queue_str = ", ".join(sorted(queues)) if queues else "critical, background, speaker, maintenance, celery"
-        loaded_list = []
+        queue_str = (
+            ", ".join(sorted(queues))
+            if queues
+            else "critical, background, speaker, maintenance, celery"
+        )
 
         # 1. Load Whisper for critical queue
         if has_critical:
             start_whisper = time.time()
-            logger.info("[ModelRegistry] Pre-loading Whisper model for critical tasks...")
+            logger.debug(
+                "[ModelRegistry] Pre-loading Whisper model for critical tasks..."
+            )
             try:
                 from app.services.whisper_service import WhisperService
                 from faster_whisper import WhisperModel
+
                 whisper_svc = WhisperService()
                 cls._whisper = WhisperModel(
                     whisper_svc.model_size,
                     device=whisper_svc.device,
-                    compute_type=whisper_svc.compute_type
+                    compute_type=whisper_svc.compute_type,
                 )
                 elapsed = time.time() - start_whisper
-                loaded_list.append(f"Whisper ({elapsed:.1f} sec)")
+                logger.info(f"[critical] Whisper model loaded ({elapsed:.1f}s)")
             except Exception as e:
-                logger.error(f"[ModelRegistry] Failed to pre-load Whisper: {e}")
+                logger.error(f"[critical] Whisper model loading failed: {e}")
 
         # 2. Load Embedding for background queue
         if has_background:
             start_embed = time.time()
-            logger.info("[ModelRegistry] Pre-loading local SentenceTransformer model for embedding tasks...")
+            logger.debug(
+                "[ModelRegistry] Pre-loading local SentenceTransformer model for embedding tasks..."
+            )
             try:
                 from sentence_transformers import SentenceTransformer
-                cls._embedder = SentenceTransformer("nomic-ai/nomic-embed-text-v1", trust_remote_code=True)
+
+                cls._embedder = SentenceTransformer(
+                    "nomic-ai/nomic-embed-text-v1", trust_remote_code=True
+                )
                 elapsed = time.time() - start_embed
-                loaded_list.append(f"Embedding ({elapsed:.1f} sec)")
+                logger.info(f"[embedding] SentenceTransformer loaded ({elapsed:.1f}s)")
             except Exception as e:
-                logger.error(f"[ModelRegistry] Failed to pre-load Embedding model: {e}")
+                logger.error(f"[embedding] SentenceTransformer loading failed: {e}")
 
         # 3. Load Speaker Diarization (SpeechBrain) for speaker queue
         if has_speaker:
             start_diarizer = time.time()
-            logger.info("[ModelRegistry] Pre-loading SpeechBrain model for diarization tasks...")
+            logger.debug(
+                "[ModelRegistry] Pre-loading SpeechBrain model for diarization tasks..."
+            )
             try:
                 from speechbrain.inference.speaker import EncoderClassifier
-                from app.services.transcription.voice_embedding import VoiceEmbeddingService
+                from app.services.transcription.voice_embedding import (
+                    VoiceEmbeddingService,
+                )
+
                 voice_svc = VoiceEmbeddingService()
                 cls._diarizer_model = EncoderClassifier.from_hparams(
-                    source=voice_svc.model_source,
-                    run_opts={"device": voice_svc.device}
+                    source=voice_svc.model_source, run_opts={"device": voice_svc.device}
                 )
                 elapsed = time.time() - start_diarizer
-                loaded_list.append(f"Speaker Diarization ({elapsed:.1f} sec)")
+                logger.info(f"[speaker] SpeechBrain model loaded ({elapsed:.1f}s)")
             except Exception as e:
-                logger.error(f"[ModelRegistry] Failed to pre-load Speaker Diarization: {e}")
+                logger.error(f"[speaker] SpeechBrain model loading failed: {e}")
+
+        # Register readiness in Redis
+        try:
+            import redis
+            from app.config.settings import get_env
+
+            redis_url = get_env("REDIS_URL", "redis://localhost:6379/0")
+            r = redis.Redis.from_url(redis_url)
+
+            # Determine current worker type from queues
+            if "critical" in queues:
+                w_type = "critical"
+            elif "speaker" in queues:
+                w_type = "speaker"
+            elif "background" in queues:
+                w_type = "embedding"
+            elif "maintenance" in queues:
+                w_type = "maintenance"
+            else:
+                w_type = "maintenance"
+
+            r.sadd("meetingmind:ready_workers", w_type)
+        except Exception as re:
+            logger.debug(f"Failed to record worker readiness in Redis: {re}")
 
         total_elapsed = time.time() - start_time
-        loaded_models_str = "\n".join(f"✓ {m}" for m in loaded_list) if loaded_list else "None"
-
-        # Output exactly formatted startup message
-        startup_msg = (
-            f"\n==================================================\n\n"
-            f"Worker PID {pid}\n\n"
-            f"Queue\n"
-            f"{queue_str}\n\n"
-            f"Loaded Models\n"
-            f"{loaded_models_str}\n\n"
-            f"Startup Time\n"
-            f"{total_elapsed:.1f} sec\n\n"
-            f"=================================================="
+        logger.debug(
+            f"Worker PID {pid} started in {total_elapsed:.1f}s (Queues: {queue_str})"
         )
-        logger.info(startup_msg)
