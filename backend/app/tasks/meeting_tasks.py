@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from app.celery_app import celery_app
@@ -924,33 +925,10 @@ def join_scheduled_meeting(self, scheduled_meeting_id: str):
             session.status = "Live"
         db.commit()
 
-        platform = _normalize_platform(scheduled.platform)
+        # Auto-join meeting bots have been removed. Verify directly if a recording is available.
         logger.info(
-            f"CeleryTask | join_scheduled_meeting | Bot joining {platform}: {scheduled.meeting_url}"
+            f"CeleryTask | join_scheduled_meeting | Bot auto-join disabled. Checking for uploaded media."
         )
-
-        if platform == "Teams":
-            from app.agent.connectors.teams import TeamsConnector
-
-            TeamsConnector().join_meeting(scheduled.meeting_url)
-        elif platform == "Google Meet":
-            from app.agent.connectors.meet import GoogleMeetConnector
-
-            GoogleMeetConnector().join_meeting(scheduled.meeting_url)
-        elif platform == "Zoom":
-            from app.agent.connectors.zoom import ZoomConnector
-
-            ZoomConnector().join_meeting(scheduled.meeting_url)
-        else:
-            logger.warning(
-                f"CeleryTask | join_scheduled_meeting | Unsupported platform for auto-join: {scheduled.platform}"
-            )
-            scheduled.status = "Failed"
-            meeting.status = "FAILED"
-            if session:
-                session.status = "Error"
-            db.commit()
-            return
 
         # Check if a real media file is available for the meeting before queuing Celery.
         media_service = MediaService()

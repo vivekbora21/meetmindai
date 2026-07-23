@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Upload, Download, Loader2, Link as LinkIcon } from "lucide-react";
 import { MeetingDetail } from "../types/meeting";
 import { meetingService } from "../services/meeting.service";
+import { toast } from "@/store/useToastStore";
 
 interface IngestMeetingCardProps {
   onMeetingAdded?: (meeting: MeetingDetail) => void;
@@ -51,7 +52,10 @@ export const IngestMeetingCard: React.FC<IngestMeetingCardProps> = ({ onMeetingA
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!meetingTitle) return;
+    if (!meetingTitle) {
+      toast.warning("Please enter a meeting title.");
+      return;
+    }
     setUploading(true);
 
     const isLinkJoin = platform === "Teams" || platform === "Google Meet";
@@ -75,6 +79,7 @@ export const IngestMeetingCard: React.FC<IngestMeetingCardProps> = ({ onMeetingA
       }
 
       if (responseData) {
+        toast.success("Meeting ingested successfully! Redirecting to meeting page...");
         if (onMeetingAdded) {
           onMeetingAdded(responseData);
         }
@@ -84,6 +89,7 @@ export const IngestMeetingCard: React.FC<IngestMeetingCardProps> = ({ onMeetingA
       }
     } catch {
       console.warn("Could not sync upload to backend.");
+      toast.error("Failed to ingest meeting. Please try again.");
     } finally {
       setMeetingTitle("");
       setMeetingUrl("");

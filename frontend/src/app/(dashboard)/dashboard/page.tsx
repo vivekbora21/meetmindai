@@ -128,7 +128,6 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all"); // "all", "processing"
   const [userName, setUserName] = useState("Vivek Singh Bora");
-  const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     productivity_score: 100,
     total_decisions: 0,
@@ -187,7 +186,6 @@ export default function Dashboard() {
   }, [router]);
 
   useEffect(() => {
-    setMounted(true);
     fetchMeetings();
     fetchProfile();
     fetchStats();
@@ -277,34 +275,34 @@ export default function Dashboard() {
   });
 
   return (
-    <main className="p-8 flex flex-col gap-8 max-w-9xl mx-auto text-[#102C23] animate-fade-in-up">
+    <main className="p-6 md:p-8 flex flex-col gap-8 max-w-9xl mx-auto text-[#0F172A] animate-fade-in-up">
       {/* Top Banner / Hero Greeting */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#113229] to-[#0D241E] p-8 text-white shadow-xl shadow-[#113229]/10">
-        {/* Glow decorative shapes */}
-        <div className="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-[#D98A44]/15 blur-3xl"></div>
-        <div className="absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-[#113229]/40 blur-3xl"></div>
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#113229] via-[#0E2821] to-[#071713] p-8 text-white shadow-xl shadow-[#113229]/15 border border-[#113229]/40">
+        {/* Ambient decorative glow mesh */}
+        <div className="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-[#D98A44]/20 blur-3xl pointer-events-none"></div>
+        <div className="absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-[#113229]/50 blur-3xl pointer-events-none"></div>
         
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <span className="bg-[#D98A44]/20 border border-[#D98A44]/30 text-[#e9a15f] text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full tracking-wider flex items-center gap-1">
-                <Sparkle className="w-3 h-3 text-[#D98A44]" /> MeetMind Engine Active
+              <span className="bg-[#D98A44]/20 border border-[#D98A44]/35 text-[#F5B075] text-[10px] font-extrabold uppercase px-3 py-1 rounded-full tracking-wider flex items-center gap-1.5 shadow-xs">
+                <Sparkle className="w-3 h-3 text-[#D98A44] animate-spin" style={{ animationDuration: '8s' }} /> MeetMind Intelligence Active
               </span>
             </div>
-            <h1 className="text-3xl font-extrabold font-outfit tracking-tight md:text-4xl mt-1">
-              {getGreeting()}, <span className="text-[#e9a15f]">{userName}</span>
+            <h1 className="text-3xl font-extrabold font-outfit tracking-tight md:text-4xl mt-1 text-white">
+              {getGreeting()}, <span className="text-[#F5B075]">{userName}</span>
             </h1>
-            <p className="text-slate-350 text-xs md:text-sm max-w-xl font-medium mt-1">
-              MeetMind AI has synthesized your latest operations. You have <span className="text-white font-bold">{stats.pending_action_items} action items</span> pending review.
+            <p className="text-slate-300 text-xs md:text-sm max-w-xl font-medium mt-1 leading-relaxed">
+              MeetMind AI has synthesized your team syncs. You have <span className="text-white font-bold underline decoration-[#D98A44] underline-offset-4">{stats.pending_action_items} action items</span> awaiting team resolution.
             </p>
           </div>
 
-          <div className="flex flex-col items-end gap-1.5 bg-[#FFFFFF]/5 backdrop-blur-md border border-[#FFFFFF]/10 p-4 rounded-2xl md:min-w-[200px]">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">System Time</span>
+          <div className="flex flex-col items-end gap-1.5 bg-white/10 backdrop-blur-md border border-white/15 p-4 rounded-2xl md:min-w-[210px] shadow-inner">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">System Clock</span>
             <span className="font-outfit text-sm font-bold text-white">{formattedDate}</span>
-            <div className="flex items-center gap-1.5 mt-2 text-[10px] text-teal-400 font-bold bg-[#113229]/60 px-2.5 py-1 rounded-lg border border-teal-900/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
-              All services operational
+            <div className="flex items-center gap-1.5 mt-2 text-[10px] text-emerald-300 font-bold bg-[#113229]/80 px-3 py-1 rounded-lg border border-emerald-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              All systems operational
             </div>
           </div>
         </div>
@@ -313,23 +311,23 @@ export default function Dashboard() {
       {/* Overview Stats KPI Cards */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Productivity Score */}
-        <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+        <div className="p-6 rounded-2xl bg-white border border-slate-200/80 flex flex-col gap-4 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
           <div className="flex justify-between items-start">
-            <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
+            <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
               <TrendingUp className="w-5 h-5" />
             </div>
-            <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-outfit">
+            <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full font-outfit">
               Active Focus
             </span>
           </div>
           <div className="flex flex-col mt-1">
             <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Productivity Score</span>
-            <span className="text-3xl font-extrabold font-outfit text-[#102C23] mt-0.5">
+            <span className="text-3xl font-extrabold font-outfit text-[#0F172A] mt-0.5">
               {stats.productivity_score}%
             </span>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden p-0.5 border border-slate-200/50">
               <div 
-                className="bg-emerald-600 h-full rounded-full transition-all duration-500" 
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-500" 
                 style={{ width: `${stats.productivity_score}%` }}
               ></div>
             </div>
@@ -340,23 +338,23 @@ export default function Dashboard() {
         </div>
 
         {/* Important Decisions */}
-        <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+        <div className="p-6 rounded-2xl bg-white border border-slate-200/80 flex flex-col gap-4 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
           <div className="flex justify-between items-start">
-            <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
+            <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
               <Scale className="w-5 h-5" />
             </div>
-            <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-outfit">
-              Logged
+            <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 border border-blue-200/60 px-2.5 py-0.5 rounded-full font-outfit">
+              Archived
             </span>
           </div>
           <div className="flex flex-col mt-1">
             <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Important Decisions</span>
-            <span className="text-3xl font-extrabold font-outfit text-[#102C23] mt-0.5">
+            <span className="text-3xl font-extrabold font-outfit text-[#0F172A] mt-0.5">
               {stats.total_decisions}
             </span>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden p-0.5 border border-slate-200/50">
               <div 
-                className="bg-blue-600 h-full rounded-full transition-all duration-500" 
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500" 
                 style={{ width: `${Math.min(100, stats.total_decisions * 5)}%` }}
               ></div>
             </div>
@@ -367,25 +365,25 @@ export default function Dashboard() {
         </div>
 
         {/* Pending Action Items */}
-        <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+        <div className="p-6 rounded-2xl bg-white border border-slate-200/80 flex flex-col gap-4 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
           <div className="flex justify-between items-start">
-            <div className="w-11 h-11 rounded-xl bg-amber-50 text-[#D98A44] flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
+            <div className="w-11 h-11 rounded-xl bg-amber-50 text-[#D98A44] border border-amber-100 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
               <ClipboardCheck className="w-5 h-5" />
             </div>
             {stats.pending_action_items > 0 && (
-              <span className="text-[10px] font-extrabold text-[#D98A44] bg-[#D98A44]/10 px-2 py-0.5 rounded-full font-outfit animate-pulse">
+              <span className="text-[10px] font-extrabold text-[#D98A44] bg-amber-50 border border-amber-200/60 px-2.5 py-0.5 rounded-full font-outfit animate-pulse">
                 Needs Attention
               </span>
             )}
           </div>
           <div className="flex flex-col mt-1">
             <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Pending Action Items</span>
-            <span className="text-3xl font-extrabold font-outfit text-[#102C23] mt-0.5">
+            <span className="text-3xl font-extrabold font-outfit text-[#0F172A] mt-0.5">
               {stats.pending_action_items}
             </span>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden p-0.5 border border-slate-200/50">
               <div 
-                className="bg-[#D98A44] h-full rounded-full transition-all duration-500" 
+                className="bg-gradient-to-r from-[#D98A44] to-amber-600 h-full rounded-full transition-all duration-500" 
                 style={{ width: `${Math.min(100, stats.pending_action_items * 10)}%` }}
               ></div>
             </div>
@@ -396,25 +394,25 @@ export default function Dashboard() {
         </div>
 
         {/* Risks Detected */}
-        <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 flex flex-col gap-4 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
+        <div className="p-6 rounded-2xl bg-white border border-slate-200/80 flex flex-col gap-4 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
           <div className="flex justify-between items-start">
-            <div className="w-11 h-11 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
+            <div className="w-11 h-11 rounded-xl bg-rose-50 text-rose-700 border border-rose-100 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
               <ShieldAlert className="w-5 h-5" />
             </div>
             {stats.active_risks > 0 && (
-              <span className="text-[10px] font-extrabold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full font-outfit">
+              <span className="text-[10px] font-extrabold text-rose-700 bg-rose-50 border border-rose-200/60 px-2.5 py-0.5 rounded-full font-outfit">
                 High Risk
               </span>
             )}
           </div>
           <div className="flex flex-col mt-1">
             <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Risks Detected</span>
-            <span className="text-3xl font-extrabold font-outfit text-[#102C23] mt-0.5">
+            <span className="text-3xl font-extrabold font-outfit text-[#0F172A] mt-0.5">
               {stats.active_risks}
             </span>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden p-0.5 border border-slate-200/50">
               <div 
-                className="bg-rose-600 h-full rounded-full transition-all duration-500" 
+                className="bg-gradient-to-r from-rose-500 to-red-600 h-full rounded-full transition-all duration-500" 
                 style={{ width: `${Math.min(100, stats.active_risks * 20)}%` }}
               ></div>
             </div>

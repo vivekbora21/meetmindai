@@ -13,7 +13,6 @@ from app.api.v1.endpoints import (
     knowledge,
     analytics,
     agent_events,
-    teams_bot,
     profile,
     ai,
     calendar,
@@ -76,7 +75,6 @@ app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
 app.include_router(knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(agent_events.router, prefix="/api/v1/agent", tags=["agent"])
-app.include_router(teams_bot.router, prefix="/api/v1/agent/teams", tags=["teams-bot"])
 app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 app.include_router(ai.meeting_router, prefix="/api/meetings", tags=["meetings"])
 

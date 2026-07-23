@@ -167,6 +167,9 @@ class JoinMeetingLinkRequest(BaseModel):
     meeting_date: Optional[datetime] = None
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
+    provider: Optional[str] = None
+    members: Optional[List[str]] = []
+    bot_name: Optional[str] = "MeetMind Bot"
 
 
 class RenameSpeakerRequest(BaseModel):

@@ -82,6 +82,9 @@ def join_meeting_by_link(
         request.meeting_date,
         request.scheduled_start,
         request.scheduled_end,
+        request.provider,
+        request.members,
+        request.bot_name,
     )
 
 

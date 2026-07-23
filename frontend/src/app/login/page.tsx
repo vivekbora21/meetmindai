@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight, Loader2, Eye, EyeOff, Network, GitBranch, Calendar, Video, MessageSquare, Bot, Zap } from "lucide-react";
 import { Logo } from "../components/Logo";
 import { getApiUrl } from "../config";
+import { toast } from "@/store/useToastStore";
 
 
 const setCookie = (name: string, value: string, maxAgeSeconds: number = 86400) => {
@@ -163,6 +164,7 @@ export default function Home() {
           if (tokenData && tokenData.access_token) {
             eraseCookie("mock_mode");
             setCookie("isAuthenticated", "true", 86400);
+            toast.success(isLogin ? "Signed in successfully! Redirecting..." : "Account created successfully! Welcome.");
             router.push("/dashboard");
             return;
           }
@@ -173,11 +175,13 @@ export default function Home() {
       } else {
         setCookie("mock_mode", "true");
         setCookie("isAuthenticated", "true", 86400);
+        toast.success(isLogin ? "Signed in successfully! Redirecting..." : "Account created successfully! Welcome.");
         router.push("/dashboard");
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Authentication failed";
       setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -185,6 +189,7 @@ export default function Home() {
 
   const handleSocialLogin = (provider: "google" | "microsoft") => {
     setError("");
+    toast.info(`Redirecting to ${provider === "google" ? "Google" : "Microsoft"} sign-in...`);
     window.location.href = getApiUrl(`/api/v1/auth/social/${provider}/login`);
   };
 
@@ -205,15 +210,15 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen w-screen flex bg-[#F9F8F6] text-gray-900 font-sans overflow-hidden relative">
+    <div className="h-screen w-screen flex bg-[#F8FAFC] text-slate-900 font-sans overflow-hidden relative">
       
-      {/* Left Side: Product Showcase (Dark Green) */}
+      {/* Left Side: Product Showcase (Dark Emerald) */}
       <div className="hidden md:flex md:w-1/2 bg-[#102C23] p-8 sm:p-12 lg:p-16 flex-col justify-between relative h-full border-r border-[#1f4538] shadow-[10px_0_30px_-10px_rgba(16,44,35,0.3)] z-10 overflow-hidden">
         {/* Spotlights and patterns for rich aesthetics */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#16392e_1px,transparent_1px),linear-gradient(to_bottom,#16392e_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30"></div>
         <div className="absolute -right-20 top-20 w-[300px] h-[300px] bg-[#64E0AA]/10 rounded-full blur-3xl"></div>
         
-        {/* Floating Logo (inside column, no header block) */}
+        {/* Floating Logo */}
         <div className="relative z-20">
           <Link href="/">
             <Logo invert />
@@ -222,14 +227,14 @@ export default function Home() {
 
         {/* Content Showcase */}
         <div className="relative z-20 my-auto py-2 max-w-xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#183d31] border border-[#275949] w-fit animate-fade-in-up">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#183d31] border border-[#275949] w-fit animate-fade-in-up shadow-xs">
             <div className="w-1.5 h-1.5 rounded-full bg-[#64E0AA]"></div>
             <span className="text-[#64E0AA] text-[10px] font-bold tracking-widest uppercase">
-              Next-Generation Organizational Memory
+              Organizational Memory Platform
             </span>
           </div>
 
-          <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold tracking-tight leading-[1.1] text-white animate-fade-in-up delay-100">
+          <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold tracking-tight leading-[1.15] text-white animate-fade-in-up delay-100">
             The AI that remembers<br/>
             <span className="text-[#64E0AA]">what your team</span><br/>
             decided.
@@ -240,13 +245,13 @@ export default function Home() {
           </p>
 
           {/* Interactive Showcase Tabs Switcher */}
-          <div className="flex bg-[#14352b] p-1 rounded-xl border border-[#1f4538] w-fit animate-fade-in-up delay-250">
+          <div className="flex bg-[#14352b] p-1.5 rounded-xl border border-[#1f4538] w-fit animate-fade-in-up delay-250">
             <button
               onClick={() => setActiveTab("graph")}
               type="button"
               className={`px-3 py-1.5 rounded-lg text-[9px] font-bold tracking-wider uppercase transition-all duration-300 ${
                 activeTab === "graph"
-                  ? "bg-[#64E0AA] text-[#102C23] shadow-sm"
+                  ? "bg-[#64E0AA] text-[#102C23] shadow-xs"
                   : "text-[#9DB2AA] hover:text-white"
               }`}
             >
@@ -257,7 +262,7 @@ export default function Home() {
               type="button"
               className={`px-3 py-1.5 rounded-lg text-[9px] font-bold tracking-wider uppercase transition-all duration-300 ${
                 activeTab === "stream"
-                  ? "bg-[#64E0AA] text-[#102C23] shadow-sm"
+                  ? "bg-[#64E0AA] text-[#102C23] shadow-xs"
                   : "text-[#9DB2AA] hover:text-white"
               }`}
             >
@@ -268,7 +273,7 @@ export default function Home() {
               type="button"
               className={`px-3 py-1.5 rounded-lg text-[9px] font-bold tracking-wider uppercase transition-all duration-300 ${
                 activeTab === "apps"
-                  ? "bg-[#64E0AA] text-[#102C23] shadow-sm"
+                  ? "bg-[#64E0AA] text-[#102C23] shadow-xs"
                   : "text-[#9DB2AA] hover:text-white"
               }`}
             >
@@ -530,23 +535,23 @@ export default function Home() {
         {/* Bottom Stats */}
         <div className="relative z-20 mt-auto pt-6 border-t border-[#1F4538] grid grid-cols-3 gap-6 animate-fade-in-up delay-400">
           <div>
-            <div className="text-2xl font-extrabold text-white mb-1">99.8%</div>
-            <div className="text-xs text-[#8A9F96] font-semibold uppercase tracking-wider">Accuracy</div>
+            <div className="text-2xl font-extrabold text-white mb-1 font-outfit">99.8%</div>
+            <div className="text-[10px] text-[#8A9F96] font-bold uppercase tracking-wider">Accuracy</div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-white mb-1">&lt;3 min</div>
-            <div className="text-xs text-[#8A9F96] font-semibold uppercase tracking-wider">Processing</div>
+            <div className="text-2xl font-extrabold text-white mb-1 font-outfit">&lt;3 min</div>
+            <div className="text-[10px] text-[#8A9F96] font-bold uppercase tracking-wider">Processing</div>
           </div>
           <div>
-            <div className="text-2xl font-extrabold text-white mb-1">100%</div>
-            <div className="text-xs text-[#8A9F96] font-semibold uppercase tracking-wider">Secure</div>
+            <div className="text-2xl font-extrabold text-white mb-1 font-outfit">100%</div>
+            <div className="text-[10px] text-[#8A9F96] font-bold uppercase tracking-wider">Secure</div>
           </div>
         </div>
       </div>
 
-      {/* Right Side: Auth Form (Light Warm Background) */}
-      <div className="w-full md:w-1/2 p-6 sm:p-10 lg:p-16 flex flex-col justify-between h-full relative bg-[#F9F8F6] overflow-hidden">
-        {/* Soft background glow to match and blend */}
+      {/* Right Side: Auth Form */}
+      <div className="w-full md:w-1/2 p-6 sm:p-10 lg:p-16 flex flex-col justify-between h-full relative bg-[#F8FAFC] overflow-hidden">
+        {/* Soft background glow */}
         <div className="absolute bottom-0 right-0 translate-y-1/4 translate-x-1/4 w-[400px] h-[400px] bg-[#64E0AA]/10 rounded-full blur-3xl"></div>
         <div className="absolute top-0 left-0 -translate-y-1/4 -translate-x-1/4 w-[400px] h-[400px] bg-[#102C23]/5 rounded-full blur-3xl"></div>
         
@@ -554,7 +559,7 @@ export default function Home() {
         <div className="flex justify-end relative z-20">
           <Link 
             href="/" 
-            className="text-slate-600 hover:text-slate-900 text-sm font-semibold transition-colors flex items-center gap-1.5"
+            className="text-slate-600 hover:text-slate-900 text-xs font-bold transition-colors flex items-center gap-1.5"
           >
             &larr; Back to Home
           </Link>
@@ -706,10 +711,19 @@ export default function Home() {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full py-2.5 rounded-lg bg-[#113229] hover:bg-[#0D241E] text-white font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 mt-1.5 disabled:opacity-50 hover:-translate-y-0.5 hover:shadow-lg shadow-black/10"
+              className="w-full py-2.5 rounded-lg bg-[#113229] hover:bg-[#0D241E] text-white font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 mt-1.5 disabled:opacity-60 hover:-translate-y-0.5 hover:shadow-lg shadow-black/10 cursor-pointer disabled:cursor-not-allowed"
             >
-              {loading ? "Please wait..." : isLogin ? "Sign in" : "Create account"}
-              <ArrowRight className="w-4 h-4" />
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>{isLogin ? "Signing in..." : "Creating account..."}</span>
+                </>
+              ) : (
+                <>
+                  <span>{isLogin ? "Sign in" : "Create account"}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
 

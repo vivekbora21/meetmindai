@@ -15,7 +15,9 @@ import {
   ChevronRight,
   Video,
   Sparkles,
-  Calendar
+  Calendar,
+  Loader2,
+  PlusCircle
 } from "lucide-react";
 
 interface SidebarProps {
@@ -38,6 +40,7 @@ export default function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isDashboardActive = pathname === "/dashboard";
   const isMeetingsActive = pathname.startsWith("/meetings");
@@ -75,16 +78,19 @@ export default function Sidebar({
           <Link 
             href="/dashboard"
             title="Dashboard"
-            className={`group flex items-center ${
-              isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-xs font-bold transition-all duration-250 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isDashboardActive 
-                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <LayoutDashboard className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
-              isDashboardActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
+            {isDashboardActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <LayoutDashboard className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isDashboardActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
             }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">Dashboard</span>}
           </Link>
@@ -93,34 +99,61 @@ export default function Sidebar({
           <Link 
             href="/meetings"
             title="Meetings"
-            className={`group flex items-center ${
-              isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-xs font-bold transition-all duration-250 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isMeetingsActive 
-                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <Video className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
-              isMeetingsActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
+            {isMeetingsActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <Video className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isMeetingsActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
             }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">Meetings</span>}
+          </Link>
+
+          {/* Create Meeting link */}
+          <Link 
+            href="/create-meeting"
+            title="Create & Join Meeting"
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
+              pathname.startsWith("/create-meeting")
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
+            }`}
+          >
+            {pathname.startsWith("/create-meeting") && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <PlusCircle className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              pathname.startsWith("/create-meeting") ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
+            }`} aria-hidden="true" />
+            {!isCollapsed && <span className="truncate">Create & Join</span>}
           </Link>
 
           {/* Calendar link */}
           <Link 
             href="/calendar"
             title="Calendar"
-            className={`group flex items-center ${
-              isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-xs font-bold transition-all duration-250 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isCalendarActive 
-                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <Calendar className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
-              isCalendarActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
+            {isCalendarActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <Calendar className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isCalendarActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
             }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">Calendar</span>}
           </Link>
@@ -129,16 +162,19 @@ export default function Sidebar({
           <Link 
             href="/ai-workspace"
             title="AI Workspace"
-            className={`group flex items-center ${
-              isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-xs font-bold transition-all duration-250 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isAIWorkspaceActive 
-                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <Sparkles className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
-              isAIWorkspaceActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
+            {isAIWorkspaceActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <Sparkles className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isAIWorkspaceActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
             }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">AI Workspace</span>}
           </Link>
@@ -147,16 +183,19 @@ export default function Sidebar({
           <Link 
             href="/knowledge"
             title="Knowledge Graph"
-            className={`group flex items-center ${
-              isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-xs font-bold transition-all duration-250 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isKnowledgeActive 
-                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <Network className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
-              isKnowledgeActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
+            {isKnowledgeActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <Network className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isKnowledgeActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
             }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">Knowledge Graph</span>}
           </Link>
@@ -165,16 +204,19 @@ export default function Sidebar({
           <Link 
             href="/analytics"
             title="Analytics"
-            className={`group flex items-center ${
-              isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
-            } rounded-xl text-xs font-bold transition-all duration-250 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isAnalyticsActive 
-                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/15" 
-                : "text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 hover:translate-x-0.5"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <BarChart3 className={`w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 ${
-              isAnalyticsActive ? "text-[#D98A44]" : "text-[#64748b] group-hover:text-[#102C23]"
+            {isAnalyticsActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <BarChart3 className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isAnalyticsActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
             }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">Analytics</span>}
           </Link>
@@ -184,18 +226,18 @@ export default function Sidebar({
       <div className="flex flex-col gap-4">
         {/* Help & Insights Premium Card */}
         {!isCollapsed && (
-          <div className="relative w-full overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-[#113229] to-[#0D241E] text-white shadow-md border border-[#113229]/20 group">
+          <div className="relative w-full overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-[#113229] via-[#0D261F] to-[#071914] text-white shadow-lg border border-[#113229]/30 group">
             {/* Glow blur element */}
-            <div className="absolute -right-6 -bottom-6 w-16 h-16 rounded-full bg-[#D98A44]/15 blur-xl pointer-events-none group-hover:bg-[#D98A44]/25 transition-all duration-300" />
+            <div className="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-[#D98A44]/20 blur-xl pointer-events-none group-hover:bg-[#D98A44]/30 transition-all duration-300" />
             
             <div className="flex items-center gap-2 mb-2 relative z-10">
-              <div className="p-1 rounded-lg bg-[#D98A44]/20 border border-[#D98A44]/35">
+              <div className="p-1 rounded-lg bg-[#D98A44]/20 border border-[#D98A44]/30">
                 <Sparkles className="w-3.5 h-3.5 text-[#D98A44] animate-pulse" aria-hidden="true" />
               </div>
-              <span className="text-[10px] font-black text-[#D98A44] uppercase tracking-wider">MeetMind AI</span>
+              <span className="text-[10px] font-black text-[#D98A44] uppercase tracking-wider">MeetMind Memory</span>
             </div>
-            <p className="text-[10.5px] text-slate-300 leading-relaxed font-semibold relative z-10">
-              Your meeting intelligence assistant is active and ready to transcribe and analyze.
+            <p className="text-[11px] text-slate-200 leading-relaxed font-medium relative z-10">
+              AI engine connected & syncing organizational context in real time.
             </p>
           </div>
         )}
@@ -254,14 +296,24 @@ export default function Sidebar({
                   </button>
                   <button
                     role="menuitem"
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      onLogout();
+                    disabled={isLoggingOut}
+                    onClick={async () => {
+                      setIsLoggingOut(true);
+                      try {
+                        await onLogout();
+                      } finally {
+                        setIsLoggingOut(false);
+                        setIsDropdownOpen(false);
+                      }
                     }}
-                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50/50 transition-colors w-full text-left border-t border-slate-50 mt-1 pt-2"
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50/50 transition-colors w-full text-left border-t border-slate-50 mt-1 pt-2 disabled:opacity-60 cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-rose-500" aria-hidden="true" />
-                    Sign Out
+                    {isLoggingOut ? (
+                      <Loader2 className="w-4 h-4 text-rose-500 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <LogOut className="w-4 h-4 text-rose-500" aria-hidden="true" />
+                    )}
+                    <span>{isLoggingOut ? "Signing out..." : "Sign Out"}</span>
                   </button>
                 </div>
               </>

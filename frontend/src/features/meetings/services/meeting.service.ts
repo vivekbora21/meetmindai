@@ -16,7 +16,15 @@ export const meetingService = {
     return res.json();
   },
 
-  async joinMeetingByLink(title: string, platform: string, meetingUrl: string, scheduledStart?: string): Promise<MeetingDetail> {
+  async joinMeetingByLink(
+    title: string, 
+    platform: string, 
+    meetingUrl: string, 
+    scheduledStart?: string,
+    provider?: string,
+    members?: string[],
+    botName?: string
+  ): Promise<MeetingDetail> {
     const res = await fetch(getApiUrl(API_ENDPOINTS.MEETINGS.JOIN_LINK), {
       method: "POST",
       headers: { 
@@ -26,7 +34,10 @@ export const meetingService = {
         title,
         platform,
         meeting_url: meetingUrl,
-        scheduled_start: scheduledStart
+        scheduled_start: scheduledStart,
+        provider,
+        members,
+        bot_name: botName
       }),
       credentials: "include"
     });

@@ -3,6 +3,7 @@ export const API_ENDPOINTS = {
     BASE: "/api/v1/meetings/",
     UPLOAD: "/api/v1/meetings/upload",
     JOIN_LINK: "/api/v1/meetings/join-link",
+    JOIN_BOT: "/api/v1/meetings/join",
     DETAIL: (id: string) => `/api/v1/meetings/${id}`,
     UPLOAD_MEDIA: (id: string) => `/api/v1/meetings/${id}/upload-media`,
     TRANSCRIBE: (id: string) => `/api/v1/meetings/${id}/transcribe`,

@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import UploadFile, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.models.models import (
     User,
@@ -89,10 +89,14 @@ class MeetingService:
         meeting_date: Optional[datetime],
         scheduled_start: Optional[datetime],
         scheduled_end: Optional[datetime],
+        provider: Optional[str] = None,
+        members: Optional[list] = None,
+        bot_name: Optional[str] = "MeetMind Bot",
     ) -> Meeting:
         parsed_date = meeting_date or datetime.utcnow()
         start = scheduled_start or parsed_date
         end = scheduled_end or (start + timedelta(minutes=30))
+        attendees_list = members or []
 
         meeting = meeting_repository.create(
             db,
@@ -111,7 +115,9 @@ class MeetingService:
                 "technical_status": AIStatus.PENDING.value,
                 "key_themes_status": AIStatus.PENDING.value,
                 "platform": platform,
+                "provider": provider or platform.lower().replace(" ", "_"),
                 "meeting_url": meeting_url,
+                "attendees": attendees_list,
             },
         )
 
@@ -140,7 +146,12 @@ class MeetingService:
         try:
             from app.tasks.meeting_tasks import join_scheduled_meeting
 
-            join_scheduled_meeting.apply_async(args=[scheduled_meeting.id], eta=start)
+            eta = start
+            if eta.tzinfo is None:
+                eta = eta.replace(tzinfo=timezone.utc)
+            else:
+                eta = eta.astimezone(timezone.utc)
+            join_scheduled_meeting.apply_async(args=[scheduled_meeting.id], eta=eta)
         except Exception as e:
             print(f"Failed to start live agent: {e}")
 

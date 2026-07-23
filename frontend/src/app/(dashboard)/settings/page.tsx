@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { 
   User, Link, Brain, Calendar, Database, Shield, Bell, CreditCard, Users, 
-  Palette, History, Search, CheckCircle2, AlertCircle, ShieldAlert, Activity
+  Palette, History, Search, ShieldAlert, Activity
 } from "lucide-react";
 import { getApiUrl } from "../../config";
+import { toast as globalToast } from "@/store/useToastStore";
 
 // Modular sub-section imports
 import ProfileSection from "./components/ProfileSection";
@@ -203,9 +204,6 @@ export default function SettingsPage() {
   // Unsaved changes state tracking
   const [isDirty, setIsDirty] = useState(false);
 
-  // Notification Toast State
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
   // File upload ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -313,8 +311,11 @@ export default function SettingsPage() {
 
   // Toast trigger
   const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
+    if (type === "error") {
+      globalToast.error(message);
+    } else {
+      globalToast.success(message);
+    }
   }, []);
 
   // Fetch full settings data
@@ -891,20 +892,8 @@ export default function SettingsPage() {
   });
 
   return (
-    <div className="flex flex-col h-full bg-[#F9F8F6] font-outfit text-slate-800 relative overflow-hidden">
+    <div className="flex flex-col h-full bg-[#F8FAFC] font-outfit text-slate-800 relative overflow-hidden">
       
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border transition-all animate-slide-in ${
-          toast.type === "success" 
-            ? "bg-[#E8F3F0] border-[#113229]/20 text-[#113229]" 
-            : "bg-red-50 border-red-200 text-red-800"
-        }`}>
-          {toast.type === "success" ? <CheckCircle2 className="w-5 h-5 text-[#113229]" /> : <AlertCircle className="w-5 h-5 text-red-600" />}
-          <span className="text-sm font-medium">{toast.message}</span>
-        </div>
-      )}
-
       {/* Top Header & Search */}
       <header className="shrink-0 bg-[#F9F8F6]/80 border-b border-[#DEDDDA]/60 px-8 py-5 flex flex-col md:flex-row md:items-center justify-between gap-4 z-20">
         <div>

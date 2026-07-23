@@ -8,7 +8,7 @@ from sqlalchemy import or_, text
 
 from app.database.connection import SessionLocal
 
-from app.models.models import ConnectedAccount, Meeting, Provider
+from app.models.models import ConnectedAccount, Meeting, Provider, ScheduledMeeting, AgentLiveSession
 from app.services.google_calendar import GoogleCalendarService
 from app.services.microsoft_calendar import MicrosoftCalendarService
 from app.services.zoom_calendar import ZoomCalendarService
@@ -110,6 +110,13 @@ class BackgroundSchedulerService:
         except Exception as e:
             summary["errors"] += 1
             logger.error(f"Scheduler | Error retrying failed syncs: {e}")
+
+        # 6. Safety net for scheduled bot joins
+        try:
+            await self.queue_due_scheduled_meetings()
+        except Exception as e:
+            summary["errors"] += 1
+            logger.error(f"Scheduler | Error queueing due scheduled meetings: {e}")
 
         duration = time.time() - start_time
         logger.debug("Scheduler execution cycle completed.")
@@ -413,6 +420,49 @@ class BackgroundSchedulerService:
                         f"account {acc.id}: {e}"
                     )
         return synced_count, meetings_imported, checked_count
+
+    async def queue_due_scheduled_meetings(self) -> int:
+        """
+        Enqueue scheduled meetings whose start time has arrived.
+        This prevents the automation from depending on a single ETA dispatch.
+        """
+        now = datetime.utcnow()
+        due_meetings = (
+            self.db.query(ScheduledMeeting)
+            .filter(
+                ScheduledMeeting.status == "Scheduled",
+                ScheduledMeeting.scheduled_start <= now,
+            )
+            .all()
+        )
+
+        queued = 0
+        logger.debug(
+            f"Scheduler | Found {len(due_meetings)} scheduled meetings ready to join."
+        )
+        for scheduled in due_meetings:
+            try:
+                session = (
+                    self.db.query(AgentLiveSession)
+                    .filter(AgentLiveSession.scheduled_meeting_id == scheduled.id)
+                    .first()
+                )
+                if session and session.status in ("Live", "Completed"):
+                    continue
+
+                from app.tasks.meeting_tasks import join_scheduled_meeting
+
+                join_scheduled_meeting.apply_async(args=[scheduled.id])
+                queued += 1
+                logger.info(
+                    f"Scheduler | Queued auto-join for scheduled meeting {scheduled.id}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Scheduler | Failed to queue scheduled meeting {scheduled.id}: {e}"
+                )
+
+        return queued
 
 
 async def start_scheduler():

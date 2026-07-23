@@ -7,6 +7,7 @@ import { getApiUrl } from "../config";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import dynamic from "next/dynamic";
+import { toast } from "@/store/useToastStore";
 
 const ChatWindow = dynamic(
   () => import("@/features/chat/components/ChatWindow").then((mod) => mod.ChatWindow),
@@ -38,7 +39,7 @@ export default function DashboardLayout({
   const [activeMeetingStatus, setActiveMeetingStatus] = useState<string>("COMPLETED");
 
   const meetingMatch = pathname ? pathname.match(/^\/meetings\/([^\/]+)$/) : null;
-  const activeMeetingId = meetingMatch && meetingMatch[1] !== "live" ? meetingMatch[1] : null;
+  const activeMeetingId = meetingMatch ? meetingMatch[1] : null;
   const isAIWorkspaceActive = pathname ? pathname.startsWith("/ai-workspace") : false;
 
   useEffect(() => {
@@ -126,7 +127,8 @@ export default function DashboardLayout({
     eraseCookie("mock_mode");
     eraseCookie("isAuthenticated");
     setIsAuthenticated(false);
-    router.push("/");
+    toast.success("Signed out successfully.");
+    router.push("/login");
   };
 
   if (isAuthenticated !== true) {
@@ -146,7 +148,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="h-screen flex flex-col selection:bg-[#113229] selection:text-white text-[#102C23] bg-[#F9F8F6] overflow-hidden relative">
+    <div className="h-screen flex flex-col selection:bg-[#113229] selection:text-white text-[#0F172A] bg-[#F8FAFC] overflow-hidden relative">
       {/* Top Navbar */}
       <Navbar 
         userName={userName} 
@@ -167,7 +169,7 @@ export default function DashboardLayout({
         />
 
         {/* Main Workspace - Controlled height and independent scrolling */}
-        <div className={`flex-1 h-full bg-[#F9F8F6] ${isAIWorkspaceActive ? "overflow-hidden" : "overflow-y-auto"}`}>
+        <div className={`flex-1 h-full bg-[#F8FAFC] ${isAIWorkspaceActive ? "overflow-hidden" : "overflow-y-auto"}`}>
           {children}
         </div>
       </div>
@@ -177,13 +179,13 @@ export default function DashboardLayout({
         onClick={() => setIsChatOpen(!isChatOpen)}
         aria-label={isChatOpen ? "Close AI Chat Assistant" : "Open AI Chat Assistant"}
         aria-expanded={isChatOpen}
-        className="fixed bottom-24 right-6 z-50 p-4 bg-[#113229] hover:bg-[#1a4d3f] text-white rounded-full shadow-2xl transition-all duration-300 transform hover:scale-110 flex items-center justify-center border border-[#2a6656]/20"
+        className="fixed bottom-8 right-8 z-50 p-4 bg-gradient-to-r from-[#113229] to-[#1E4D40] hover:from-[#1A4B3D] hover:to-[#255D4E] text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center border border-white/20 ring-4 ring-[#113229]/10 cursor-pointer"
         title="Open Chat Assistant"
       >
         {isChatOpen ? (
-          <X className="w-6 h-6" aria-hidden="true" />
+          <X className="w-5.5 h-5.5 text-white" aria-hidden="true" />
         ) : (
-          <MessageSquare className="w-6 h-6 animate-pulse" aria-hidden="true" />
+          <MessageSquare className="w-5.5 h-5.5 text-white animate-pulse" aria-hidden="true" />
         )}
       </button>
 
@@ -192,7 +194,7 @@ export default function DashboardLayout({
         <div 
           role="dialog"
           aria-label="AI Chat Assistant"
-          className="fixed bottom-40 right-6 z-50 w-[750px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-8rem)] rounded-2xl bg-white border border-[#DEDDDA]/60 shadow-2xl overflow-hidden flex flex-col animate-fade-in-up"
+          className="fixed bottom-24 right-8 z-50 w-[750px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-8rem)] rounded-3xl bg-white border border-slate-200/80 shadow-2xl overflow-hidden flex flex-col animate-fade-in-up"
         >
           <ChatWindow meetingId={activeMeetingId} status={activeMeetingStatus} />
         </div>
