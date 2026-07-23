@@ -1,9 +1,27 @@
 import type { Metadata } from "next";
+import { Inter, Outfit } from "next/font/google";
+import { GlobalModal } from "@/components/ui/GlobalModal";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  weight: ["400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "MeetingMind AI",
   description: "A polished organizational memory platform for meetings, knowledge, and analytics.",
+  icons: {
+    icon: "/new_logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -13,13 +31,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="antialiased min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+      <body className={`${inter.variable} ${outfit.variable} antialiased min-h-screen bg-[var(--background)] text-[var(--foreground)]`}>
         {children}
+        <GlobalModal />
+        <ToastContainer />
       </body>
     </html>
   );

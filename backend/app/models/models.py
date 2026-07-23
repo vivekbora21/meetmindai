@@ -17,16 +17,7 @@ from sqlalchemy.orm import relationship
 from pgvector.sqlalchemy import Vector
 from app.database.connection import Base
 
-from enum import Enum
-
-class Provider(str, Enum):
-    MICROSOFT = "microsoft"
-    GOOGLE = "google"
-    ZOOM = "zoom"
-    SLACK = "slack"
-    DISCORD = "discord"
-    WEBEX = "webex"
-
+from app.models.enums import Provider
 
 
 class Organization(Base):
@@ -159,11 +150,26 @@ class Meeting(Base):
     kg_status = Column(
         String(50), default="PENDING", server_default="PENDING"
     )  # PENDING, RUNNING, COMPLETED, FAILED, SKIPPED
+    transcript_status = Column(
+        String(50), default="PENDING", server_default="PENDING"
+    )  # PENDING, RUNNING, COMPLETED, FAILED
+    executive_summary_status = Column(
+        String(50), default="PENDING", server_default="PENDING"
+    )
+    action_items_status = Column(
+        String(50), default="PENDING", server_default="PENDING"
+    )
+    decisions_status = Column(String(50), default="PENDING", server_default="PENDING")
+    risks_status = Column(String(50), default="PENDING", server_default="PENDING")
+    technical_status = Column(String(50), default="PENDING", server_default="PENDING")
+    key_themes_status = Column(String(50), default="PENDING", server_default="PENDING")
     platform = Column(String(50), default="Upload")  # Upload, Google Meet, Teams, Jira
     meeting_date = Column(DateTime, server_default=func.now())
     created_at = Column(DateTime, server_default=func.now())
 
-    provider = Column(String(50), nullable=True)  # google_meet, microsoft_teams, zoom, etc.
+    provider = Column(
+        String(50), nullable=True
+    )  # google_meet, microsoft_teams, zoom, etc.
     provider_meeting_id = Column(String(255), nullable=True)
     provider_event_id = Column(String(255), nullable=True)
     calendar_id = Column(String(255), nullable=True)
@@ -174,7 +180,6 @@ class Meeting(Base):
     token_reference = Column(String(255), nullable=True)
     description = Column(Text, nullable=True)
     attendees = Column(JSON, nullable=True)
-
 
     # Summary and AI Insights cached fields
     executive_summary = Column(Text, nullable=True)
@@ -221,7 +226,13 @@ class Meeting(Base):
         order_by="MeetingChunk.chunk_index",
     )
 
+    @property
+    def action_items_count(self) -> int:
+        return len(self.action_items) if self.action_items else 0
 
+    @property
+    def decisions_count(self) -> int:
+        return len(self.decisions) if self.decisions else 0
 
 
 class MeetingSpeaker(Base):
@@ -301,10 +312,12 @@ class MeetingChunk(Base):
     )
     chunk_index = Column(Integer, nullable=False)
     chunk_text = Column(Text, nullable=False)
-    embedding = Column(Vector(384), nullable=True)  # 384 dimensions for bge-small-en-v1.5
+    embedding = Column(
+        Vector(384), nullable=True
+    )  # 384 dimensions for bge-small-en-v1.5
     speaker = Column(String(255), nullable=True)
     timestamp_start = Column(Float, nullable=True)  # in seconds
-    timestamp_end = Column(Float, nullable=True)    # in seconds
+    timestamp_end = Column(Float, nullable=True)  # in seconds
     created_at = Column(DateTime, server_default=func.now())
 
     meeting = relationship("Meeting", back_populates="chunks")
@@ -564,9 +577,7 @@ class ConnectedAccount(Base):
     user_id = Column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    provider = Column(
-        String(50), nullable=False
-    )  # microsoft, google, zoom, etc.
+    provider = Column(String(50), nullable=False)  # microsoft, google, zoom, etc.
     provider_user_id = Column(String(255), nullable=True)
     email = Column(String(255), nullable=True)
     display_name = Column(String(255), nullable=True)
@@ -597,7 +608,6 @@ class ConnectedAccount(Base):
     @token_expiry.setter
     def token_expiry(self, value):
         self.expires_at = value
-
 
 
 class AIPreference(Base):
@@ -901,7 +911,6 @@ class ActivityLog(Base):
     user = relationship("User", back_populates="activity_logs")
 
 
-
 class CalendarEvent(Base):
     __tablename__ = "calendar_events"
 
@@ -923,13 +932,18 @@ class CalendarEvent(Base):
     meeting_provider = Column(String(100), nullable=True)
     is_online_meeting = Column(Boolean, default=False)
     status = Column(String(50), nullable=True)
+    attendees = Column(JSON, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     user = relationship("User", backref="calendar_events")
 
     __table_args__ = (
-        Index("idx_user_provider_event", "user_id", "provider", "provider_event_id", unique=True),
+        Index(
+            "idx_user_provider_event",
+            "user_id",
+            "provider",
+            "provider_event_id",
+            unique=True,
+        ),
     )
-
-

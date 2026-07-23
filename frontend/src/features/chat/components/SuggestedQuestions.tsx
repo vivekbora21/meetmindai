@@ -15,75 +15,24 @@ export const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({ onQuesti
   ];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "10px",
-        marginTop: "12px",
-        width: "100%",
-        boxSizing: "border-box",
-      }}
-    >
-      <span
-        style={{
-          fontSize: "10px",
-          fontWeight: 700,
-          color: "#94a3b8",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          paddingLeft: "4px",
-          fontFamily: "'Inter', sans-serif",
-        }}
-      >
+    <div className="flex flex-col gap-2.5 mt-3 w-full box-border font-outfit">
+      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest pl-1 font-sans">
         Suggested Questions
       </span>
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "8px",
-        }}
-      >
+      <ul className="flex flex-wrap gap-2 m-0 p-0 list-none">
         {questions.map((q, idx) => (
-          <button
-            key={idx}
-            onClick={() => onQuestionClick(q)}
-            style={{
-              textAlign: "left",
-              fontSize: "11px",
-              padding: "8px 14px",
-              borderRadius: "99px",
-              border: "1px solid #e2e8f0",
-              background: "#ffffff",
-              color: "#0f766e",
-              fontWeight: 550,
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              boxShadow: "0 1px 2px rgba(15,23,42,0.03)",
-              fontFamily: "'Inter', sans-serif",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f0fdfa";
-              e.currentTarget.style.borderColor = "#99f6e4";
-              e.currentTarget.style.color = "#0d9488";
-              e.currentTarget.style.transform = "translateY(-0.5px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#ffffff";
-              e.currentTarget.style.borderColor = "#e2e8f0";
-              e.currentTarget.style.color = "#0f766e";
-              e.currentTarget.style.transform = "none";
-            }}
-          >
-            <Sparkles size={11} style={{ opacity: 0.8 }} />
-            <span>{q}</span>
-          </button>
+          <li key={idx}>
+            <button
+              onClick={() => onQuestionClick(q)}
+              aria-label={`Ask: ${q}`}
+              className="text-left text-[11px] px-3.5 py-2 rounded-full border border-slate-200 bg-white text-[#113229] font-bold cursor-pointer transition-all duration-200 flex items-center gap-1.5 shadow-sm hover:bg-[#e6f4f1]/60 hover:border-[#113229]/30 hover:text-[#0D241E] hover:-translate-y-0.5"
+            >
+              <Sparkles size={11} className="opacity-80" aria-hidden="true" />
+              <span>{q}</span>
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 };

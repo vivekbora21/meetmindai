@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from app.celery_app import celery_app
@@ -16,10 +17,12 @@ from app.models.models import (
     User,
     ScheduledMeeting,
     AgentLiveSession,
+    KnowledgeGraphNode,
+    KnowledgeGraphEdge,
 )
 from app.services.media_service import MediaService
 from app.services.whisper_service import WhisperService
-from app.services.transcript_repository import TranscriptRepository
+from app.repositories.transcript_repository import TranscriptRepository
 from app.services.transcription.speaker_diarization import SpeakerDiarizationService
 from app.services.transcription.speaker_mapping import SpeakerMappingService
 from app.services.embedding_service import EmbeddingService
@@ -41,6 +44,10 @@ def _normalize_platform(platform: str) -> str:
     return "Unknown"
 
 
+def _set_progress_state(meeting: Meeting, field: str, value: str) -> None:
+    setattr(meeting, field, value)
+
+
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
 def transcribe_audio(self, meeting_id: str, file_path: str):
     """
@@ -60,10 +67,17 @@ def transcribe_audio(self, meeting_id: str, file_path: str):
             return
 
         meeting.status = "PROCESSING"
+        meeting.transcript_status = "RUNNING"
         meeting.speaker_status = "PENDING"
         meeting.embedding_status = "PENDING"
         meeting.ai_status = "PENDING"
         meeting.kg_status = "PENDING"
+        meeting.executive_summary_status = "PENDING"
+        meeting.action_items_status = "PENDING"
+        meeting.decisions_status = "PENDING"
+        meeting.risks_status = "PENDING"
+        meeting.technical_status = "PENDING"
+        meeting.key_themes_status = "PENDING"
         db.commit()
 
         # Clear old transcript data for idempotency
@@ -91,10 +105,23 @@ def transcribe_audio(self, meeting_id: str, file_path: str):
             uploads_dir, f"{meeting_id}_transcribe_extracted.wav"
         )
 
+        from app.utils.logging_pipeline import PipelineTracker
+
+        tracker = PipelineTracker(meeting_id)
+
         try:
-            extraction_success = media_service.extract_audio(
-                verified_path, extracted_wav_path
-            )
+            tracker.start_stage(2)  # Stage 2: Audio Extraction
+            try:
+                extraction_success = media_service.extract_audio(
+                    verified_path, extracted_wav_path
+                )
+                tracker.end_stage(
+                    2, status="COMPLETED" if extraction_success else "FAILED"
+                )
+            except Exception as e:
+                tracker.end_stage(2, status="FAILED")
+                raise e
+
             audio_to_transcribe = (
                 extracted_wav_path if extraction_success else verified_path
             )
@@ -113,44 +140,58 @@ def transcribe_audio(self, meeting_id: str, file_path: str):
             logger.info(
                 f"Triggering Whisper transcription. forced_language={forced_language}"
             )
-            for seg in whisper_service.transcribe_stream(
-                audio_to_transcribe,
-                forced_language=forced_language,
-                info_container=info_container,
-            ):
-                segments.append(seg)
-                transcript_repo.save_segment_incremental(
-                    db, meeting_id, seg, seg["speaker_tag"]
-                )
+            tracker.start_stage(3)  # Stage 3: Transcription
+            try:
+                for seg in whisper_service.transcribe_stream(
+                    audio_to_transcribe,
+                    forced_language=forced_language,
+                    info_container=info_container,
+                ):
+                    segments.append(seg)
+                    transcript_repo.save_segment_incremental(
+                        db, meeting_id, seg, seg["speaker_tag"]
+                    )
+                    db.commit()
+
+                duration_seconds = 0
+                if segments:
+                    duration_seconds = max(0, int(segments[-1]["end_ms"] / 1000))
+
+                detected_lang = info_container.get("language")
+                if not forced_language:
+                    meeting.language = detected_lang
+                else:
+                    meeting.language = forced_language
+
+                meeting.duration_seconds = duration_seconds
+                meeting.status = "TRANSCRIBED"
+                meeting.transcript_status = "COMPLETED"
                 db.commit()
 
-            duration_seconds = 0
-            if segments:
-                duration_seconds = max(0, int(segments[-1]["end_ms"] / 1000))
-
-            detected_lang = info_container.get("language")
-            if not forced_language:
-                meeting.language = detected_lang
-            else:
-                meeting.language = forced_language
-
-            meeting.duration_seconds = duration_seconds
-            meeting.status = "TRANSCRIBED"
-            db.commit()
+                tracker.end_stage(
+                    3,
+                    status="COMPLETED",
+                    metadata={
+                        "model": f"faster-whisper-{whisper_service.model_size}",
+                        "duration": duration_seconds,
+                        "segments": len(segments),
+                    },
+                )
+            except Exception as e:
+                tracker.end_stage(3, status="FAILED")
+                raise e
 
             logger.info(
                 f"Transcription stage completed successfully for meeting: {meeting_id}"
             )
 
-            # Trigger downstream tasks:
-            # - speaker_diarization, embeddings, statistics, cache run in parallel
-            # - generate_ai_analysis is triggered directly here so AI generation
-            #   always runs after transcription regardless of diarization outcome
-            speaker_diarization.delay(meeting_id)
-            generate_embeddings.delay(meeting_id)
-            generate_statistics.delay(meeting_id)
-            generate_cache.delay(meeting_id)
-            generate_ai_analysis.delay(meeting_id)
+            # Emit event instead of direct coupling
+            from app.events.router import event_router, EventPayload
+
+            event_router.emit(
+                "meeting.transcribed",
+                EventPayload(meeting_id=meeting_id, event_type="meeting.transcribed"),
+            )
 
         finally:
             if os.path.exists(extracted_wav_path):
@@ -167,6 +208,7 @@ def transcribe_audio(self, meeting_id: str, file_path: str):
         meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
         if meeting:
             meeting.status = "FAILED"
+            meeting.transcript_status = "FAILED"
             db.commit()
         # Retry logic
         try:
@@ -184,6 +226,10 @@ def speaker_diarization(self, meeting_id: str):
     Extracts voice embeddings and updates speakers and segment labels in the database.
     """
     db: Session = SessionLocal()
+    from app.utils.logging_pipeline import PipelineTracker
+
+    tracker = PipelineTracker(meeting_id)
+    tracker.start_stage(5)  # Stage 5: Speaker Diarization
     try:
         logger.info(
             f"CeleryTask | speaker_diarization | Meeting ID: {meeting_id} | Task ID: {self.request.id}"
@@ -191,6 +237,7 @@ def speaker_diarization(self, meeting_id: str):
         meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
         if not meeting:
             logger.error(f"Meeting {meeting_id} not found.")
+            tracker.end_stage(5, status="FAILED")
             return
 
         meeting.speaker_status = "RUNNING"
@@ -209,6 +256,7 @@ def speaker_diarization(self, meeting_id: str):
             )
             meeting.speaker_status = "SKIPPED"
             db.commit()
+            tracker.end_stage(5, status="SKIPPED")
             # AI analysis is triggered by transcribe_audio; nothing to do here
             return
 
@@ -302,6 +350,7 @@ def speaker_diarization(self, meeting_id: str):
             logger.info(
                 f"Speaker diarization stage completed successfully for meeting: {meeting_id}"
             )
+            tracker.end_stage(5, status="COMPLETED")
 
             # Auto-detect speaker names if AI analysis is also done
             try:
@@ -322,6 +371,7 @@ def speaker_diarization(self, meeting_id: str):
         )
 
     except Exception as exc:
+        tracker.end_stage(5, status="FAILED")
         logger.error(
             f"CeleryTask | speaker_diarization | Meeting ID: {meeting_id} | Failed: {exc}"
         )
@@ -345,28 +395,43 @@ def generate_embeddings(self, meeting_id: str):
     Asynchronous embedding generation task. Generates embeddings for each transcript segment.
     """
     db: Session = SessionLocal()
+    from app.utils.logging_pipeline import PipelineTracker
+
+    tracker = PipelineTracker(meeting_id)
+    tracker.start_stage(6)  # Stage 6: Embeddings
     try:
         logger.info(
             f"CeleryTask | generate_embeddings | Meeting ID: {meeting_id} | Task ID: {self.request.id}"
         )
         meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
         if not meeting:
+            tracker.end_stage(6, status="FAILED")
             return
 
         meeting.embedding_status = "RUNNING"
+        meeting.technical_status = "RUNNING"
         db.commit()
 
         embedding_service = EmbeddingService()
-        embedding_service.update_segments_embeddings(db, meeting_id)
+        chunk_count = embedding_service.update_segments_embeddings(db, meeting_id)
 
         # Run RAG chunking and indexing pipeline
         from app.services.ai.rag_service import RAGService
+
         RAGService.index_meeting(db, meeting_id)
 
         logger.info(f"Embedding stage completed successfully for meeting: {meeting_id}")
+        meeting.embedding_status = "SUCCESS"
+        if meeting.technical_status != "SUCCESS":
+            meeting.technical_status = "PENDING"
+        db.commit()
 
+        tracker.end_stage(
+            6, status="COMPLETED", metadata={"chunks": chunk_count, "batch_size": 32}
+        )
 
     except Exception as exc:
+        tracker.end_stage(6, status="FAILED")
         logger.error(
             f"CeleryTask | generate_embeddings | Meeting ID: {meeting_id} | Failed: {exc}"
         )
@@ -431,13 +496,21 @@ def generate_cache(self, meeting_id: str):
     Asynchronous cache pre-generation task.
     """
     db: Session = SessionLocal()
+    from app.utils.logging_pipeline import PipelineTracker
+
+    tracker = PipelineTracker(meeting_id)
+    tracker.start_stage(8)  # Stage 8: Cache
     try:
         logger.info(f"CeleryTask | generate_cache | Meeting ID: {meeting_id}")
-        MeetingContextCache.get_context(meeting_id, db)
+        context_str = MeetingContextCache.get_context(meeting_id, db)
         logger.info(
             f"CeleryTask | generate_cache | Successfully populated cache for meeting: {meeting_id}"
         )
+        tracker.end_stage(
+            8, status="COMPLETED", metadata={"size_chars": len(context_str)}
+        )
     except Exception as e:
+        tracker.end_stage(8, status="FAILED")
         logger.error(
             f"CeleryTask | generate_cache | Failed for meeting {meeting_id}: {e}"
         )
@@ -452,15 +525,26 @@ def generate_ai_analysis(self, meeting_id: str):
     action items, decisions, risks, etc.
     """
     db: Session = SessionLocal()
+    from app.utils.logging_pipeline import PipelineTracker
+
+    tracker = PipelineTracker(meeting_id)
+    tracker.start_stage(4)  # Stage 4: AI Summary
     try:
         logger.info(
             f"CeleryTask | generate_ai_analysis | Meeting ID: {meeting_id} | Task ID: {self.request.id}"
         )
         meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
         if not meeting:
+            tracker.end_stage(4, status="FAILED")
             return
 
         meeting.ai_status = "RUNNING"
+        meeting.executive_summary_status = "RUNNING"
+        meeting.action_items_status = "RUNNING"
+        meeting.decisions_status = "RUNNING"
+        meeting.risks_status = "RUNNING"
+        meeting.key_themes_status = "RUNNING"
+        meeting.technical_status = "RUNNING"
         db.commit()
 
         # Build transcript text with speaker names
@@ -476,7 +560,13 @@ def generate_ai_analysis(self, meeting_id: str):
             )
             meeting.ai_status = "SKIPPED"
             db.commit()
-            generate_knowledge_graph.delay(meeting_id)
+            tracker.end_stage(4, status="SKIPPED")
+            from app.events.router import event_router, EventPayload
+
+            event_router.emit(
+                "meeting.analyzed",
+                EventPayload(meeting_id=meeting_id, event_type="meeting.analyzed"),
+            )
             return
 
         transcript_text = ""
@@ -611,14 +701,47 @@ def generate_ai_analysis(self, meeting_id: str):
                 question = Question(meeting_id=meeting_id, question_text=q_text)
                 db.add(question)
 
-            logger.info(f"AI saved | Meeting ID: {meeting_id}")
+            logger.debug(f"AI saved | Meeting ID: {meeting_id}")
             db.commit()
-            logger.info(f"Database committed | Meeting ID: {meeting_id}")
+            logger.debug(f"Database committed | Meeting ID: {meeting_id}")
 
             meeting.ai_status = "SUCCESS"
+            meeting.executive_summary_status = "COMPLETED"
+            meeting.action_items_status = "COMPLETED"
+            meeting.decisions_status = "COMPLETED"
+            meeting.risks_status = "COMPLETED"
+            meeting.key_themes_status = "COMPLETED"
+            meeting.technical_status = "COMPLETED"
             db.commit()
-            logger.info(
+            logger.debug(
                 f"Meeting updated | Meeting ID: {meeting_id} | ai_status: {meeting.ai_status}"
+            )
+
+            tracker.end_stage(
+                4,
+                status="COMPLETED",
+                metadata={
+                    "provider": (
+                        gemini_service.current_provider.title()
+                        if hasattr(gemini_service, "current_provider")
+                        else "Gemini"
+                    ),
+                    "model": (
+                        gemini_service.model_name
+                        if hasattr(gemini_service, "model_name")
+                        else "gemini-1.5-flash"
+                    ),
+                    "prompt_tokens": (
+                        gemini_service.last_prompt_tokens
+                        if hasattr(gemini_service, "last_prompt_tokens")
+                        else 0
+                    ),
+                    "completion_tokens": (
+                        gemini_service.last_completion_tokens
+                        if hasattr(gemini_service, "last_completion_tokens")
+                        else 0
+                    ),
+                },
             )
 
             # Auto-detect speaker names if diarization is also done
@@ -628,16 +751,28 @@ def generate_ai_analysis(self, meeting_id: str):
                 logger.error(f"Failed to auto-detect speaker names in AI analysis: {e}")
         else:
             meeting.ai_status = "FAILED"
+            meeting.executive_summary_status = "FAILED"
+            meeting.action_items_status = "FAILED"
+            meeting.decisions_status = "FAILED"
+            meeting.risks_status = "FAILED"
+            meeting.key_themes_status = "FAILED"
             meeting.executive_summary = "AI analysis unavailable."
             db.commit()
-            logger.info(
+            logger.debug(
                 f"Meeting updated | Meeting ID: {meeting_id} | ai_status: {meeting.ai_status} (FAILED)"
             )
+            tracker.end_stage(4, status="FAILED")
 
         # Trigger Knowledge Graph stage
-        generate_knowledge_graph.delay(meeting_id)
+        from app.events.router import event_router, EventPayload
+
+        event_router.emit(
+            "meeting.analyzed",
+            EventPayload(meeting_id=meeting_id, event_type="meeting.analyzed"),
+        )
 
     except Exception as exc:
+        tracker.end_stage(4, status="FAILED")
         logger.error(
             f"CeleryTask | generate_ai_analysis | Meeting ID: {meeting_id} | Failed: {exc}"
         )
@@ -645,13 +780,23 @@ def generate_ai_analysis(self, meeting_id: str):
         meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
         if meeting:
             meeting.ai_status = "FAILED"
+            meeting.executive_summary_status = "FAILED"
+            meeting.action_items_status = "FAILED"
+            meeting.decisions_status = "FAILED"
+            meeting.risks_status = "FAILED"
+            meeting.key_themes_status = "FAILED"
             meeting.executive_summary = "AI analysis unavailable."
             db.commit()
-            logger.info(
+            logger.debug(
                 f"Meeting updated | Meeting ID: {meeting_id} | ai_status: {meeting.ai_status} (EXCEPTION)"
             )
         # Trigger Knowledge Graph anyway
-        generate_knowledge_graph.delay(meeting_id)
+        from app.events.router import event_router, EventPayload
+
+        event_router.emit(
+            "meeting.analyzed",
+            EventPayload(meeting_id=meeting_id, event_type="meeting.analyzed"),
+        )
         try:
             self.retry(exc=exc)
         except Exception:
@@ -666,15 +811,21 @@ def generate_knowledge_graph(self, meeting_id: str):
     Asynchronous Knowledge Graph resolution task.
     """
     db: Session = SessionLocal()
+    from app.utils.logging_pipeline import PipelineTracker
+
+    tracker = PipelineTracker(meeting_id)
+    tracker.start_stage(7)  # Stage 7: Knowledge Graph
     try:
         logger.info(
             f"CeleryTask | generate_knowledge_graph | Meeting ID: {meeting_id} | Task ID: {self.request.id}"
         )
         meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
         if not meeting:
+            tracker.end_stage(7, status="FAILED")
             return
 
         meeting.kg_status = "RUNNING"
+        meeting.technical_status = "RUNNING"
         db.commit()
 
         kg_service = KnowledgeGraphService()
@@ -688,13 +839,30 @@ def generate_knowledge_graph(self, meeting_id: str):
 
         meeting.kg_status = "SUCCESS"
         meeting.status = "COMPLETED"
+        meeting.technical_status = "COMPLETED"
         db.commit()
+
+        # Query counts
+        node_count = (
+            db.query(KnowledgeGraphNode)
+            .filter(KnowledgeGraphNode.organization_id == meeting.organization_id)
+            .count()
+        )
+        edge_count = (
+            db.query(KnowledgeGraphEdge)
+            .filter(KnowledgeGraphEdge.organization_id == meeting.organization_id)
+            .count()
+        )
 
         logger.info(
             f"Knowledge Graph stage completed successfully for meeting: {meeting_id}"
         )
+        tracker.end_stage(
+            7, status="COMPLETED", metadata={"nodes": node_count, "edges": edge_count}
+        )
 
     except Exception as exc:
+        tracker.end_stage(7, status="FAILED")
         logger.error(
             f"CeleryTask | generate_knowledge_graph | Meeting ID: {meeting_id} | Failed: {exc}"
         )
@@ -703,6 +871,7 @@ def generate_knowledge_graph(self, meeting_id: str):
         if meeting:
             meeting.kg_status = "FAILED"
             meeting.status = "COMPLETED"  # Mark completed so overall pipeline is done
+            meeting.technical_status = "FAILED"
             db.commit()
         try:
             self.retry(exc=exc)
@@ -741,6 +910,11 @@ def join_scheduled_meeting(self, scheduled_meeting_id: str):
 
         scheduled.status = "Joined"
         meeting.status = "PROCESSING"
+        meeting.transcript_status = "PENDING"
+        meeting.speaker_status = "PENDING"
+        meeting.embedding_status = "PENDING"
+        meeting.ai_status = "PENDING"
+        meeting.kg_status = "PENDING"
 
         session = (
             db.query(AgentLiveSession)
@@ -751,33 +925,10 @@ def join_scheduled_meeting(self, scheduled_meeting_id: str):
             session.status = "Live"
         db.commit()
 
-        platform = _normalize_platform(scheduled.platform)
+        # Auto-join meeting bots have been removed. Verify directly if a recording is available.
         logger.info(
-            f"CeleryTask | join_scheduled_meeting | Bot joining {platform}: {scheduled.meeting_url}"
+            f"CeleryTask | join_scheduled_meeting | Bot auto-join disabled. Checking for uploaded media."
         )
-
-        if platform == "Teams":
-            from app.agent.connectors.teams import TeamsConnector
-
-            TeamsConnector().join_meeting(scheduled.meeting_url)
-        elif platform == "Google Meet":
-            from app.agent.connectors.meet import GoogleMeetConnector
-
-            GoogleMeetConnector().join_meeting(scheduled.meeting_url)
-        elif platform == "Zoom":
-            from app.agent.connectors.zoom import ZoomConnector
-
-            ZoomConnector().join_meeting(scheduled.meeting_url)
-        else:
-            logger.warning(
-                f"CeleryTask | join_scheduled_meeting | Unsupported platform for auto-join: {scheduled.platform}"
-            )
-            scheduled.status = "Failed"
-            meeting.status = "FAILED"
-            if session:
-                session.status = "Error"
-            db.commit()
-            return
 
         # Check if a real media file is available for the meeting before queuing Celery.
         media_service = MediaService()
@@ -822,13 +973,15 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
 
     # Check if both diarization and AI analysis have run successfully
     if meeting.speaker_status != "COMPLETED" or meeting.ai_status != "SUCCESS":
-        logger.info(
+        logger.debug(
             f"auto_detect_speaker_names | Skipping because stages not completed. "
             f"speaker_status={meeting.speaker_status}, ai_status={meeting.ai_status}"
         )
         return
 
-    logger.info(f"auto_detect_speaker_names | Running speaker name identification for meeting {meeting_id}")
+    logger.debug(
+        f"auto_detect_speaker_names | Running speaker name identification for meeting {meeting_id}"
+    )
 
     # Get all unconfirmed speakers with generic-looking names
     unconfirmed_speakers = (
@@ -841,7 +994,9 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
     )
 
     if not unconfirmed_speakers:
-        logger.info("auto_detect_speaker_names | No unconfirmed speakers found. Skipping.")
+        logger.debug(
+            "auto_detect_speaker_names | No unconfirmed speakers found. Skipping."
+        )
         return
 
     # Check if they have generic names (e.g. starting with "speaker")
@@ -851,7 +1006,9 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
             generic_speakers.append(spk)
 
     if not generic_speakers:
-        logger.info("auto_detect_speaker_names | No generic unconfirmed speakers found. Skipping.")
+        logger.debug(
+            "auto_detect_speaker_names | No generic unconfirmed speakers found. Skipping."
+        )
         return
 
     # Load transcripts to build text
@@ -872,7 +1029,9 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
     transcript_text = "\n".join(transcript_lines)
 
     # Get known organization users to match against
-    org_users = db.query(User).filter(User.organization_id == meeting.organization_id).all()
+    org_users = (
+        db.query(User).filter(User.organization_id == meeting.organization_id).all()
+    )
     known_members = [u.name for u in org_users if u.name]
 
     # Map current generic names
@@ -884,16 +1043,20 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
     )
 
     if not detected_mapping:
-        logger.info("auto_detect_speaker_names | No speaker names detected by LLM.")
+        logger.debug("auto_detect_speaker_names | No speaker names detected by LLM.")
         return
 
-    logger.info(f"auto_detect_speaker_names | LLM detected mapping: {detected_mapping}")
+    logger.debug(
+        f"auto_detect_speaker_names | LLM detected mapping: {detected_mapping}"
+    )
 
     updated = False
     for spk in generic_speakers:
         detected_name = detected_mapping.get(spk.display_name)
         if detected_name:
-            logger.info(f"auto_detect_speaker_names | Mapping '{spk.display_name}' to '{detected_name}'")
+            logger.debug(
+                f"auto_detect_speaker_names | Mapping '{spk.display_name}' to '{detected_name}'"
+            )
             spk.display_name = detected_name
             spk.is_confirmed = True
             updated = True
@@ -902,4 +1065,24 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
         db.commit()
         # Invalidate cache so the frontend gets the fresh names
         MeetingContextCache.invalidate(meeting_id)
-        logger.info("auto_detect_speaker_names | Database updated and cache invalidated.")
+        logger.debug(
+            "auto_detect_speaker_names | Database updated and cache invalidated."
+        )
+
+
+@celery_app.task
+def send_mom_email(meeting_id: str):
+    """
+    Celery task to generate and distribute the Minutes of Meeting (MOM)
+    email once the entire pipeline has finished.
+    """
+    logger.info(f"send_mom_email task started for meeting: {meeting_id}")
+    db = SessionLocal()
+    try:
+        from app.services.email_service import EmailService
+
+        EmailService.send_mom_email(db, meeting_id)
+    except Exception as e:
+        logger.error(f"send_mom_email task failed: {e}")
+    finally:
+        db.close()

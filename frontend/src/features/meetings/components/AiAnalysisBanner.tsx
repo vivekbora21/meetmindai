@@ -16,9 +16,10 @@ export const AiAnalysisBanner: React.FC<AiAnalysisBannerProps> = ({
   onRun,
   isRunning,
 }) => {
-  const isFailed = aiStatus === "FAILED";
-  const isSkipped = aiStatus === "SKIPPED";
-  const isRunningRemotely = aiStatus === "RUNNING";
+  const aiStatusNorm = (aiStatus || "").toUpperCase();
+  const isFailed = aiStatusNorm === "FAILED" || aiStatusNorm === "ERROR";
+  const isSkipped = aiStatusNorm === "SKIPPED";
+  const isRunningRemotely = aiStatusNorm === "RUNNING" || aiStatusNorm === "PROCESSING";
 
   const statusMessage = isFailed
     ? "AI analysis failed during processing."
@@ -63,7 +64,7 @@ export const AiAnalysisBanner: React.FC<AiAnalysisBannerProps> = ({
         {isFailed ? (
           <AlertCircle style={{ width: 26, height: 26, color: "#ef4444" }} />
         ) : (
-          <Sparkles style={{ width: 26, height: 26, color: "#0f766e" }} />
+          <Sparkles style={{ width: 26, height: 26, color: "#113229" }} />
         )}
       </div>
 
@@ -73,7 +74,7 @@ export const AiAnalysisBanner: React.FC<AiAnalysisBannerProps> = ({
           style={{
             fontSize: "0.9rem",
             fontWeight: 700,
-            color: "#0f172a",
+            color: "#102C23",
             fontFamily: "Outfit, sans-serif",
             margin: 0,
           }}
@@ -107,7 +108,7 @@ export const AiAnalysisBanner: React.FC<AiAnalysisBannerProps> = ({
             borderRadius: "0.875rem",
             fontSize: "0.8rem",
             fontWeight: 600,
-            color: "#0f766e",
+            color: "#113229",
             fontFamily: "Outfit, sans-serif",
           }}
         >
@@ -115,7 +116,7 @@ export const AiAnalysisBanner: React.FC<AiAnalysisBannerProps> = ({
             style={{
               width: 15,
               height: 15,
-              color: "#0f766e",
+              color: "#113229",
               animation: "spin 1s linear infinite",
             }}
           />
@@ -135,8 +136,8 @@ export const AiAnalysisBanner: React.FC<AiAnalysisBannerProps> = ({
               ? "rgba(15,118,110,0.08)"
               : isFailed
               ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)"
-              : "linear-gradient(135deg, #0f766e 0%, #0d9488 100%)",
-            color: isRunning ? "#0f766e" : "#fff",
+              : "linear-gradient(135deg, #113229 0%, #0D241E 100%)",
+            color: isRunning ? "#113229" : "#fff",
             border: "none",
             borderRadius: "0.875rem",
             fontSize: "0.8rem",

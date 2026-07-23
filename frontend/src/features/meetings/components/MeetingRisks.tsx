@@ -1,18 +1,26 @@
 import React from "react";
 import { ShieldAlert } from "lucide-react";
-import { MeetingDetail } from "../types/meeting";
+import { MeetingDetail, Risk } from "../types/meeting";
+import { InsightSkeleton } from "./InsightSkeleton";
 
 interface MeetingRisksProps {
   detail: MeetingDetail;
 }
 
 export const MeetingRisks: React.FC<MeetingRisksProps> = ({ detail }) => {
+  const status = (detail.risks_status || detail.ai_status || "").toUpperCase();
+  const isLoading = !detail.risks && !["COMPLETED", "SUCCESS", "FAILED", "ERROR", "SKIPPED"].includes(status);
+
+  if (isLoading) {
+    return <InsightSkeleton title="Risks" hint="Analyzing the discussion for blockers, concerns, and open risks." accentClassName="bg-rose-200" />;
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {detail.risks ? detail.risks.map((risk: any, idx: number) => (
+      {detail.risks ? detail.risks.map((risk: Risk, idx: number) => (
         <div key={idx} className="p-4 rounded-2xl bg-rose-50/30 border border-rose-200/60 flex flex-col gap-2 shadow-sm">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-bold text-[#0f172a] font-outfit flex items-center gap-1.5">
+            <span className="text-sm font-bold text-[#102C23] font-outfit flex items-center gap-1.5">
               <ShieldAlert className="w-4 h-4 text-rose-600" /> {risk.risk_text}
             </span>
             <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-semibold capitalize">

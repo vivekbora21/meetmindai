@@ -39,11 +39,11 @@ export const SpeakerCard: React.FC<SpeakerCardProps> = ({
         {/* Header */}
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-teal-50 text-[#0f766e] shadow-sm">
+            <div className="p-2.5 rounded-2xl bg-teal-50 text-[#113229] shadow-sm">
               <User className="w-5 h-5" />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-[#0f172a] font-outfit leading-tight">
+              <span className="text-sm font-bold text-[#102C23] font-outfit leading-tight">
                 {speaker.display_name}
               </span>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-outfit mt-0.5">
@@ -55,7 +55,7 @@ export const SpeakerCard: React.FC<SpeakerCardProps> = ({
           {/* Action: Rename */}
           <button
             onClick={onRenameClick}
-            className="p-2 rounded-xl text-slate-400 hover:text-[#0f766e] hover:bg-teal-50 transition-all border border-transparent hover:border-teal-100"
+            className="p-2 rounded-xl text-slate-400 hover:text-[#113229] hover:bg-teal-50 transition-all border border-transparent hover:border-teal-100"
             title="Rename Speaker"
           >
             <Edit2 className="w-3.5 h-3.5" />
@@ -69,13 +69,13 @@ export const SpeakerCard: React.FC<SpeakerCardProps> = ({
               <Shield className="w-3 h-3 fill-[#15803d]/10" /> Confirmed
             </span>
           ) : (
-            <span className="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-full flex items-center gap-1">
+            <span className="text-[10px] font-bold text-slate-500 bg-[#F9F8F6] border border-slate-200/60 px-2.5 py-1 rounded-full flex items-center gap-1">
               Unconfirmed
             </span>
           )}
 
           {confidencePercentage !== null && (
-            <span className="text-[10px] font-bold text-[#0f766e] bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-full flex items-center gap-1">
+            <span className="text-[10px] font-bold text-[#113229] bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-full flex items-center gap-1">
               <Mic className="w-3 h-3" /> {confidencePercentage}% voice match
             </span>
           )}
@@ -90,7 +90,7 @@ export const SpeakerCard: React.FC<SpeakerCardProps> = ({
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-outfit">
               Speaking Time
             </span>
-            <span className="text-xs font-bold text-[#0f172a] font-outfit">
+            <span className="text-xs font-bold text-[#102C23] font-outfit">
               {formatTime(speakingSeconds)}
             </span>
           </div>
@@ -99,7 +99,7 @@ export const SpeakerCard: React.FC<SpeakerCardProps> = ({
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-outfit">
               Contributions
             </span>
-            <span className="text-xs font-bold text-[#0f172a] font-outfit">
+            <span className="text-xs font-bold text-[#102C23] font-outfit">
               {contributions}
             </span>
           </div>
@@ -108,7 +108,7 @@ export const SpeakerCard: React.FC<SpeakerCardProps> = ({
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-outfit">
               Share
             </span>
-            <span className="text-xs font-bold text-[#0f766e] font-outfit bg-teal-50/70 py-0.5 px-1 rounded-lg">
+            <span className="text-xs font-bold text-[#113229] font-outfit bg-teal-50/70 py-0.5 px-1 rounded-lg">
               {percentage}%
             </span>
           </div>

@@ -25,10 +25,10 @@ def init_database():
     print("Running database migrations...")
     from alembic.config import Config
     from alembic import command
+
     alembic_cfg = Config("alembic.ini")
     command.upgrade(alembic_cfg, "head")
     print("Database migrations applied successfully.")
-
 
     print("Seeding default database data...")
     db = SessionLocal()

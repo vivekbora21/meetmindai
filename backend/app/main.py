@@ -1,6 +1,7 @@
 import time
 import os
-from fastapi import FastAPI, Request
+from typing import Callable, Dict, Any
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -12,11 +13,14 @@ from app.api.v1.endpoints import (
     knowledge,
     analytics,
     agent_events,
-    teams_bot,
     profile,
     ai,
     calendar,
 )
+
+# Generic provider-agnostic OAuth router (replaces per-provider microsoft_router,
+# google_router, zoom_router that previously lived inside auth.py)
+from app.integrations.router import router as integrations_router
 
 app = FastAPI(
     title="MeetingMind AI API",
@@ -40,7 +44,7 @@ app.add_middleware(
 
 # Simple rate limiter/latency logger middleware
 @app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
+async def add_process_time_header(request: Request, call_next: Callable) -> Response:
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
@@ -50,15 +54,20 @@ async def add_process_time_header(request: Request, call_next):
 
 # Standard healthcheck endpoint
 @app.get("/health")
-def healthcheck():
+def healthcheck() -> Dict[str, Any]:
     return {"status": "healthy", "timestamp": time.time()}
 
 
-# Include routers
+# -------------------------------------------------------------------------
+# Core API Routers
+# -------------------------------------------------------------------------
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
-app.include_router(auth.microsoft_router, tags=["microsoft-auth"])
-app.include_router(auth.google_router, tags=["google-auth"])
 app.include_router(calendar.router, tags=["calendar"])
+
+# Generic provider-agnostic OAuth flow
+# Routes: /api/auth/{provider}/login  and  /api/auth/{provider}/callback
+# Supported providers: microsoft, google, zoom (see app/integrations/registry.py)
+app.include_router(integrations_router, tags=["integrations-oauth"])
 
 app.include_router(profile.router, prefix="/api/v1/profile", tags=["profile"])
 app.include_router(meetings.router, prefix="/api/v1/meetings", tags=["meetings"])
@@ -66,15 +75,15 @@ app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
 app.include_router(knowledge.router, prefix="/api/v1/knowledge", tags=["knowledge"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(agent_events.router, prefix="/api/v1/agent", tags=["agent"])
-app.include_router(teams_bot.router, prefix="/api/v1/agent/teams", tags=["teams-bot"])
 app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 app.include_router(ai.meeting_router, prefix="/api/meetings", tags=["meetings"])
 
 
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     import asyncio
     from app.services.scheduler import start_scheduler
+    from app.events.handlers import register_event_handlers
+
+    register_event_handlers()
     asyncio.create_task(start_scheduler())
-
-

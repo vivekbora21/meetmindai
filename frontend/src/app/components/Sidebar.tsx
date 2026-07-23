@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { 
   LayoutDashboard, 
   Network, 
@@ -9,10 +11,13 @@ import {
   HelpCircle, 
   LogOut, 
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Video,
   Sparkles,
   Calendar,
-  CheckSquare
+  Loader2,
+  PlusCircle
 } from "lucide-react";
 
 interface SidebarProps {
@@ -21,6 +26,7 @@ interface SidebarProps {
   loading: boolean;
   onLogout: () => Promise<void> | void;
   isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export default function Sidebar({ 
@@ -28,144 +34,231 @@ export default function Sidebar({
   userRole, 
   loading, 
   onLogout,
-  isCollapsed = false 
+  isCollapsed = false,
+  onToggleCollapse
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isDashboardActive = pathname === "/dashboard";
   const isMeetingsActive = pathname.startsWith("/meetings");
   const isAIWorkspaceActive = pathname.startsWith("/ai-workspace");
   const isKnowledgeActive = pathname.startsWith("/knowledge");
   const isAnalyticsActive = pathname.startsWith("/analytics");
-  const isSettingsActive = pathname.startsWith("/settings");
   const isCalendarActive = pathname.startsWith("/calendar");
 
   return (
-    <aside className={`border-r border-[#e2e8f0] flex flex-col justify-between bg-white transition-all duration-300 ease-in-out h-full ${
+    <aside className={`border-r border-[#DEDDDA]/60 flex flex-col justify-between bg-white transition-all duration-300 ease-in-out h-full flex-shrink-0 relative z-30 ${
       isCollapsed ? "w-20 p-3" : "w-72 p-6"
     }`}>
+      
+      {/* Floating Collapse/Expand Button at Sidebar & Navbar Edge Intersection */}
+      {onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          aria-label={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          className="absolute top-1 -right-3.5 z-40 w-7 h-7 rounded-full bg-white border border-[#DEDDDA] hover:border-[#113229] shadow-sm hover:shadow-md flex items-center justify-center text-slate-500 hover:text-[#113229] transition-all hover:scale-105 active:scale-90 cursor-pointer"
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-4 h-4" aria-hidden="true" />
+          ) : (
+            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+          )}
+        </button>
+      )}
+
       <div className="flex flex-col gap-6">
         {/* Navigation Section */}
-        <nav className="flex flex-col gap-1.5 pt-2">
-          <button 
-            onClick={() => router.push("/dashboard")}
+        <nav className="flex flex-col gap-1.5 pt-2" aria-label="Main Sidebar Navigation">
+          
+          {/* Dashboard link */}
+          <Link 
+            href="/dashboard"
             title="Dashboard"
-            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isDashboardActive 
-                ? "bg-[#e6f4f1] text-[#0f766e]" 
-                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <LayoutDashboard className={`w-5 h-5 flex-shrink-0 ${isDashboardActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {isDashboardActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <LayoutDashboard className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isDashboardActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
+            }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">Dashboard</span>}
-          </button>
+          </Link>
           
-          <button 
-            onClick={() => router.push("/meetings")}
+          {/* Meetings link */}
+          <Link 
+            href="/meetings"
             title="Meetings"
-            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isMeetingsActive 
-                ? "bg-[#e6f4f1] text-[#0f766e]" 
-                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <Video className={`w-5 h-5 flex-shrink-0 ${isMeetingsActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {isMeetingsActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <Video className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isMeetingsActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
+            }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">Meetings</span>}
-          </button>
+          </Link>
 
-          <button 
-            onClick={() => router.push("/calendar")}
+          {/* Create Meeting link */}
+          <Link 
+            href="/create-meeting"
+            title="Create & Join Meeting"
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
+              pathname.startsWith("/create-meeting")
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
+            }`}
+          >
+            {pathname.startsWith("/create-meeting") && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <PlusCircle className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              pathname.startsWith("/create-meeting") ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
+            }`} aria-hidden="true" />
+            {!isCollapsed && <span className="truncate">Create & Join</span>}
+          </Link>
+
+          {/* Calendar link */}
+          <Link 
+            href="/calendar"
             title="Calendar"
-            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isCalendarActive 
-                ? "bg-[#e6f4f1] text-[#0f766e]" 
-                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <Calendar className={`w-5 h-5 flex-shrink-0 ${isCalendarActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {isCalendarActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <Calendar className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isCalendarActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
+            }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">Calendar</span>}
-          </button>
+          </Link>
 
-          <button 
-            onClick={() => {}} 
-            title="Tasks (Coming Soon)"
-            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium text-[#cbd5e1] cursor-not-allowed opacity-50 text-left w-full`}
-            disabled
-          >
-            <CheckSquare className="w-5 h-5 flex-shrink-0 text-[#cbd5e1]" />
-            {!isCollapsed && <span className="truncate">Tasks</span>}
-          </button>
-
-          <button 
-            onClick={() => router.push("/ai-workspace")}
+          {/* AI Workspace link */}
+          <Link 
+            href="/ai-workspace"
             title="AI Workspace"
-            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isAIWorkspaceActive 
-                ? "bg-[#e6f4f1] text-[#0f766e]" 
-                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <Sparkles className={`w-5 h-5 flex-shrink-0 ${isAIWorkspaceActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {isAIWorkspaceActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <Sparkles className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isAIWorkspaceActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
+            }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">AI Workspace</span>}
-          </button>
+          </Link>
 
-          <button 
-            onClick={() => router.push("/knowledge")}
+          {/* Knowledge Graph link */}
+          <Link 
+            href="/knowledge"
             title="Knowledge Graph"
-            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isKnowledgeActive 
-                ? "bg-[#e6f4f1] text-[#0f766e]" 
-                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <Network className={`w-5 h-5 flex-shrink-0 ${isKnowledgeActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {isKnowledgeActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <Network className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isKnowledgeActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
+            }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">Knowledge Graph</span>}
-          </button>
+          </Link>
           
-          <button 
-            onClick={() => router.push("/analytics")}
+          {/* Analytics link */}
+          <Link 
+            href="/analytics"
             title="Analytics"
-            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
+            className={`group relative flex items-center ${
+              isCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3.5 py-2.5"
+            } rounded-xl text-xs font-semibold transition-all duration-200 ${
               isAnalyticsActive 
-                ? "bg-[#e6f4f1] text-[#0f766e]" 
-                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
+                ? "bg-[#113229] text-white shadow-md shadow-[#113229]/20 font-bold" 
+                : "text-slate-600 hover:text-[#0F172A] hover:bg-slate-100/80"
             }`}
           >
-            <BarChart3 className={`w-5 h-5 flex-shrink-0 ${isAnalyticsActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
+            {isAnalyticsActive && !isCollapsed && (
+              <span className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full bg-[#D98A44]" />
+            )}
+            <BarChart3 className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
+              isAnalyticsActive ? "text-[#D98A44]" : "text-slate-400 group-hover:text-[#113229]"
+            }`} aria-hidden="true" />
             {!isCollapsed && <span className="truncate">Analytics</span>}
-          </button>
-          
-          <button 
-            onClick={() => router.push("/settings")}
-            title="Settings"
-            className={`flex items-center ${isCollapsed ? "justify-center px-0 w-12 h-11 mx-auto" : "gap-3 px-4 py-2.5"} rounded-xl text-sm font-medium transition-all duration-200 ${
-              isSettingsActive 
-                ? "bg-[#e6f4f1] text-[#0f766e]" 
-                : "text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50"
-            }`}
-          >
-            <Settings className={`w-5 h-5 flex-shrink-0 ${isSettingsActive ? "text-[#0f766e]" : "text-[#64748b]"}`} />
-            {!isCollapsed && <span className="truncate">Settings</span>}
-          </button>
+          </Link>
         </nav>
       </div>
 
       <div className="flex flex-col gap-4">
-        {/* Brain network illustration (only when expanded) */}
+        {/* Help & Insights Premium Card */}
         {!isCollapsed && (
-          <div className="relative w-full aspect-square max-h-[140px] rounded-2xl overflow-hidden flex items-center justify-center p-2 bg-slate-50/50 border border-slate-100">
-            <img 
-              src="/brain_illustration.png" 
-              alt="AI Brain Illustration" 
-              className="w-full h-full object-contain mix-blend-multiply opacity-90" 
-            />
+          <div className="relative w-full overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-[#113229] via-[#0D261F] to-[#071914] text-white shadow-lg border border-[#113229]/30 group">
+            {/* Glow blur element */}
+            <div className="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-[#D98A44]/20 blur-xl pointer-events-none group-hover:bg-[#D98A44]/30 transition-all duration-300" />
+            
+            <div className="flex items-center gap-2 mb-2 relative z-10">
+              <div className="p-1 rounded-lg bg-[#D98A44]/20 border border-[#D98A44]/30">
+                <Sparkles className="w-3.5 h-3.5 text-[#D98A44] animate-pulse" aria-hidden="true" />
+              </div>
+              <span className="text-[10px] font-black text-[#D98A44] uppercase tracking-wider">MeetMind Memory</span>
+            </div>
+            <p className="text-[11px] text-slate-200 leading-relaxed font-medium relative z-10">
+              AI engine connected & syncing organizational context in real time.
+            </p>
           </div>
         )}
 
+        {/* Footer links in sidebar */}
+        <div className="flex flex-col gap-1">
+          <Link 
+            href="/help"
+            title="Help & Support"
+            className={`group flex items-center ${
+              isCollapsed ? "justify-center w-12 h-12 mx-auto" : "gap-3 px-4 py-2.5"
+            } rounded-xl text-[#64748b] hover:text-[#102C23] hover:bg-[#F9F8F6]/80 text-xs font-bold transition-all duration-250 w-full`}
+          >
+            <HelpCircle className="w-4.5 h-4.5 flex-shrink-0 transition-transform duration-250 group-hover:scale-110 text-[#64748b] group-hover:text-[#102C23]" aria-hidden="true" /> 
+            {!isCollapsed && <span className="truncate">Help & Support</span>}
+          </Link>
+        </div>
+
         {/* Profile Card / User section */}
         {loading ? (
-          <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3 py-2.5"} rounded-xl bg-white border border-[#e2e8f0] animate-pulse`}>
+          <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3 px-3 py-2.5"} rounded-xl bg-white border border-[#DEDDDA]/60 animate-pulse`}>
             <div className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0" />
             {!isCollapsed && (
               <div className="flex flex-col gap-1.5 flex-1">
@@ -175,47 +268,87 @@ export default function Sidebar({
             )}
           </div>
         ) : (
-          <div 
-            title={`${userName} (${userRole})`}
-            onClick={() => router.push("/settings")}
-            className={`flex items-center ${isCollapsed ? "justify-center w-12 h-12 mx-auto" : "justify-between px-3 py-2.5"} rounded-xl bg-white border border-[#e2e8f0] hover:bg-slate-50 transition-all duration-200 cursor-pointer group`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-full bg-[#0f766e] flex items-center justify-center text-xs font-bold text-white uppercase shadow-sm flex-shrink-0">
-                {userName ? userName.split(" ").map((n) => n[0]).join("").slice(0, 2) : "VS"}
-              </div>
-              {!isCollapsed && (
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-[#0f172a] truncate max-w-[110px]">{userName}</span>
-                  <span className="text-[10px] text-[#64748b] capitalize">{userRole}</span>
+          <div className="relative">
+            {/* Dropdown Menu (Dropup) */}
+            {isDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsDropdownOpen(false)}
+                />
+                <div 
+                  role="menu"
+                  aria-label="User settings options"
+                  className={`absolute bottom-full mb-2.5 z-20 bg-white border border-[#DEDDDA]/60 rounded-2xl shadow-lg p-1.5 flex flex-col gap-0.5 min-w-[190px] ${
+                    isCollapsed ? "left-2" : "left-0 right-0"
+                  }`}
+                >
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      router.push("/settings");
+                    }}
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#64748b] hover:text-[#113229] hover:bg-[#F9F8F6] transition-colors w-full text-left"
+                  >
+                    <Settings className="w-4 h-4 text-[#64748b]" aria-hidden="true" />
+                    Settings
+                  </button>
+                  <button
+                    role="menuitem"
+                    disabled={isLoggingOut}
+                    onClick={async () => {
+                      setIsLoggingOut(true);
+                      try {
+                        await onLogout();
+                      } finally {
+                        setIsLoggingOut(false);
+                        setIsDropdownOpen(false);
+                      }
+                    }}
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50/50 transition-colors w-full text-left border-t border-slate-50 mt-1 pt-2 disabled:opacity-60 cursor-pointer"
+                  >
+                    {isLoggingOut ? (
+                      <Loader2 className="w-4 h-4 text-rose-500 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <LogOut className="w-4 h-4 text-rose-500" aria-hidden="true" />
+                    )}
+                    <span>{isLoggingOut ? "Signing out..." : "Sign Out"}</span>
+                  </button>
                 </div>
-              )}
-            </div>
-            {!isCollapsed && <ChevronDown className="w-4 h-4 text-[#64748b] group-hover:text-[#0f172a] transition-colors flex-shrink-0" />}
+              </>
+            )}
+
+            {/* Profile Card Trigger */}
+            <button 
+              type="button"
+              title={`${userName} (${userRole})`}
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              aria-haspopup="true"
+              aria-expanded={isDropdownOpen}
+              aria-label="User profile menu"
+              className={`flex items-center w-full ${
+                isCollapsed 
+                  ? "justify-center w-12 h-12 mx-auto p-0 border-0 bg-transparent hover:bg-[#F9F8F6] rounded-full" 
+                  : "justify-between px-3.5 py-2.5 rounded-2xl bg-white border border-[#DEDDDA]/60 hover:bg-[#F9F8F6]"
+              } transition-all duration-250 cursor-pointer group text-left`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-[#113229] flex items-center justify-center text-xs font-bold text-white uppercase shadow-sm flex-shrink-0 ring-2 ring-transparent group-hover:ring-[#113229]/20 transition-all duration-250">
+                  {userName ? userName.split(" ").map((n) => n[0]).join("").slice(0, 2) : "VS"}
+                </div>
+                {!isCollapsed && (
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-[#102C23] truncate max-w-[140px]">{userName}</span>
+                    <span className="text-[10px] text-[#64748b] capitalize font-medium">{userRole}</span>
+                  </div>
+                )}
+              </div>
+              {!isCollapsed && <ChevronDown className={`w-4 h-4 text-[#64748b] group-hover:text-[#102C23] transition-transform duration-250 ${isDropdownOpen ? "rotate-180" : ""}`} aria-hidden="true" />}
+            </button>
           </div>
         )}
-
-        {/* Footer links in sidebar */}
-        <div className="flex flex-col gap-1">
-          <button 
-            onClick={() => router.push("/help")}
-            title="Help & Support"
-            className={`flex items-center ${isCollapsed ? "justify-center w-12 h-11 mx-auto" : "gap-3 px-4 py-2"} rounded-xl text-[#64748b] hover:text-[#0f172a] hover:bg-slate-50 text-sm font-medium transition-all duration-200 w-full text-left`}
-          >
-            <HelpCircle className="w-5 h-5 flex-shrink-0" /> 
-            {!isCollapsed && <span className="truncate">Help & Support</span>}
-          </button>
-          <button 
-            onClick={onLogout}
-            title="Sign Out"
-            className={`flex items-center ${isCollapsed ? "justify-center w-12 h-11 mx-auto" : "gap-3 px-4 py-2"} rounded-xl text-[#64748b] hover:text-red-600 hover:bg-red-50/50 text-sm font-medium transition-all duration-200 w-full text-left`}
-          >
-            <LogOut className="w-5 h-5 flex-shrink-0" /> 
-            {!isCollapsed && <span className="truncate">Sign Out</span>}
-          </button>
-        </div>
       </div>
     </aside>
   );
 }
-

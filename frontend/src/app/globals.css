@@ -3,15 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --border: #e2e8f0;
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --border: #E2E8F0;
   --card: #ffffff;
-  --muted: #64748b;
-  --accent: #0f766e;
-  --accent-strong: #115e59;
-  --accent-warm: #d97706;
-  --shadow: 0 4px 18px 0px rgba(15, 23, 42, 0.03), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  --muted: #64748B;
+  --accent: #113229;
+  --accent-strong: #0C231C;
+  --accent-hover: #1E4D40;
+  --accent-warm: #D98A44;
+  --accent-warm-hover: #C57936;
+  --shadow: 0 4px 20px -4px rgba(17, 50, 41, 0.06), 0 2px 8px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 32px -8px rgba(17, 50, 41, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
 }
 
 html {
@@ -21,26 +24,41 @@ html {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   overflow-x: hidden;
 }
 
 .font-outfit {
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: var(--font-outfit), var(--font-inter), sans-serif;
 }
 
+/* Glassmorphism & Surface Utilities */
 .glass {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: var(--shadow);
 }
 
+.glass-dark {
+  background: rgba(17, 50, 41, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow-lg);
+}
+
 .soft-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #E2E8F0;
   box-shadow: var(--shadow);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.soft-card:hover {
+  border-color: rgba(17, 50, 41, 0.25);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Custom scrollbars */
@@ -54,19 +72,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: #CBD5E1;
+  border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
 
-/* Scrollable utility - enables styled overflow scroll */
+/* Scrollable utility */
 .scrollbar {
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #CBD5E1 transparent;
 }
 
 .scrollbar::-webkit-scrollbar {
@@ -78,10 +96,64 @@ body {
 }
 
 .scrollbar::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
+  background: #E2E8F0;
   border-radius: 99px;
 }
 
 .scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
+
+/* Animations */
+@keyframes draw-line {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes pulse-node {
+  0%, 100% { stroke-width: 4; stroke-opacity: 1; r: 18; }
+  50% { stroke-width: 2; stroke-opacity: 0.5; r: 22; }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-draw {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw-line 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-pulse-node {
+  animation: pulse-node 3.5s ease-in-out infinite;
+  transform-origin: center;
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+
+@keyframes wave-bar {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+
+.animate-wave-bar {
+  animation: wave-bar 1s ease-in-out infinite;
+}
+

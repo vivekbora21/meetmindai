@@ -16,158 +16,60 @@ export const ChatHistory: React.FC<ChatHistoryProps> = ({
   onNewChat
 }) => {
   return (
-    <div
-      style={{
-        width: "220px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
-        height: "100%",
-        userSelect: "none",
-      }}
-    >
+    <div className="w-[220px] flex flex-col gap-4 h-full select-none font-outfit">
       {/* New Chat Button */}
       <button
         onClick={onNewChat}
-        style={{
-          width: "100%",
-          padding: "10px 14px",
-          borderRadius: "12px",
-          background: "linear-gradient(135deg, #0f766e 0%, #0d9488 100%)",
-          color: "#ffffff",
-          fontSize: "12px",
-          fontWeight: 650,
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "8px",
-          boxShadow: "0 2px 8px rgba(15, 118, 110, 0.2)",
-          transition: "all 0.2s ease",
-          fontFamily: "'Inter', sans-serif",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = "translateY(-1px)";
-          e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 118, 110, 0.3)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "none";
-          e.currentTarget.style.boxShadow = "0 2px 8px rgba(15, 118, 110, 0.2)";
-        }}
+        className="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-[#113229] to-[#0D241E] text-white text-xs font-bold border-none cursor-pointer flex items-center justify-center gap-2 shadow-sm shadow-[#113229]/20 transition-all duration-200 hover:-translate-y-0.5 active:scale-98"
       >
-        <Plus size={14} strokeWidth={2.5} />
-        New Chat
+        <Plus size={14} className="stroke-[2.5]" aria-hidden="true" />
+        <span>New Chat</span>
       </button>
 
       {/* Sessions List */}
-      <div
-        className="scrollbar"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "4px",
-          flex: 1,
-          overflowY: "auto",
-          paddingRight: "4px",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "10px",
-            fontWeight: 700,
-            color: "#94a3b8",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            paddingLeft: "8px",
-            marginBottom: "4px",
-            fontFamily: "'Inter', sans-serif",
-          }}
-        >
+      <nav aria-label="Recent chats" className="scrollbar flex flex-col gap-1 flex-1 overflow-y-auto pr-1">
+        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest pl-2 mb-1 block font-sans">
           Recent Chats
         </span>
         {sessions.length === 0 ? (
-          <span
-            style={{
-              fontSize: "11px",
-              color: "#94a3b8",
-              fontStyle: "italic",
-              paddingLeft: "8px",
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
+          <span className="text-xs text-slate-400 italic pl-2 font-sans font-medium">
             No chats yet
           </span>
         ) : (
-          sessions.map((sess) => {
-            const isActive = sess.id === activeSessionId;
-            return (
-              <button
-                key={sess.id}
-                onClick={() => onSelectSession(sess.id, sess)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "9px 12px",
-                  borderRadius: "10px",
-                  fontSize: "12px",
-                  fontWeight: isActive ? 600 : 500,
-                  background: isActive ? "#f0fdfa" : "transparent",
-                  color: isActive ? "#0f766e" : "#475569",
-                  border: isActive ? "1px solid #ccfbf1" : "1px solid transparent",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "8px",
-                  transition: "all 0.15s ease",
-                  fontFamily: "'Inter', sans-serif",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = "#f8fafc";
-                    e.currentTarget.style.color = "#0f172a";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "#475569";
-                  }
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    overflow: "hidden",
-                    flex: 1,
-                  }}
-                >
-                  <MessageSquare
-                    size={13}
-                    style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6 }}
-                  />
-                  <span
-                    style={{
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      flex: 1,
-                    }}
+          <ul className="flex flex-col gap-1 m-0 p-0 list-none">
+            {sessions.map((sess) => {
+              const isActive = sess.id === activeSessionId;
+              return (
+                <li key={sess.id}>
+                  <button
+                    onClick={() => onSelectSession(sess.id, sess)}
+                    aria-current={isActive ? "true" : undefined}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs cursor-pointer flex items-center justify-between gap-2 transition-all duration-150 border ${
+                      isActive 
+                        ? "bg-[#e6f4f1]/80 text-[#113229] border-[#b2e2db]/40 font-bold shadow-sm" 
+                        : "bg-transparent text-slate-500 border-transparent hover:bg-slate-50 hover:text-slate-800"
+                    }`}
                   >
-                    {sess.title}
-                  </span>
-                </div>
-                {sess.is_archived && (
-                  <Lock size={11} style={{ flexShrink: 0, color: "#94a3b8" }} />
-                )}
-              </button>
-            );
-          })
+                    <div className="flex items-center gap-2 overflow-hidden flex-1">
+                      <MessageSquare
+                        size={13}
+                        className={`flex-shrink-0 transition-opacity ${isActive ? "opacity-100" : "opacity-60"}`}
+                        aria-hidden="true"
+                      />
+                      <span className="white-space-nowrap overflow-hidden text-ellipsis flex-1">
+                        {sess.title}
+                      </span>
+                    </div>
+                    {sess.is_archived && (
+                      <Lock size={11} className="flex-shrink-0 text-slate-400" aria-hidden="true" />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
-      </div>
+      </nav>
     </div>
   );
 };

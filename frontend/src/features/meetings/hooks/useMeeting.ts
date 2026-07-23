@@ -1,8 +1,33 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useModalStore } from "@/store/useModalStore";
 import { meetingService } from "../services/meeting.service";
 import { MeetingDetail } from "../types/meeting";
 
+const isInsightStillRunning = (detail: MeetingDetail | null) => {
+  if (!detail) return false;
+  const statusFields = [
+    detail.status,
+    detail.speaker_status,
+    detail.ai_status,
+    detail.embedding_status,
+    detail.kg_status,
+    detail.transcript_status,
+    detail.executive_summary_status,
+    detail.action_items_status,
+    detail.decisions_status,
+    detail.risks_status,
+    detail.technical_status,
+    detail.key_themes_status,
+  ].filter(Boolean);
+
+  return statusFields.some((status) => {
+    const norm = String(status).toUpperCase();
+    return !["COMPLETED", "SUCCESS", "FAILED", "ERROR", "SKIPPED", "CANCELLED"].includes(norm);
+  });
+};
+
 export function useMeeting(meetingId: string) {
+  const { showModal } = useModalStore();
   const [meetingDetail, setMeetingDetail] = useState<MeetingDetail | null>(null);
   const [activeTab, setActiveTab] = useState<"summary" | "timeline" | "actions" | "decisions" | "risks" | "technical" | "participants" | "decisions_risks">("summary");
   
@@ -15,6 +40,7 @@ export function useMeeting(meetingId: string) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [runningAiAnalysis, setRunningAiAnalysis] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   // Audio playing state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -23,37 +49,33 @@ export function useMeeting(meetingId: string) {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const fetchMeetingDetail = async () => {
+  const fetchMeetingDetail = useCallback(async () => {
     try {
       const data = await meetingService.getMeetingDetail(meetingId);
       setMeetingDetail(data);
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [meetingId]);
 
-  const fetchMeetingDetailSilent = async () => {
+  const fetchMeetingDetailSilent = useCallback(async () => {
     try {
       const data = await meetingService.getMeetingDetailSilent(meetingId);
       setMeetingDetail(data);
-    } catch (e) {
+    } catch {
       console.warn("Silent fetch failed");
     }
-  };
+  }, [meetingId]);
 
   useEffect(() => {
     if (meetingId) {
       fetchMeetingDetail();
     }
-  }, [meetingId]);
-
-  // Polling for processing status
-  // Terminal statuses where polling should stop
-  const TERMINAL_STATUSES = ["Completed", "COMPLETED", "Failed", "FAILED", "Error", "ERROR"];
+  }, [meetingId, fetchMeetingDetail]);
 
   useEffect(() => {
-    let intervalId: any;
-    if (meetingDetail && !TERMINAL_STATUSES.includes(meetingDetail.status)) {
+    let intervalId: ReturnType<typeof setInterval> | undefined = undefined;
+    if (isInsightStillRunning(meetingDetail) || (meetingDetail?.recording_url && !meetingDetail?.transcripts?.length)) {
       intervalId = setInterval(() => {
         fetchMeetingDetailSilent();
       }, 3000);
@@ -61,7 +83,7 @@ export function useMeeting(meetingId: string) {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [meetingDetail?.status]);
+  }, [meetingDetail, fetchMeetingDetailSilent]);
 
   const handleMediaUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +95,11 @@ export function useMeeting(meetingId: string) {
       setSelectedFile(null);
     } catch (e) {
       console.error("Upload error", e);
-      alert("Error uploading file.");
+      showModal({
+        title: "Upload Failed",
+        message: "Error uploading file.",
+        type: "error"
+      });
     } finally {
       setUploadingFile(false);
     }
@@ -86,7 +112,11 @@ export function useMeeting(meetingId: string) {
       setMeetingDetail(data);
     } catch (e) {
       console.error("Transcription trigger error", e);
-      alert("Error triggering transcription.");
+      showModal({
+        title: "Transcription Failed",
+        message: "Error triggering transcription.",
+        type: "error"
+      });
     } finally {
       setTranscribing(false);
     }
@@ -110,9 +140,34 @@ export function useMeeting(meetingId: string) {
       await fetchMeetingDetailSilent();
     } catch (e) {
       console.error("AI analysis trigger error", e);
-      alert("Error triggering AI analysis. Please try again.");
+      showModal({
+        title: "Analysis Failed",
+        message: "Error triggering AI analysis. Please try again.",
+        type: "error"
+      });
     } finally {
       setRunningAiAnalysis(false);
+    }
+  };
+
+  const handleSendMomEmail = async () => {
+    setSendingEmail(true);
+    try {
+      const res = await meetingService.sendMomEmail(meetingId);
+      showModal({
+        title: "Email Dispatched",
+        message: res.message || "MOM email dispatch initiated successfully!",
+        type: "success"
+      });
+    } catch (e) {
+      console.error("MOM email send error", e);
+      showModal({
+        title: "Dispatch Failed",
+        message: "Error sending MOM email. Please try again.",
+        type: "error"
+      });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -159,6 +214,7 @@ export function useMeeting(meetingId: string) {
     uploadingFile,
     transcribing,
     runningAiAnalysis,
+    sendingEmail,
     isPlaying,
     currentTime,
     activeDuration,
@@ -170,6 +226,7 @@ export function useMeeting(meetingId: string) {
     handleMediaUpload,
     handleTranscribe,
     handleRunAiAnalysis,
+    handleSendMomEmail,
     handleJiraSync,
     togglePlay,
     handleTimeUpdate,

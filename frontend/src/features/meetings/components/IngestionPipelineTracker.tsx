@@ -125,12 +125,17 @@ export const IngestionPipelineTracker: React.FC<IngestionPipelineTrackerProps> =
   ];
 
   return (
-    <div className="p-8 rounded-2xl bg-white border border-slate-200 flex flex-col gap-6 shadow-sm">
+    <div 
+      role="region" 
+      aria-live="polite" 
+      aria-label="AI Ingestion pipeline progress"
+      className="p-8 rounded-2xl bg-white border border-slate-200 flex flex-col gap-6 shadow-sm"
+    >
       <div className="flex flex-col gap-1">
         {isFailed ? (
           <h3 className="font-bold text-sm text-rose-700 font-outfit">Processing encountered issues</h3>
         ) : (
-          <h3 className="font-bold text-sm text-[#0f172a] font-outfit">AI processing in progress</h3>
+          <h3 className="font-bold text-sm text-[#102C23] font-outfit">AI processing in progress</h3>
         )}
         <p className="text-xs text-slate-500 font-medium">
           {isFailed
@@ -145,27 +150,27 @@ export const IngestionPipelineTracker: React.FC<IngestionPipelineTrackerProps> =
           const isCurrentRetrying = retryingStage === s.id;
 
           return (
-            <div key={s.id} className="flex items-center justify-between py-1 border-b border-slate-50 last:border-0">
+            <div key={s.id} className="flex items-center justify-between py-1 border-b border-[#F9F8F6] last:border-0">
               <div className="flex items-center gap-3">
                 {status === "completed" ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" aria-hidden="true" />
                 ) : status === "running" ? (
-                  <Loader2 className="w-5 h-5 text-[#0f766e] animate-spin flex-shrink-0" />
+                  <Loader2 className="w-5 h-5 text-[#113229] animate-spin flex-shrink-0" aria-hidden="true" />
                 ) : status === "failed" ? (
-                  <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                  <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" aria-hidden="true" />
                 ) : status === "skipped" ? (
-                  <div className="w-5 h-5 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-[8px] font-bold text-slate-400 flex-shrink-0">
+                  <div className="w-5 h-5 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-[8px] font-bold text-slate-400 flex-shrink-0" aria-hidden="true">
                     S
                   </div>
                 ) : (
-                  <div className="w-5 h-5 rounded-full border-2 border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400 flex-shrink-0">
+                  <div className="w-5 h-5 rounded-full border-2 border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400 flex-shrink-0" aria-hidden="true">
                     {index + 1}
                   </div>
                 )}
                 <span className={`text-xs font-semibold ${
-                  status === "running" ? "text-[#0f766e]" : status === "completed" ? "text-[#0f172a]" : status === "failed" ? "text-rose-700" : "text-slate-400"
+                  status === "running" ? "text-[#113229]" : status === "completed" ? "text-[#102C23]" : status === "failed" ? "text-rose-700" : "text-slate-400"
                 }`}>
-                  {s.label}
+                  {s.label} <span className="sr-only">- {status}</span>
                 </span>
               </div>
 
@@ -173,12 +178,13 @@ export const IngestionPipelineTracker: React.FC<IngestionPipelineTrackerProps> =
                 <button
                   onClick={() => handleRetryStage(s.id)}
                   disabled={isCurrentRetrying || transcribing}
+                  aria-label={`Retry stage: ${s.label}`}
                   className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-rose-700 hover:text-white bg-rose-50 hover:bg-rose-600 rounded-md transition-all border border-rose-200"
                 >
                   {isCurrentRetrying ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
                   ) : (
-                    <RotateCw className="w-3 h-3" />
+                    <RotateCw className="w-3 h-3" aria-hidden="true" />
                   )}
                   Retry Stage
                 </button>
@@ -191,7 +197,7 @@ export const IngestionPipelineTracker: React.FC<IngestionPipelineTrackerProps> =
       {isFailed && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex flex-col gap-2">
           <span className="text-xs font-bold text-rose-800 flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4" /> Global processing halted
+            <AlertTriangle className="w-4 h-4" aria-hidden="true" /> Global processing halted
           </span>
           <p className="text-[11px] text-rose-700 leading-relaxed font-medium">
             Some stages did not complete successfully. You can retry the failed stages individually, or trigger a full re-transcription.
@@ -199,9 +205,10 @@ export const IngestionPipelineTracker: React.FC<IngestionPipelineTrackerProps> =
           <button
             onClick={onTranscribe}
             disabled={transcribing || retryingStage !== null}
+            aria-label="Restart full ingestion pipeline"
             className="w-full mt-1 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
-            {transcribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Full Restart Pipeline"}
+            {transcribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : "Full Restart Pipeline"}
           </button>
         </div>
       )}
@@ -210,9 +217,10 @@ export const IngestionPipelineTracker: React.FC<IngestionPipelineTrackerProps> =
         <button
           onClick={onTranscribe}
           disabled={transcribing || retryingStage !== null}
-          className="py-2 rounded-xl bg-[#0f766e] hover:bg-[#0d9488] text-white text-xs font-bold transition-all shadow-md shadow-[#0f766e]/10 flex items-center justify-center gap-2 disabled:opacity-50"
+          aria-label="Trigger audio transcription"
+          className="py-2 rounded-xl bg-[#113229] hover:bg-[#0D241E] text-white text-xs font-bold transition-all shadow-md shadow-[#113229]/10 flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {transcribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Trigger Transcription"}
+          {transcribing ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : "Trigger Transcription"}
         </button>
       )}
     </div>

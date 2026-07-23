@@ -26,12 +26,15 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-target_metadata = db_conn.target_metadata if getattr(db_conn, "target_metadata", None) is not None else Base.metadata
+target_metadata = (
+    db_conn.target_metadata
+    if getattr(db_conn, "target_metadata", None) is not None
+    else Base.metadata
+)
 
 
 # Set database URL dynamically
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
-
 
 
 def run_migrations_offline() -> None:
@@ -72,9 +75,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

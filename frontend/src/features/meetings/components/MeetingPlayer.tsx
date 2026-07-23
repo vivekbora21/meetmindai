@@ -44,7 +44,7 @@ export const MeetingPlayer: React.FC<MeetingPlayerProps> = ({
       <div className="flex items-center gap-4">
         <button
           onClick={onPlayPause}
-          className="w-10 h-10 rounded-xl bg-[#0f766e] hover:bg-[#0d9488] text-white flex items-center justify-center transition-colors shadow-md shadow-[#0f766e]/10"
+          className="w-10 h-10 rounded-xl bg-[#113229] hover:bg-[#0D241E] text-white flex items-center justify-center transition-colors shadow-md shadow-[#113229]/10"
         >
           {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
         </button>
@@ -55,7 +55,7 @@ export const MeetingPlayer: React.FC<MeetingPlayerProps> = ({
             className="h-2 w-full bg-slate-100 rounded-full cursor-pointer overflow-hidden relative"
           >
             <div
-              className="h-full bg-[#0f766e] rounded-full transition-all duration-75"
+              className="h-full bg-[#113229] rounded-full transition-all duration-75"
               style={{ width: `${progressPercent}%` }}
             />
           </div>

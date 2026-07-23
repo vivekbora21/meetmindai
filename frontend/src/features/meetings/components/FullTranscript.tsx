@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MeetingDetail } from "../types/meeting";
+import { MeetingDetail, Speaker, TranscriptSegment } from "../types/meeting";
 import { ChevronDown, ChevronUp, FileText, User } from "lucide-react";
 
 interface FullTranscriptProps {
@@ -9,7 +9,7 @@ interface FullTranscriptProps {
 const PAGE_SIZE = 10;
 
 const SPEAKER_COLORS = [
-  { bg: "#f0fdfb", text: "#0f766e", border: "#99f6e4" },
+  { bg: "#f0fdfb", text: "#113229", border: "#99f6e4" },
   { bg: "#f5f3ff", text: "#7c3aed", border: "#ddd6fe" },
   { bg: "#fffbeb", text: "#b45309", border: "#fde68a" },
   { bg: "#fff1f2", text: "#be123c", border: "#fecdd3" },
@@ -28,17 +28,17 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
   const visible = transcripts.slice(0, visibleCount);
   const hasMore = visibleCount < total;
 
-  const getSpeakerName = (t: any) =>
-    detail.speakers?.find((s: any) => s.speaker_tag === t.speaker_tag)?.display_name ||
+  const getSpeakerName = (t: TranscriptSegment) =>
+    detail.speakers?.find((s: Speaker) => s.speaker_tag === t.speaker_tag)?.display_name ||
     t.speaker_tag ||
     "Unknown";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "24px" }}>
+    <div role="region" aria-label="Meeting Transcript" style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "24px" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 700, color: "#0f172a", fontFamily: "'Inter', sans-serif", margin: 0 }}>
-          <FileText size={15} color="#0f766e" />
+        <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 700, color: "#102C23", fontFamily: "'Inter', sans-serif", margin: 0 }}>
+          <FileText size={15} color="#113229" aria-hidden="true" />
           Full Transcript
         </h3>
         {total > 0 && (
@@ -51,24 +51,27 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
       {/* Card */}
       <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "16px", boxShadow: "0 1px 6px rgba(15,23,42,0.05)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         {/* Scrollable list */}
-        <div
+        <ul
           className="scrollbar"
           style={{
             overflowY: "auto",
             maxHeight: "420px",
             display: "flex",
             flexDirection: "column",
+            margin: 0,
+            padding: 0,
+            listStyle: "none"
           }}
         >
           {total === 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 16px", gap: "12px", textAlign: "center" }}>
+            <li style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 16px", gap: "12px", textAlign: "center" }}>
               <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <FileText size={18} color="#94a3b8" />
               </div>
               <p style={{ fontSize: "12px", color: "#94a3b8", fontWeight: 500, fontFamily: "'Inter', sans-serif", margin: 0 }}>No transcript segments found</p>
-            </div>
+            </li>
           ) : (
-            visible.map((t: any, idx: number) => {
+            visible.map((t: TranscriptSegment, idx: number) => {
               const speakerName = getSpeakerName(t);
               const color = getSpeakerColor(speakerName);
               const timestamp =
@@ -77,7 +80,7 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
                   : null;
 
               return (
-                <div
+                <li
                   key={idx}
                   style={{
                     display: "flex",
@@ -104,7 +107,7 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
                       marginTop: "1px",
                     }}
                   >
-                    <User size={13} color={color.text} />
+                    <User size={13} color={color.text} aria-hidden="true" />
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -124,11 +127,11 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
                       {t.text}
                     </p>
                   </div>
-                </div>
+                </li>
               );
             })
           )}
-        </div>
+        </ul>
 
         {/* Footer: View More / View Less */}
         {(hasMore || visibleCount > PAGE_SIZE) && (
@@ -143,6 +146,7 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
               {visibleCount > PAGE_SIZE && (
                 <button
                   onClick={() => setVisibleCount(PAGE_SIZE)}
+                  aria-label="Show fewer transcript segments"
                   style={{
                     display: "flex", alignItems: "center", gap: "4px",
                     fontSize: "12px", fontWeight: 700, color: "#64748b",
@@ -160,17 +164,18 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
                     (e.currentTarget as HTMLButtonElement).style.borderColor = "transparent";
                   }}
                 >
-                  <ChevronUp size={13} />
+                  <ChevronUp size={13} aria-hidden="true" />
                   View Less
                 </button>
               )}
               {/* View More — only when more remain */}
-              {hasMore && (
+               {hasMore && (
                 <button
                   onClick={() => setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, total))}
+                  aria-label="Show more transcript segments"
                   style={{
                     display: "flex", alignItems: "center", gap: "4px",
-                    fontSize: "12px", fontWeight: 700, color: "#0f766e",
+                    fontSize: "12px", fontWeight: 700, color: "#113229",
                     background: "none", border: "1px solid transparent",
                     borderRadius: "8px", padding: "4px 10px",
                     cursor: "pointer", fontFamily: "'Inter', sans-serif",
@@ -186,7 +191,7 @@ export const FullTranscript: React.FC<FullTranscriptProps> = ({ detail }) => {
                   }}
                 >
                   View More
-                  <ChevronDown size={13} />
+                  <ChevronDown size={13} aria-hidden="true" />
                 </button>
               )}
             </div>

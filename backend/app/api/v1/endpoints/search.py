@@ -8,96 +8,26 @@ from pydantic import BaseModel
 
 from app.database.connection import get_db, SessionLocal
 from app.models.models import Meeting, User, Transcript, ChatMessage, ChatSession
-from app.api.v1.endpoints.auth import get_current_user
+from app.helpers.auth import get_current_user
 from app.services.embedding_service import EmbeddingService
 from app.services.ai.gemini_service import GeminiService
 from app.services.cache_service import MeetingContextCache
+from app.schemas.search import (
+    SearchQuery,
+    SearchResultItem,
+    ChatQuery,
+    ChatResponse,
+    ChatMessageOut,
+    ChatSessionCreate,
+    ChatSessionOut,
+    ChatSessionDetailOut,
+    TitleUpdate,
+    MessageInput,
+    ArchiveStatus,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-class SearchQuery(BaseModel):
-    query: str
-    limit: Optional[int] = 5
-
-
-class SearchResultItem(BaseModel):
-    meeting_id: str
-    meeting_title: str
-    segment_id: str
-    speaker_tag: str
-    text: str
-    start_ms: int
-    end_ms: int
-    score: float
-
-
-class ChatQuery(BaseModel):
-    meeting_id: Optional[str] = None  # If None, search across all meetings
-    question: str
-
-
-class ChatResponse(BaseModel):
-    answer: str
-    confidence_score: float
-    sources: List[SearchResultItem]
-
-
-class ChatMessageOut(BaseModel):
-    id: str
-    meeting_id: Optional[str] = None
-    user_id: str
-    session_id: Optional[str] = None
-    role: str
-    text: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class ChatSessionCreate(BaseModel):
-    title: Optional[str] = "New Chat"
-
-
-class ChatSessionOut(BaseModel):
-    id: str
-    meeting_id: Optional[str] = None
-    user_id: str
-    title: str
-    is_archived: bool
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class ChatSessionDetailOut(BaseModel):
-    id: str
-    meeting_id: Optional[str] = None
-    user_id: str
-    title: str
-    is_archived: bool
-    created_at: datetime
-    updated_at: datetime
-    messages: List[ChatMessageOut]
-
-    class Config:
-        from_attributes = True
-
-
-class TitleUpdate(BaseModel):
-    title: str
-
-
-class MessageInput(BaseModel):
-    question: str
-
-
-class ArchiveStatus(BaseModel):
-    is_archived: bool
 
 
 @router.post("/semantic", response_model=List[SearchResultItem])
@@ -176,55 +106,7 @@ def semantic_search(
     return results
 
 
-def is_high_level_question(question: str) -> bool:
-    import re
-
-    # Normalize question: remove non-alphanumeric chars (except spaces) and lowercase it
-    q = re.sub(r"[^\w\s]", "", question.lower().strip())
-
-    high_level_phrases = [
-        "what is this meeting about",
-        "what was this meeting about",
-        "main point",
-        "main objective",
-        "purpose of the meeting",
-        "purpose of this meeting",
-        "overall discussion",
-        "give me an overview",
-        "summarize this meeting",
-        "summarize the meeting",
-        "what happened in this meeting",
-        "what happened in the meeting",
-        "key discussion topics",
-        "what was the focus",
-        "meeting summary",
-        "general summary",
-        "overall summary",
-        "executive summary",
-        "high level summary",
-    ]
-
-    # Check for direct phrase matches
-    for phrase in high_level_phrases:
-        if phrase in q:
-            return True
-
-    # Also check if it's asking for summary / overview / purpose in a short query
-    words = q.split()
-    if len(words) <= 5:
-        short_keywords = {
-            "summary",
-            "overview",
-            "purpose",
-            "objective",
-            "theme",
-            "agenda",
-            "focus",
-        }
-        if any(w in short_keywords for w in words):
-            return True
-
-    return False
+from app.helpers.search import is_high_level_question
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -581,6 +463,41 @@ def get_meeting_chat_history(
     return sessions
 
 
+@router.post("/chats/global/new", response_model=ChatSessionOut)
+def create_global_chat_session(
+    session_input: ChatSessionCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    session = ChatSession(
+        meeting_id=None,
+        user_id=current_user.id,
+        title=session_input.title or "New Chat",
+        is_archived=False,
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+@router.get("/chats/global", response_model=List[ChatSessionOut])
+def get_global_chat_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    sessions = (
+        db.query(ChatSession)
+        .filter(
+            ChatSession.meeting_id == None,
+            ChatSession.user_id == current_user.id,
+        )
+        .order_by(ChatSession.updated_at.desc())
+        .all()
+    )
+    return sessions
+
+
 @router.get("/chat/{session_id}", response_model=ChatSessionDetailOut)
 def get_chat_session(
     session_id: str,
@@ -753,14 +670,39 @@ def chat_in_session(
 
     if is_high_level:
         # Load context from Cache if available, or build it
-        context_str = MeetingContextCache.get_context(session.meeting_id, db)
+        if session.meeting_id:
+            context_str = MeetingContextCache.get_context(session.meeting_id, db)
+            system_prompt_override = (
+                "You are an AI Meeting Assistant.\n"
+                "When answering questions about the overall meeting, identify the central theme across the ENTIRE meeting instead of focusing on one retrieved sentence.\n"
+                "Do not simply repeat the first matching transcript chunk.\n"
+                "Synthesize information from all provided context and produce a concise but accurate meeting-level answer."
+            )
+        else:
+            recent_meetings = (
+                db.query(Meeting)
+                .filter(
+                    Meeting.organization_id == current_user.organization_id,
+                    Meeting.status == "COMPLETED",
+                )
+                .order_by(Meeting.meeting_date.desc())
+                .limit(5)
+                .all()
+            )
+            if recent_meetings:
+                context_str = "Context from recent meetings:\n"
+                for m in recent_meetings:
+                    if m.executive_summary:
+                        context_str += (
+                            f"Meeting '{m.title}' Summary: {m.executive_summary}\n\n"
+                        )
+            else:
+                context_str = "No recent meetings context available. Answer based on general knowledge."
 
-        system_prompt_override = (
-            "You are an AI Meeting Assistant.\n"
-            "When answering questions about the overall meeting, identify the central theme across the ENTIRE meeting instead of focusing on one retrieved sentence.\n"
-            "Do not simply repeat the first matching transcript chunk.\n"
-            "Synthesize information from all provided context and produce a concise but accurate meeting-level answer."
-        )
+            system_prompt_override = (
+                "You are an AI Organization Assistant.\n"
+                "You answer queries about the company's meetings and activities. Provide a summarized answer based on all recent meetings' context."
+            )
     else:
         # Generate embedding (from cache or new)
         embedding_service = EmbeddingService()

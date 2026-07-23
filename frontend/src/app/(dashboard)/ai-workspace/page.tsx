@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Sparkles, 
   MessageSquare, 
   Trash2, 
   SlidersHorizontal, 
-  Calendar, 
   User, 
   Briefcase, 
   Layers, 
@@ -17,11 +16,8 @@ import {
   RefreshCw, 
   Bot, 
   ChevronRight, 
-  Search, 
-  HelpCircle,
   Clock,
   ExternalLink,
-  ChevronDown,
   X,
   Plus,
   Loader2,
@@ -68,6 +64,22 @@ interface MeetingItem {
   platform?: string;
 }
 
+interface ChatFilters {
+  platform?: string;
+  date_start?: string;
+  date_end?: string;
+  meeting_id?: string;
+  project?: string;
+  participants?: string[];
+}
+
+const defaultSuggestions = [
+  "When was the deadline for the Recruitease project Vivek was working on?",
+  "What tasks were assigned to Rahul?",
+  "What decisions were made regarding the UI redesign?",
+  "Summarize all risks discussed in meetings this month"
+];
+
 export default function AIWorkspacePage() {
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -100,34 +112,9 @@ export default function AIWorkspacePage() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   
   // Suggested Questions
-  const defaultSuggestions = [
-    "When was the deadline for the Recruitease project Vivek was working on?",
-    "What tasks were assigned to Rahul?",
-    "What decisions were made regarding the UI redesign?",
-    "Summarize all risks discussed in meetings this month"
-  ];
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(defaultSuggestions);
 
-  // Fetch initial data
-  useEffect(() => {
-    fetchSessions();
-    fetchMeetings();
-    
-    // Check if session ID is present in URL
-    const params = new URLSearchParams(window.location.search);
-    const urlSessionId = params.get("session");
-    if (urlSessionId) {
-      setActiveSessionId(urlSessionId);
-      fetchSessionMessages(urlSessionId);
-    }
-  }, []);
-
-  // Scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
-
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     setSidebarLoading(true);
     try {
       const res = await fetch(getApiUrl("/api/ai/history"), {
@@ -142,9 +129,9 @@ export default function AIWorkspacePage() {
     } finally {
       setSidebarLoading(false);
     }
-  };
+  }, []);
 
-  const fetchMeetings = async () => {
+  const fetchMeetings = useCallback(async () => {
     try {
       const res = await fetch(getApiUrl("/api/v1/meetings/"), {
         credentials: "include"
@@ -156,48 +143,9 @@ export default function AIWorkspacePage() {
     } catch (e) {
       console.error("Failed to fetch meetings list:", e);
     }
-  };
+  }, []);
 
-  const fetchSessionMessages = async (sid: string) => {
-    if (sid === "new") {
-      setMessages([]);
-      setCurrentSuggestions(defaultSuggestions);
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(getApiUrl(`/api/v1/search/session/${sid}`), {
-        credentials: "include"
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // Adapt schema from standard backend chat message if necessary
-        const formatted = data.map((msg: any) => ({
-          role: msg.role,
-          text: msg.text,
-          sources: msg.sources || []
-        }));
-        setMessages(formatted);
-        
-        // Extract sources to generate recommendations
-        const allSources = formatted.reduce((acc: Source[], m: any) => {
-          if (m.sources) acc.push(...m.sources);
-          return acc;
-        }, []);
-        if (allSources.length > 0) {
-          generateSuggestedQuestions(allSources);
-        } else {
-          setCurrentSuggestions(defaultSuggestions);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to fetch messages for session:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateSuggestedQuestions = (srcList: Source[]) => {
+  const generateSuggestedQuestions = useCallback((srcList: Source[]) => {
     const text = srcList.map(s => s.chunk_text).join(" ").toLowerCase();
     const list: string[] = [];
     if (text.includes("action") || text.includes("todo") || text.includes("assign")) {
@@ -220,7 +168,60 @@ export default function AIWorkspacePage() {
       }
     });
     setCurrentSuggestions(list.slice(0, 4));
-  };
+  }, []);
+
+  const fetchSessionMessages = useCallback(async (sid: string) => {
+    if (sid === "new") {
+      setMessages([]);
+      setCurrentSuggestions(defaultSuggestions);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(getApiUrl(`/api/v1/search/session/${sid}`), {
+        credentials: "include"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Adapt schema from standard backend chat message if necessary
+        const formatted = data.map((msg: { role: "user" | "assistant"; text: string; sources?: Source[] }) => ({
+          role: msg.role,
+          text: msg.text,
+          sources: msg.sources || []
+        }));
+        setMessages(formatted);
+        
+        // Extract sources to generate recommendations
+        const allSources = formatted.reduce((acc: Source[], m: Message) => {
+          if (m.sources) acc.push(...m.sources);
+          return acc;
+        }, []);
+        if (allSources.length > 0) {
+          generateSuggestedQuestions(allSources);
+        } else {
+          setCurrentSuggestions(defaultSuggestions);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch messages for session:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [generateSuggestedQuestions]);
+
+  // Fetch initial data
+  useEffect(() => {
+    fetchSessions();
+    fetchMeetings();
+    
+    // Check if session ID is present in URL
+    const params = new URLSearchParams(window.location.search);
+    const urlSessionId = params.get("session");
+    if (urlSessionId) {
+      setActiveSessionId(urlSessionId);
+      fetchSessionMessages(urlSessionId);
+    }
+  }, [fetchSessions, fetchMeetings, fetchSessionMessages]);
 
   const handleNewChat = () => {
     setActiveSessionId("new");
@@ -287,7 +288,7 @@ export default function AIWorkspacePage() {
         const errData = await res.json();
         setIndexStatus({ message: errData.detail || "Failed to trigger indexing.", type: "error" });
       }
-    } catch (e) {
+    } catch {
       setIndexStatus({ message: "Network error occurred while connecting to backend.", type: "error" });
     } finally {
       setIndexLoading(false);
@@ -310,7 +311,7 @@ export default function AIWorkspacePage() {
     setMessages(prev => [...prev, aiPlaceholder]);
 
     // 3. Build filters object
-    const filtersObj: any = {};
+    const filtersObj: ChatFilters = {};
     if (platform) filtersObj.platform = platform;
     if (dateStart) filtersObj.date_start = dateStart;
     if (dateEnd) filtersObj.date_end = dateEnd;
@@ -455,7 +456,7 @@ export default function AIWorkspacePage() {
 
     setLoading(true);
 
-    const filtersObj: any = {};
+    const filtersObj: ChatFilters = {};
     if (platform) filtersObj.platform = platform;
     if (dateStart) filtersObj.date_start = dateStart;
     if (dateEnd) filtersObj.date_end = dateEnd;
@@ -505,7 +506,7 @@ export default function AIWorkspacePage() {
           mainAnswer = mainAnswer.substring(0, sepIdx).trim();
           try {
             metadata = JSON.parse(metadataStr);
-          } catch (e) {}
+          } catch {}
         }
 
         setMessages(prev => {
@@ -571,7 +572,7 @@ export default function AIWorkspacePage() {
       
       if (text.startsWith("**") && text.endsWith("**")) {
         const boldText = text.substring(2, text.length - 2);
-        parts.push(<strong key={`b-${matchIdx}`} className="font-bold text-[#0f172a]">{boldText}</strong>);
+        parts.push(<strong key={`b-${matchIdx}`} className="font-bold text-[#102C23]">{boldText}</strong>);
       } else if (text.startsWith("[") && text.endsWith("]")) {
         const numStr = text.substring(1, text.length - 1);
         const num = parseInt(numStr, 10);
@@ -581,7 +582,7 @@ export default function AIWorkspacePage() {
           <button
             key={`cit-${matchIdx}`}
             onClick={() => source && setActiveSource(source)}
-            className="px-1.5 py-0.5 mx-0.5 rounded bg-[#e6f4f1] text-[#0f766e] text-xs font-bold border border-[#b2e2db]/30 hover:bg-[#0f766e] hover:text-white transition-all cursor-pointer shadow-sm focus:outline-none"
+            className="px-1.5 py-0.5 mx-0.5 rounded bg-[#e6f4f1] text-[#113229] text-xs font-bold border border-[#b2e2db]/30 hover:bg-[#113229] hover:text-white transition-all cursor-pointer shadow-sm focus:outline-none"
             title={source ? `Meeting: ${source.meeting_title}` : `Citation ${num}`}
           >
             [{num}]
@@ -611,7 +612,7 @@ export default function AIWorkspacePage() {
         return <h3 key={idx} className="text-base font-bold text-slate-800 mt-4 mb-2 font-outfit">{renderInlineContent(line.substring(3), sources)}</h3>;
       }
       if (line.startsWith("# ")) {
-        return <h2 key={idx} className="text-lg font-bold text-[#0f766e] mt-4 mb-2 font-outfit">{renderInlineContent(line.substring(2), sources)}</h2>;
+        return <h2 key={idx} className="text-lg font-bold text-[#113229] mt-4 mb-2 font-outfit">{renderInlineContent(line.substring(2), sources)}</h2>;
       }
       if (line.startsWith("- ") || line.startsWith("* ")) {
         return (
@@ -638,35 +639,41 @@ export default function AIWorkspacePage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 relative font-outfit">
-      
-      {/* 1. LEFT SIDEBAR: Conversational History */}
-      <aside className="w-72 border-r border-[#e2e8f0] bg-white flex flex-col h-full flex-shrink-0">
+    <div className="flex h-full overflow-hidden bg-[#F9F8F6] relative font-outfit">
+         {/* 1. LEFT SIDEBAR: Conversational History */}
+      <aside className="w-72 border-r border-[#e2e8f0] bg-white flex flex-col h-full flex-shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.01)] z-10">
         
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-[#e2e8f0]">
+        <div className="p-4 border-b border-[#e2e8f0]/80">
           <button 
             onClick={handleNewChat}
-            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-[#0f766e] to-[#0d9488] hover:from-[#0d9488] hover:to-[#14b8a6] text-white text-xs font-bold shadow-md shadow-[#0f766e]/10 transition-all active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#113229] to-[#0D241E] hover:from-[#0D241E] hover:to-[#113229] text-white text-xs font-bold shadow-md shadow-[#113229]/15 transition-all duration-350 active:scale-[0.98]"
           >
-            <Plus size={14} /> New Conversation
+            <Plus size={14} className="stroke-[2.5]" /> New Conversation
           </button>
         </div>
 
         {/* Workspace Sessions List */}
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 mb-2">Workspace History</span>
+        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
+          <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest px-2.5 mb-1.5 block">Workspace History</span>
           
           {sidebarLoading ? (
-            <div className="flex flex-col gap-2 p-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-10 bg-slate-100 rounded-xl animate-pulse" />
+            <div className="flex flex-col gap-2.5 p-2">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-12 bg-[#F9F8F6] border border-slate-100 rounded-xl animate-pulse flex items-center gap-3 px-3">
+                  <div className="w-4 h-4 bg-slate-200 rounded-full" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-2.5 bg-slate-200 rounded w-5/6" />
+                    <div className="h-2 bg-slate-100 rounded w-1/2" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : sessions.length === 0 ? (
-            <div className="p-6 text-center">
-              <MessageSquare size={20} className="mx-auto text-slate-300 mb-2" />
-              <p className="text-xs text-slate-400">No recent conversations. Start questioning below.</p>
+            <div className="p-8 text-center bg-[#F9F8F6]/30 rounded-2xl border border-dashed border-slate-200/60 m-2">
+              <MessageSquare size={20} className="mx-auto text-slate-350 mb-2.5" />
+              <p className="text-[11px] font-bold text-slate-500 leading-relaxed">No conversations yet.</p>
+              <p className="text-[9px] text-slate-400 mt-1">Start questioning below.</p>
             </div>
           ) : (
             sessions.map(s => {
@@ -675,16 +682,21 @@ export default function AIWorkspacePage() {
                 <button
                   key={s.id}
                   onClick={() => handleSelectSession(s.id)}
-                  className={`w-full flex items-start gap-2.5 p-3 rounded-xl transition-all text-left group ${
+                  className={`w-full flex items-start gap-3 p-3 rounded-xl transition-all duration-200 text-left group border relative ${
                     isActive 
-                      ? "bg-[#e6f4f1] text-[#0f766e]" 
-                      : "text-slate-600 hover:bg-slate-50 hover:text-[#0f172a]"
+                      ? "bg-[#e6f4f1]/80 border-[#b2e2db]/40 text-[#113229] shadow-sm" 
+                      : "border-transparent text-slate-600 hover:bg-[#F9F8F6] hover:text-[#102C23] hover:border-slate-200/50"
                   }`}
                 >
-                  <MessageSquare size={13} className="mt-0.5 flex-shrink-0" />
+                  {/* Active Indicator Line */}
+                  {isActive && (
+                    <div className="absolute left-0 top-3 bottom-3 w-[3px] bg-[#D98A44] rounded-r-full" />
+                  )}
+                  
+                  <MessageSquare size={13} className={`mt-0.5 flex-shrink-0 ${isActive ? "text-[#113229]" : "text-slate-400 group-hover:text-slate-650"}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold truncate pr-2">{s.title}</p>
-                    <span className="text-[9px] text-slate-400 font-medium mt-0.5 block">
+                    <p className={`text-xs font-bold truncate pr-2 ${isActive ? "text-[#113229]" : "text-slate-750"}`}>{s.title}</p>
+                    <span className="text-[9px] text-slate-400 font-bold mt-1 block">
                       {new Date(s.updated_at).toLocaleDateString()} at {new Date(s.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </span>
                   </div>
@@ -696,45 +708,52 @@ export default function AIWorkspacePage() {
 
         {/* Sidebar Footer */}
         {sessions.length > 0 && (
-          <div className="p-3 border-t border-[#e2e8f0] bg-slate-50/50">
+          <div className="p-3.5 border-t border-[#e2e8f0]/80 bg-[#F9F8F6]/30">
             <button
               onClick={handleClearHistory}
-              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-[11px] font-bold text-red-600 hover:bg-red-50 transition-colors border border-red-200/50"
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50/50 hover:border-red-200 transition-all border border-red-200/30"
             >
-              <Trash2 size={13} /> Clear Workspace History
+              <Trash2 size={12} /> Clear Workspace History
             </button>
           </div>
         )}
       </aside>
 
       {/* 2. MAIN WORKSPACE / CHAT INTERFACE */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50">
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#F9F8F6]">
         
         {/* Chat Title / Action Bar */}
-        <header className="h-16 border-b border-[#e2e8f0] bg-white flex items-center justify-between px-6 flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="p-1.5 bg-[#e6f4f1] rounded-lg text-[#0f766e]">
-              <Sparkles size={16} />
+        <header className="h-16 border-b border-[#e2e8f0]/80 bg-white flex items-center justify-between px-6 flex-shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.01)] z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#e6f4f1] rounded-xl text-[#113229] shadow-sm">
+              <Sparkles size={15} className="animate-pulse" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-slate-800">
+              <h1 className="text-xs sm:text-sm font-extrabold text-[#102C23] tracking-tight">
                 {activeSessionId === "new" ? "New AI Query Session" : sessions.find(s => s.id === activeSessionId)?.title || "Querying organizational memory..."}
               </h1>
-              <p className="text-[10px] text-slate-400">Enterprise Semantic Workspace across all meeting transcripts</p>
+              <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mt-0.5">Enterprise Semantic Workspace</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Active filters summary */}
+            {(platform || dateStart || dateEnd || selectedMeetingId || participants || project) && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-extrabold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200/50 animate-pulse">
+                Filters Active
+              </span>
+            )}
+            
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
                 showFilters 
-                  ? "bg-[#e6f4f1] border-[#0f766e] text-[#0f766e]" 
-                  : "bg-white border-[#e2e8f0] text-slate-600 hover:bg-slate-50"
+                  ? "bg-[#e6f4f1] border-[#113229]/30 text-[#113229]" 
+                  : "bg-white border-[#e2e8f0] text-slate-650 hover:bg-[#F9F8F6]"
               }`}
             >
-              <SlidersHorizontal size={13} /> 
-              {showFilters ? "Hide Filters" : "Show Filters"}
+              <SlidersHorizontal size={12} /> 
+              <span>{showFilters ? "Hide Filters" : "Show Filters"}</span>
             </button>
           </div>
         </header>
@@ -744,30 +763,39 @@ export default function AIWorkspacePage() {
           
           {/* Welcoming state when empty */}
           {messages.length === 0 && (
-            <div className="max-w-2xl mx-auto w-full my-auto flex flex-col items-center gap-6">
-              <div className="p-4 bg-gradient-to-br from-[#0f766e] to-[#0d9488] text-white rounded-2xl shadow-lg shadow-[#0f766e]/15 animate-bounce">
-                <Sparkles size={32} />
+            <div className="max-w-2xl mx-auto w-full my-auto flex flex-col items-center gap-8 relative py-8 px-4">
+              
+              {/* Background Glow */}
+              <div className="absolute -z-10 w-64 h-64 bg-gradient-to-br from-[#113229]/5 to-[#D98A44]/5 rounded-full blur-3xl" />
+              
+              <div className="p-5 bg-gradient-to-br from-[#113229] to-[#0D241E] text-white rounded-3xl shadow-xl shadow-[#113229]/15 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
+                <Sparkles size={36} className="stroke-[1.5]" />
               </div>
               
-              <div className="text-center">
-                <h2 className="text-lg font-bold text-[#0f172a] mb-1 font-outfit">Ask anything about your meetings</h2>
-                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+              <div className="text-center max-w-lg">
+                <h2 className="text-xl font-extrabold text-[#102C23] tracking-tight mb-2 font-outfit">Ask anything about your meetings</h2>
+                <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto font-medium">
                   Query project tasks, search decisions, identify risks, and retrieve specific action items across all recorded calls.
                 </p>
               </div>
 
               {/* Suggestions Grid */}
-              <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                {currentSuggestions.map((s, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSendMessage(s)}
-                    className="p-3 text-left bg-white border border-[#e2e8f0] hover:border-[#0f766e] hover:shadow-md hover:shadow-[#0f766e]/5 rounded-xl transition-all group flex items-start gap-2.5"
-                  >
-                    <ChevronRight size={13} className="text-[#0f766e] mt-0.5 group-hover:translate-x-0.5 transition-transform" />
-                    <span className="text-[11px] font-bold text-slate-600 leading-normal">{s}</span>
-                  </button>
-                ))}
+              <div className="w-full flex flex-col gap-3 mt-4">
+                <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest text-center">Suggested queries</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                  {currentSuggestions.map((s, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSendMessage(s)}
+                      className="p-4 text-left bg-white border border-[#e2e8f0]/80 hover:border-[#113229]/30 hover:shadow-md hover:shadow-[#113229]/3 rounded-2xl transition-all duration-300 group flex items-start gap-3 hover:-translate-y-0.5"
+                    >
+                      <div className="p-1 bg-[#F9F8F6] group-hover:bg-[#e6f4f1] rounded-lg text-[#113229] transition-colors flex-shrink-0 mt-0.5">
+                        <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-600 group-hover:text-slate-800 leading-normal">{s}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -776,40 +804,40 @@ export default function AIWorkspacePage() {
           {messages.map((m, idx) => {
             const isUser = m.role === "user";
             return (
-              <div key={idx} className={`flex gap-3 max-w-3xl w-full ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}>
+              <div key={idx} className={`flex gap-4 max-w-3xl w-full ${isUser ? "ml-auto flex-row-reverse" : "mr-auto"}`}>
                 
                 {/* Avatar */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${
+                <div className={`w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm border ${
                   isUser 
-                    ? "bg-gradient-to-br from-[#0f766e] to-[#0d9488] text-white" 
-                    : "bg-slate-800 text-white"
+                    ? "bg-gradient-to-br from-[#113229] to-[#0D241E] border-[#113229]/10 text-white" 
+                    : "bg-slate-800 border-slate-700 text-white"
                 }`}>
-                  {isUser ? <User size={13} /> : <Bot size={13} />}
+                  {isUser ? <User size={14} className="stroke-[2.5]" /> : <Bot size={14} />}
                 </div>
 
                 {/* Message Bubble */}
-                <div className="flex-1 flex flex-col gap-1 max-w-[85%]">
+                <div className="flex-1 flex flex-col gap-1.5 max-w-[85%]">
                   
-                  <div className={`rounded-2xl p-4 shadow-sm border ${
+                  <div className={`rounded-2xl p-4.5 shadow-sm border relative overflow-hidden ${
                     isUser 
-                      ? "bg-white border-[#e2e8f0]" 
-                      : "bg-white border-[#e2e8f0] relative overflow-hidden"
+                      ? "bg-gradient-to-br from-white to-[#F9F8F6]/20 border-slate-200/80" 
+                      : "bg-white border-[#e2e8f0]/80"
                   }`}>
                     
-                    {/* Teal Accent for AI Bubble */}
+                    {/* Top gradient accent for AI responses */}
                     {!isUser && (
-                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#0f766e] to-[#0d9488]" />
+                      <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#113229] via-[#0D241E] to-[#D98A44]" />
                     )}
 
                     {/* Chat Text */}
                     {isUser ? (
-                      <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                      <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap font-medium">{m.text}</p>
                     ) : (
-                      <div>
+                      <div className="prose-chat">
                         {m.isLoading && !m.text ? (
-                          <div className="flex items-center gap-2 text-slate-400 py-1">
-                            <Loader2 size={13} className="animate-spin text-[#0f766e]" />
-                            <span className="text-[11px] font-bold">Scanning corporate memory...</span>
+                          <div className="flex items-center gap-3 text-slate-400 py-2">
+                            <Loader2 size={14} className="animate-spin text-[#113229]" />
+                            <span className="text-[11.5px] font-extrabold tracking-tight">Scanning corporate memory...</span>
                           </div>
                         ) : (
                           renderMarkdown(m.text, m.sources)
@@ -819,42 +847,42 @@ export default function AIWorkspacePage() {
 
                     {/* Footer Actions (Copy, Regenerate, Confidence Score) */}
                     {!isUser && !m.isLoading && m.text && (
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between">
                         
                         {/* Copy / Regenerate */}
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3.5">
                           <button
                             onClick={() => handleCopyMessage(m.text, idx)}
-                            className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                            className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
                           >
-                            {copiedIndex === idx ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
-                            {copiedIndex === idx ? "Copied" : "Copy Response"}
+                            {copiedIndex === idx ? <Check size={11} className="text-emerald-600 stroke-[3px]" /> : <Copy size={11} />}
+                            <span>{copiedIndex === idx ? "Copied" : "Copy"}</span>
                           </button>
 
                           {idx === messages.length - 1 && (
                             <button
                               onClick={handleRegenerate}
-                              className="flex items-center gap-1 text-[10px] font-bold text-[#0f766e] hover:text-[#0d9488] transition-colors"
+                              className="flex items-center gap-1.5 text-[10px] font-bold text-[#113229] hover:text-[#0D241E] transition-colors"
                             >
                               <RefreshCw size={11} />
-                              Regenerate
+                              <span>Regenerate</span>
                             </button>
                           )}
                         </div>
 
                         {/* Confidence Score Pill */}
                         {m.confidence_score !== undefined && (
-                          <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                          <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold border shadow-sm ${
                             m.confidence_score >= 0.8 
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200/50" 
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
                               : m.confidence_score >= 0.5 
-                                ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                                : "bg-red-50 text-red-700 border-red-200/50"
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-red-50 text-red-700 border-red-200"
                           }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${
                               m.confidence_score >= 0.8 ? "bg-emerald-500" : m.confidence_score >= 0.5 ? "bg-amber-500" : "bg-red-500"
                             }`} />
-                            {Math.round(m.confidence_score * 100)}% Confident
+                            <span>{Math.round(m.confidence_score * 100)}% Confident</span>
                           </div>
                         )}
 
@@ -864,27 +892,27 @@ export default function AIWorkspacePage() {
 
                   {/* Citation list below bubble */}
                   {!isUser && m.sources && m.sources.length > 0 && (
-                    <div className="mt-1 flex flex-col gap-1.5 pl-1">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Retrieved Sources</span>
-                      <div className="flex flex-col gap-1">
+                    <div className="mt-2 flex flex-col gap-2 pl-1">
+                      <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">Retrieved Sources</span>
+                      <div className="flex flex-col gap-1.5">
                         {m.sources.map((src, sIdx) => (
                           <button
                             key={sIdx}
                             onClick={() => setActiveSource(src)}
-                            className="w-full flex items-center justify-between p-2 rounded-lg bg-white border border-[#e2e8f0] hover:border-[#0f766e] transition-colors text-left"
+                            className="w-full flex items-center justify-between p-3 rounded-xl bg-white border border-[#e2e8f0]/80 hover:border-[#113229]/40 hover:shadow-sm transition-all text-left group"
                           >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-[10px] font-bold text-[#0f766e] bg-[#e6f4f1] px-1.5 py-0.5 rounded border border-[#b2e2db]/30">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="text-[10px] font-extrabold text-[#113229] bg-[#e6f4f1] px-2 py-0.5 rounded-lg border border-[#b2e2db]/30 flex-shrink-0">
                                 [{sIdx + 1}]
                               </span>
                               <div className="min-w-0">
-                                <p className="text-[10px] font-bold text-slate-700 truncate">{src.meeting_title}</p>
-                                <p className="text-[8px] text-slate-400 mt-0.5">
+                                <p className="text-[11px] font-bold text-slate-700 truncate group-hover:text-slate-800">{src.meeting_title}</p>
+                                <p className="text-[9px] text-slate-400 font-bold mt-0.5">
                                   {src.meeting_date} • Speaker: {src.speaker} • Timeline: {formatSeconds(src.timestamp_start)}-{formatSeconds(src.timestamp_end)}
                                 </p>
                               </div>
                             </div>
-                            <ExternalLink size={10} className="text-slate-400 flex-shrink-0 ml-2" />
+                            <ExternalLink size={10} className="text-slate-400 group-hover:text-slate-600 flex-shrink-0 ml-2" />
                           </button>
                         ))}
                       </div>
@@ -901,12 +929,12 @@ export default function AIWorkspacePage() {
 
         {/* Suggested follow-ups on the active session */}
         {messages.length > 0 && !loading && (
-          <div className="px-6 py-2 bg-slate-50 border-t border-[#e2e8f0] flex flex-wrap gap-2 justify-center">
+          <div className="px-6 py-2.5 bg-[#F9F8F6] border-t border-[#e2e8f0]/80 flex flex-wrap gap-2 justify-center">
             {currentSuggestions.map((s, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSendMessage(s)}
-                className="px-3 py-1 rounded-full bg-white hover:bg-[#e6f4f1] text-[#0f766e] border border-[#e2e8f0] hover:border-[#0f766e] text-[10px] font-bold transition-all shadow-sm active:scale-[0.98]"
+                className="px-3.5 py-1 rounded-full bg-white hover:bg-[#e6f4f1] text-[#113229] border border-[#e2e8f0] hover:border-[#113229]/40 text-[10px] font-bold transition-all shadow-sm active:scale-[0.98]"
               >
                 {s}
               </button>
@@ -915,13 +943,13 @@ export default function AIWorkspacePage() {
         )}
 
         {/* Input Bar Section */}
-        <div className="p-4 bg-white border-t border-[#e2e8f0] flex-shrink-0">
+        <div className="p-4 bg-white border-t border-[#e2e8f0]/80 flex-shrink-0 shadow-[0_-4px_24px_rgba(0,0,0,0.01)]">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendMessage(chatInput);
             }}
-            className="max-w-3xl mx-auto w-full relative flex items-center bg-slate-50 border border-[#e2e8f0] focus-within:border-[#0f766e] focus-within:ring-2 focus-within:ring-[#0f766e]/10 rounded-2xl p-2.5 transition-all"
+            className="max-w-3xl mx-auto w-full relative flex items-center bg-[#F9F8F6] border border-slate-200/80 focus-within:border-[#113229]/40 focus-within:ring-4 focus-within:ring-[#113229]/5 rounded-2xl p-2.5 transition-all duration-300"
           >
             <input
               type="text"
@@ -929,20 +957,23 @@ export default function AIWorkspacePage() {
               onChange={(e) => setChatInput(e.target.value)}
               disabled={loading}
               placeholder="Ask anything about your meetings... (e.g. Action items, deadlines)"
-              className="flex-1 bg-transparent border-0 outline-none ring-0 text-xs text-slate-800 placeholder-slate-400 px-3"
+              className="flex-1 bg-transparent border-0 outline-none ring-0 text-xs text-slate-800 placeholder-slate-400 px-3.5"
             />
             
             <button
               type="submit"
               disabled={loading || !chatInput.trim()}
-              className="p-2 bg-[#0f766e] hover:bg-[#0d9488] disabled:bg-slate-200 text-white disabled:text-slate-400 rounded-xl transition-all shadow-md active:scale-95"
+              className="p-2.5 bg-[#113229] hover:bg-[#0D241E] disabled:bg-slate-200 text-white disabled:text-slate-400 rounded-xl transition-all shadow-sm active:scale-95 flex-shrink-0"
             >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              {loading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} className="stroke-[2.5]" />}
             </button>
           </form>
-          <div className="max-w-3xl mx-auto w-full mt-2 flex items-center justify-between text-[9px] text-slate-400 px-3">
-            <span>RAG Model: BAAI/bge-small-en-v1.5 + Cross-Encoder</span>
-            <span>Cascase: Gemini 2.5 Flash / Groq Llama 3</span>
+          <div className="max-w-3xl mx-auto w-full mt-2.5 flex items-center justify-between text-[9px] font-bold text-slate-400 px-3.5">
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              RAG Pipeline Active (BAAI/bge-small-en-v1.5)
+            </span>
+            <span>Gemini 2.5 Flash / Llama 3</span>
           </div>
         </div>
 
@@ -950,32 +981,32 @@ export default function AIWorkspacePage() {
 
       {/* 3. RIGHT FILTER PANEL */}
       {showFilters && (
-        <aside className="w-80 border-l border-[#e2e8f0] bg-white flex flex-col h-full flex-shrink-0 overflow-y-auto">
+        <aside className="w-80 border-l border-[#e2e8f0] bg-white flex flex-col h-full flex-shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.01)] z-10 overflow-y-auto">
           
           {/* Header */}
-          <div className="p-4 border-b border-[#e2e8f0] flex items-center justify-between">
+          <div className="p-4 border-b border-[#e2e8f0]/80 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2">
-              <SlidersHorizontal size={14} className="text-[#0f766e]" />
-              <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Search Filters</h2>
+              <SlidersHorizontal size={13} className="text-[#113229]" />
+              <h2 className="text-[10px] font-extrabold text-[#102C23] uppercase tracking-widest">Search Filters</h2>
             </div>
             <button 
               onClick={() => setShowFilters(false)}
-              className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+              className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
             >
               <X size={14} />
             </button>
           </div>
 
           {/* Filter Options */}
-          <div className="p-4 flex flex-col gap-4 border-b border-[#e2e8f0]">
+          <div className="p-4 flex flex-col gap-4 border-b border-[#e2e8f0]/80 flex-shrink-0">
             
             {/* Platform */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Platform</label>
+              <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Platform</label>
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
-                className="w-full p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                className="w-full p-2.5 text-xs border border-slate-200/80 rounded-xl outline-none focus:border-[#113229]/40 bg-[#F9F8F6]/30 text-slate-700 font-medium cursor-pointer"
               >
                 <option value="">All Platforms</option>
                 <option value="Microsoft Teams">Microsoft Teams</option>
@@ -987,30 +1018,30 @@ export default function AIWorkspacePage() {
 
             {/* Date Range */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Date Range</label>
+              <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Date Range</label>
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="date"
                   value={dateStart}
                   onChange={(e) => setDateStart(e.target.value)}
-                  className="p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                  className="p-2 text-xs border border-slate-200/80 rounded-xl outline-none focus:border-[#113229]/40 bg-[#F9F8F6]/30 text-slate-700 font-medium"
                 />
                 <input
                   type="date"
                   value={dateEnd}
                   onChange={(e) => setDateEnd(e.target.value)}
-                  className="p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                  className="p-2 text-xs border border-slate-200/80 rounded-xl outline-none focus:border-[#113229]/40 bg-[#F9F8F6]/30 text-slate-700 font-medium"
                 />
               </div>
             </div>
 
             {/* Specific Meeting */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Specific Meeting</label>
+              <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Specific Meeting</label>
               <select
                 value={selectedMeetingId}
                 onChange={(e) => setSelectedMeetingId(e.target.value)}
-                className="w-full p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e] max-w-[288px] truncate"
+                className="w-full p-2.5 text-xs border border-slate-200/80 rounded-xl outline-none focus:border-[#113229]/40 bg-[#F9F8F6]/30 text-slate-700 font-medium cursor-pointer max-w-[288px] truncate"
               >
                 <option value="">All Meetings</option>
                 {meetings.map(m => (
@@ -1023,31 +1054,31 @@ export default function AIWorkspacePage() {
 
             {/* Speaker / Participants */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Participants</label>
+              <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Participants</label>
               <div className="relative">
                 <input
                   type="text"
                   value={participants}
                   onChange={(e) => setParticipants(e.target.value)}
                   placeholder="e.g. Vivek, Rahul"
-                  className="w-full p-2 pl-8 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                  className="w-full p-2.5 pl-9 text-xs border border-slate-200/80 rounded-xl outline-none focus:border-[#113229]/40 bg-[#F9F8F6]/30 text-slate-700 font-medium placeholder-slate-400"
                 />
-                <User size={12} className="absolute left-2.5 top-3 text-slate-400" />
+                <User size={11} className="absolute left-3 top-3.5 text-slate-400" />
               </div>
             </div>
 
             {/* Project Keyword */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Project / Keyword</label>
+              <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Project / Keyword</label>
               <div className="relative">
                 <input
                   type="text"
                   value={project}
                   onChange={(e) => setProject(e.target.value)}
                   placeholder="e.g. Recruitease, UI Redesign"
-                  className="w-full p-2 pl-8 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                  className="w-full p-2.5 pl-9 text-xs border border-slate-200/80 rounded-xl outline-none focus:border-[#113229]/40 bg-[#F9F8F6]/30 text-slate-700 font-medium placeholder-slate-400"
                 />
-                <Briefcase size={12} className="absolute left-2.5 top-3 text-slate-400" />
+                <Briefcase size={11} className="absolute left-3 top-3.5 text-slate-400" />
               </div>
             </div>
 
@@ -1062,7 +1093,7 @@ export default function AIWorkspacePage() {
                   setParticipants("");
                   setProject("");
                 }}
-                className="w-full text-center py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-bold transition-all mt-1"
+                className="w-full text-center py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold transition-all mt-1"
               >
                 Reset Filter Settings
               </button>
@@ -1073,11 +1104,11 @@ export default function AIWorkspacePage() {
           {/* 4. MANUAL INDEXING INTERACTIVE UTILITY */}
           <div className="p-4 flex flex-col gap-4">
             <div className="flex items-center gap-1.5">
-              <Layers size={14} className="text-[#0f766e]" />
-              <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Manual Indexing</h2>
+              <Layers size={13} className="text-[#113229]" />
+              <h2 className="text-[10px] font-extrabold text-[#102C23] uppercase tracking-widest">Manual Indexing</h2>
             </div>
             
-            <p className="text-[10px] text-slate-400 leading-relaxed">
+            <p className="text-[10px] text-slate-500 font-medium leading-relaxed bg-[#F9F8F6] p-3 rounded-xl border border-slate-100">
               If new transcripts or media audio have been added, index them manually here to populate the pgvector pipeline.
             </p>
 
@@ -1085,7 +1116,7 @@ export default function AIWorkspacePage() {
               <select
                 value={indexingMeetingId}
                 onChange={(e) => setIndexingMeetingId(e.target.value)}
-                className="w-full p-2 text-xs border border-[#e2e8f0] rounded-xl outline-none focus:border-[#0f766e]"
+                className="w-full p-2.5 text-xs border border-slate-200/80 rounded-xl outline-none focus:border-[#113229]/40 bg-[#F9F8F6]/30 text-slate-700 font-medium cursor-pointer"
                 required
               >
                 <option value="">Select Meeting to Index...</option>
@@ -1099,22 +1130,22 @@ export default function AIWorkspacePage() {
               <button
                 type="submit"
                 disabled={indexLoading || !indexingMeetingId}
-                className="w-full flex items-center justify-center gap-1.5 py-2 px-4 rounded-xl bg-[#0f766e] hover:bg-[#0d9488] disabled:bg-slate-200 text-white disabled:text-slate-400 text-xs font-bold transition-all shadow-sm active:scale-95"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#113229] hover:bg-[#0D241E] disabled:bg-slate-200 text-white disabled:text-slate-400 text-xs font-bold transition-all shadow-sm active:scale-[0.98]"
               >
                 {indexLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                Trigger Manual Indexing
+                <span>Trigger Manual Indexing</span>
               </button>
             </form>
 
             {indexStatus.message && (
-              <div className={`p-3 rounded-xl border text-[9px] font-medium leading-relaxed flex gap-2 ${
+              <div className={`p-3.5 rounded-xl border text-[10px] font-semibold leading-relaxed flex gap-2 ${
                 indexStatus.type === "success" 
                   ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
                   : indexStatus.type === "error"
                     ? "bg-red-50 border-red-200 text-red-800"
                     : "bg-blue-50 border-blue-200 text-blue-800"
               }`}>
-                <AlertCircle size={12} className="flex-shrink-0 mt-0.5" />
+                <AlertCircle size={12} className="flex-shrink-0 mt-0.5 text-current" />
                 <span>{indexStatus.message}</span>
               </div>
             )}
@@ -1125,56 +1156,56 @@ export default function AIWorkspacePage() {
 
       {/* 5. OVERLAY CITATION SOURCE DETAILS PANEL */}
       {activeSource && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-[#e2e8f0] flex flex-col max-h-[85vh] relative animate-in fade-in zoom-in-95 duration-250">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-[#e2e8f0] flex flex-col max-h-[85vh] relative">
             
             {/* Top Teal Accent */}
-            <div className="h-1 bg-gradient-to-r from-[#0f766e] to-[#0d9488]" />
+            <div className="h-1 bg-gradient-to-r from-[#113229] to-[#0D241E]" />
 
             {/* Header */}
-            <div className="p-4 border-b border-[#e2e8f0] flex items-start justify-between bg-slate-50/50">
+            <div className="p-5 border-b border-[#e2e8f0]/80 flex items-start justify-between bg-[#F9F8F6]/40">
               <div className="min-w-0">
-                <span className="text-[9px] font-bold text-[#0f766e] bg-[#e6f4f1] px-2 py-0.5 rounded border border-[#b2e2db]/30 uppercase tracking-wide">
+                <span className="text-[9px] font-extrabold text-[#113229] bg-[#e6f4f1] px-2.5 py-0.5 rounded-lg border border-[#b2e2db]/35 uppercase tracking-wider">
                   Citation Details
                 </span>
-                <h3 className="text-xs font-bold text-slate-800 truncate mt-1.5">{activeSource.meeting_title}</h3>
-                <p className="text-[9px] text-slate-400 mt-0.5">
+                <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 truncate mt-2 tracking-tight">{activeSource.meeting_title}</h3>
+                <p className="text-[10px] text-slate-400 font-bold mt-0.5">
                   Platform: {activeSource.platform} • Recorded Date: {activeSource.meeting_date}
                 </p>
               </div>
               <button
                 onClick={() => setActiveSource(null)}
-                className="p-1 hover:bg-slate-200 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+                className="p-1 hover:bg-slate-200/60 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
               >
-                <X size={14} />
+                <X size={15} />
               </button>
             </div>
 
             {/* Content Body */}
-            <div className="p-5 overflow-y-auto flex-1 flex flex-col gap-4">
+            <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-4.5">
               
               {/* Speaker & Timestamp Info */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <div className="grid grid-cols-2 gap-4 bg-[#F9F8F6] p-4 rounded-2xl border border-slate-100">
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">Speaker</span>
-                  <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                    <User size={11} className="text-[#0f766e]" />
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Speaker</span>
+                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mt-0.5">
+                    <User size={12} className="text-[#113229]" />
                     {activeSource.speaker}
                   </span>
                 </div>
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">Timestamp range</span>
-                  <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                    <Clock size={11} className="text-[#0f766e]" />
+                  <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Timestamp range</span>
+                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mt-0.5">
+                    <Clock size={12} className="text-[#113229]" />
                     {formatSeconds(activeSource.timestamp_start)} - {formatSeconds(activeSource.timestamp_end)}
                   </span>
                 </div>
               </div>
 
               {/* Exact Segment Text */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wide">Transcript context</span>
-                <div className="bg-slate-900 text-slate-200 p-4 rounded-xl font-mono text-[10px] leading-relaxed whitespace-pre-wrap border border-slate-800 shadow-inner max-h-60 overflow-y-auto">
+              <div className="flex flex-col gap-2">
+                <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Transcript segment</span>
+                <div className="bg-slate-900 text-slate-200 p-4.5 rounded-2xl font-mono text-[10px] leading-relaxed whitespace-pre-wrap border border-slate-800 shadow-inner max-h-60 overflow-y-auto">
                   {activeSource.chunk_text}
                 </div>
               </div>
@@ -1182,18 +1213,18 @@ export default function AIWorkspacePage() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-[#e2e8f0] flex items-center justify-between bg-slate-50/50">
+            <div className="p-5 border-t border-[#e2e8f0]/80 flex items-center justify-between bg-[#F9F8F6]/40">
               <button
                 onClick={() => router.push(`/meetings/${activeSource.meeting_id}`)}
-                className="flex items-center gap-1 text-[10px] font-bold text-[#0f766e] hover:text-[#0d9488] transition-colors"
+                className="flex items-center gap-1.5 text-[10px] font-bold text-[#113229] hover:text-[#0D241E] transition-colors"
               >
                 <ExternalLink size={12} />
-                Open Full Meeting Transcript
+                <span>Open Full Meeting Transcript</span>
               </button>
               
               <button
                 onClick={() => setActiveSource(null)}
-                className="py-1.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold transition-all active:scale-[0.98]"
+                className="py-2 px-5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold transition-all active:scale-[0.98]"
               >
                 Close View
               </button>

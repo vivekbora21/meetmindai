@@ -8,11 +8,11 @@ import { SuggestedQuestions } from "./SuggestedQuestions";
 import { MessageInput } from "./MessageInput";
 
 interface ChatWindowProps {
-  meetingId: string;
-  status: string;
+  meetingId: string | null;
+  status?: string;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status = "" }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -48,39 +48,28 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
   }, [chatMessages, chatLoading]);
 
   const statusNorm = (status || "").toUpperCase();
-  const isReadyForChat = statusNorm === "COMPLETED" || statusNorm === "TRANSCRIBED" || statusNorm === "ANALYZING";
-  const isFailed = statusNorm === "FAILED" || statusNorm === "ERROR";
-
-  const placeholderStyles: React.CSSProperties = {
-    gridColumn: "span 5",
-    padding: "24px",
-    borderRadius: "16px",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    height: "700px",
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 1px 6px rgba(15,23,42,0.06)",
-    overflow: "hidden",
-  };
+  const isReadyForChat = !meetingId || statusNorm === "COMPLETED" || statusNorm === "TRANSCRIBED" || statusNorm === "ANALYZING";
+  const isFailed = !!meetingId && (statusNorm === "FAILED" || statusNorm === "ERROR");
 
   if (isFailed) {
     return (
-      <section className="lg:col-span-5" style={placeholderStyles}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: "16px", textAlign: "center" }}>
-          <div style={{ width: 52, height: 52, borderRadius: "14px", background: "#fff1f2", border: "1px solid #fecdd3", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <MessageSquare size={22} color="#f43f5e" />
+      <section 
+        aria-label="Meeting Chat Assistant Unavailable"
+        className="lg:col-span-5 p-6 rounded-2xl flex flex-col justify-center h-[700px] bg-white border border-[#e2e8f0] shadow-sm overflow-hidden font-outfit"
+      >
+        <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+          <div className="w-13 h-13 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center">
+            <MessageSquare size={22} className="text-rose-600" aria-hidden="true" />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "14px", color: "#0f172a", margin: 0 }}>Chat Unavailable</h3>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "12px", color: "#64748b", maxWidth: 220, lineHeight: 1.6, margin: 0 }}>
+          <div className="flex flex-col gap-1.5">
+            <h3 className="font-outfit font-extrabold text-sm text-[#102C23] m-0">Chat Unavailable</h3>
+            <p className="font-sans text-xs text-slate-500 max-w-[220px] leading-relaxed m-0 font-medium">
               Meeting processing failed. No transcript or insights are available.
             </p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#fff1f2", border: "1px solid #fecdd3", padding: "6px 12px", borderRadius: "99px" }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#f43f5e", display: "inline-block" }} />
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "10px", fontWeight: 700, color: "#e11d48" }}>Processing failed</span>
+          <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />
+            <span className="font-sans text-[10px] font-extrabold text-rose-600">Processing failed</span>
           </div>
         </div>
       </section>
@@ -89,20 +78,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
 
   if (!isReadyForChat) {
     return (
-      <section className="lg:col-span-5" style={placeholderStyles}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: "16px", textAlign: "center" }}>
-          <div style={{ width: 52, height: 52, borderRadius: "14px", background: "#f0fdfb", border: "1px solid #99f6e4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Bot size={22} color="#0f766e" />
+      <section 
+        aria-label="Meeting Chat Assistant Loading"
+        className="lg:col-span-5 p-6 rounded-2xl flex flex-col justify-center h-[700px] bg-white border border-[#e2e8f0] shadow-sm overflow-hidden font-outfit"
+      >
+        <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+          <div className="w-13 h-13 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center">
+            <Bot size={22} className="text-[#113229]" aria-hidden="true" />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            <h3 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "14px", color: "#0f172a", margin: 0 }}>Meeting Chat</h3>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "12px", color: "#64748b", maxWidth: 200, lineHeight: 1.6, margin: 0 }}>
+          <div className="flex flex-col gap-1.5">
+            <h3 className="font-outfit font-extrabold text-sm text-[#102C23] m-0">Meeting Chat</h3>
+            <p className="font-sans text-xs text-slate-500 max-w-[200px] leading-relaxed m-0 font-medium">
               Available once AI finishes processing the transcript.
             </p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "#f0fdfb", border: "1px solid #99f6e4", padding: "6px 12px", borderRadius: "99px" }}>
-            <Loader2 size={12} color="#0f766e" className="animate-spin" />
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "10px", fontWeight: 700, color: "#0f766e" }}>AI Pipeline running...</span>
+          <div className="flex items-center gap-1.5 bg-teal-50 border border-teal-250 px-3 py-1.5 rounded-full animate-pulse">
+            <Loader2 size={12} className="text-[#113229] animate-spin" aria-hidden="true" />
+            <span className="font-sans text-[10px] font-extrabold text-[#113229]">AI Pipeline running...</span>
           </div>
         </div>
       </section>
@@ -112,26 +104,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
   const hasMessages = chatMessages.length > 0;
 
   return (
-    <section
-      className="lg:col-span-5"
-      style={{
-        borderRadius: "16px",
-        display: "flex",
-        flexDirection: "column",
-        height: "700px",
-        background: "#ffffff",
-        border: "1px solid #e2e8f0",
-        boxShadow: "0 1px 6px rgba(15,23,42,0.06)",
-        overflow: "hidden",
-        position: "relative",
-      }}
+    <section 
+      aria-label="Meeting Chat Assistant"
+      className="lg:col-span-5 rounded-2xl flex flex-col h-[700px] bg-white border border-[#e2e8f0] shadow-sm overflow-hidden relative font-outfit"
     >
       {/* Top teal accent */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #0f766e, #5eead4, #0d9488)", zIndex: 10 }} />
+      <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#113229] via-[#D98A44] to-[#0D241E] z-10" />
 
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", paddingTop: "3px", overflow: "hidden" }}>
+      <div className="flex flex-col h-full pt-[3px] overflow-hidden">
         {/* Header */}
-        <div style={{ padding: "16px 20px 0 20px", flexShrink: 0 }}>
+        <div className="px-5 pt-4 flex-shrink-0">
           <ChatHeader
             title={activeSession?.title || "New Chat"}
             isArchived={!!activeSession?.is_archived}
@@ -151,21 +133,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
         </div>
 
         {/* Body: sidebar + messages */}
-        <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
+        <div className="flex flex-1 overflow-hidden min-h-0">
           {/* Sidebar */}
-          <div
-            style={{
-              width: "244px",
-              minWidth: "244px",
-              padding: "16px 12px 16px 16px",
-              flexShrink: 0,
-              borderRight: "1px solid #e2e8f0",
-              boxSizing: "border-box",
-              display: "flex",
-              flexDirection: "column",
-              height: "100%",
-            }}
-          >
+          <div className="w-[244px] min-w-[244px] pl-4 pr-3 py-4 flex-shrink-0 border-r border-[#e2e8f0] box-border flex flex-col h-full bg-white z-10">
             <ChatHistory
               sessions={sessions}
               activeSessionId={activeSessionId}
@@ -178,32 +148,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
           </div>
 
           {/* Messages area */}
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+          <div className="flex flex-col flex-1 overflow-hidden bg-[#F9F8F6]/20">
             {/* Scrollable messages */}
-            <div
-              className="scrollbar"
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                padding: "20px 20px 8px 20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "16px",
-              }}
-            >
+            <div className="scrollbar flex-1 overflow-y-auto px-5 pt-5 pb-2 flex flex-col gap-4">
               {/* Empty state */}
               {!hasMessages && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1, justifyContent: "center" }}>
+                <div className="flex flex-col gap-3 flex-1 justify-center max-w-md mx-auto w-full">
                   {/* Greeting bubble */}
-                  <div style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
-                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #1e293b, #334155)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Bot size={14} color="#fff" />
+                  <div className="flex gap-2.5 items-end">
+                    <div className="w-[30px] h-[30px] rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-700">
+                      <Bot size={14} className="text-white" aria-hidden="true" />
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <span style={{ fontSize: "9px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'Inter', sans-serif" }}>MeetMind AI</span>
-                      <div style={{ position: "relative", background: "#fff", border: "1px solid #e2e8f0", padding: "12px 16px", borderRadius: "18px 18px 18px 4px", fontSize: "13px", color: "#334155", lineHeight: 1.6, fontWeight: 450, fontFamily: "'Inter', sans-serif", boxShadow: "0 1px 6px rgba(15,23,42,0.06)", overflow: "hidden", maxWidth: "78%" }}>
-                        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, #0f766e, #5eead4)" }} />
-                        <p style={{ margin: 0 }}>👋 Hi! I've read through the meeting. Ask me anything or pick a suggested question below.</p>
+                    <div className="flex flex-col gap-1 flex-1 max-w-[85%]">
+                      <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest font-sans">MeetMind AI</span>
+                      <div className="relative bg-white border border-[#e2e8f0] p-4.5 rounded-2xl rounded-bl-sm text-xs text-slate-650 leading-relaxed font-sans shadow-sm overflow-hidden animate-fade-in-up">
+                        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#113229] via-[#D98A44] to-[#0D241E]" />
+                        <p className="m-0 font-medium">👋 Hi! I&apos;ve read through the meeting. Ask me anything or pick a suggested question below.</p>
                       </div>
                     </div>
                   </div>
@@ -218,23 +178,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
 
               {/* Typing indicator */}
               {chatLoading && (
-                <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #1e293b, #334155)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Bot size={13} color="#fff" />
+                <div className="flex items-end gap-2.5" role="status" aria-live="polite">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-700">
+                    <Bot size={13} className="text-white" aria-hidden="true" />
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                    <span style={{ fontSize: "9px", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "'Inter', sans-serif" }}>MeetMind AI</span>
-                    <div style={{ background: "#fff", border: "1px solid #e2e8f0", padding: "12px 16px", borderRadius: "18px 18px 18px 4px", display: "flex", alignItems: "center", gap: "10px", boxShadow: "0 1px 6px rgba(15,23,42,0.06)" }}>
-                      <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest font-sans">MeetMind AI</span>
+                    <div className="bg-white border border-[#e2e8f0] p-4.5 rounded-2xl rounded-bl-sm flex items-center gap-2.5 shadow-sm">
+                      <div className="flex gap-1 items-center">
                         {[0, 150, 300].map((delay, i) => (
                           <span
                             key={i}
-                            style={{ width: 6, height: 6, borderRadius: "50%", background: "#0f766e", display: "inline-block", animationDelay: `${delay}ms` }}
-                            className="animate-bounce"
+                            style={{ animationDelay: `${delay}ms` }}
+                            className="w-1.5 h-1.5 rounded-full bg-[#113229] inline-block animate-bounce"
                           />
                         ))}
                       </div>
-                      <span style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>
+                      <span className="text-[10px] text-slate-400 font-bold font-sans">
                         {chatStatus === "searching" ? "Searching transcript..." : chatStatus === "generating" ? "Generating answer..." : "Thinking..."}
                       </span>
                     </div>
@@ -246,7 +206,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ meetingId, status }) => 
             </div>
 
             {/* Input */}
-            <div style={{ padding: "8px 16px 16px 16px", flexShrink: 0 }}>
+            <div className="px-4 pb-4 pt-2 flex-shrink-0 bg-white border-t border-[#e2e8f0]/65">
               <MessageInput
                 chatInput={chatInput}
                 setChatInput={setChatInput}

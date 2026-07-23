@@ -11,3 +11,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   text: string;
 }
+
+export interface ChatSessionDetail extends ChatSession {
+  messages: ChatMessage[];
+}

@@ -47,6 +47,9 @@ class GeminiService:
         self._openrouter_model_idx = 0
         self._groq_model_idx = 0
 
+        self.last_prompt_tokens = 0
+        self.last_completion_tokens = 0
+
         # Choose the initial provider based on what keys are configured
         if self.google_key:
             self._setup_provider("gemini")
@@ -64,8 +67,9 @@ class GeminiService:
         self.use_openrouter = provider_name == "openrouter"
 
         from app.services.llm.factory import LLMFactory
+
         provider_instance = LLMFactory.get_provider(provider_name)
-        
+
         self.client = provider_instance.client
         self.async_client = provider_instance.async_client
 
@@ -174,6 +178,7 @@ class GeminiService:
                 )
 
                 from app.services.llm.provider import execute_with_retry
+
                 response = execute_with_retry(
                     self.client.chat.completions.create,
                     model=self.model_name,
@@ -187,6 +192,9 @@ class GeminiService:
 
                 duration = time.time() - start_time
                 usage = getattr(response, "usage", None)
+                if usage:
+                    self.last_prompt_tokens += usage.prompt_tokens
+                    self.last_completion_tokens += usage.completion_tokens
                 tokens_log = (
                     f"Tokens: P={usage.prompt_tokens}, C={usage.completion_tokens}"
                     if usage
@@ -281,6 +289,7 @@ class GeminiService:
                 )
 
                 from app.services.llm.provider import execute_async_with_retry
+
                 response = await execute_async_with_retry(
                     self.async_client.chat.completions.create,
                     model=self.model_name,
@@ -294,6 +303,9 @@ class GeminiService:
 
                 duration = time.time() - start_time
                 usage = getattr(response, "usage", None)
+                if usage:
+                    self.last_prompt_tokens += usage.prompt_tokens
+                    self.last_completion_tokens += usage.completion_tokens
                 tokens_log = (
                     f"Tokens: P={usage.prompt_tokens}, C={usage.completion_tokens}"
                     if usage
@@ -645,6 +657,8 @@ class GeminiService:
         Centralized method to perform a single call to Gemini to extract all structured insights.
         Avoids making duplicate Gemini API calls.
         """
+        self.last_prompt_tokens = 0
+        self.last_completion_tokens = 0
         if not transcript:
             return self._get_ultimate_fallback_data(transcript)
 
@@ -1067,7 +1081,10 @@ class GeminiService:
             return {"speakers": {}, "segment_speakers": []}
 
     def identify_speaker_names(
-        self, transcript_text: str, current_speakers: List[str], known_members: List[str] = None
+        self,
+        transcript_text: str,
+        current_speakers: List[str],
+        known_members: List[str] = None,
     ) -> Dict[str, str]:
         """
         Uses LLM to analyze the transcript and map generic speaker names (e.g., 'Speaker 1')
@@ -1109,7 +1126,13 @@ class GeminiService:
             if isinstance(parsed, dict):
                 cleaned = {}
                 for k, v in parsed.items():
-                    if k in current_speakers and isinstance(v, str) and v.strip() and v.lower() != "unknown" and "speaker" not in v.lower():
+                    if (
+                        k in current_speakers
+                        and isinstance(v, str)
+                        and v.strip()
+                        and v.lower() != "unknown"
+                        and "speaker" not in v.lower()
+                    ):
                         cleaned[k] = v.strip()
                 return cleaned
             return {}

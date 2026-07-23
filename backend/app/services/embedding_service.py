@@ -60,14 +60,19 @@ class EmbeddingService:
 
         try:
             if self._embeddings_model is None:
-                from sentence_transformers import SentenceTransformer
+                from app.ml.model_loader import ModelRegistry
 
-                logger.info(
-                    "EmbeddingService | Loading local sentence-transformers model..."
-                )
-                self._embeddings_model = SentenceTransformer(
-                    "nomic-ai/nomic-embed-text-v1", trust_remote_code=True
-                )
+                if ModelRegistry._embedder is not None:
+                    self._embeddings_model = ModelRegistry._embedder
+                else:
+                    from sentence_transformers import SentenceTransformer
+
+                    logger.info(
+                        "EmbeddingService | Loading local sentence-transformers model..."
+                    )
+                    self._embeddings_model = SentenceTransformer(
+                        "nomic-ai/nomic-embed-text-v1", trust_remote_code=True
+                    )
 
             embedding = self._embeddings_model.encode(text).tolist()
             if len(embedding) < 1536:

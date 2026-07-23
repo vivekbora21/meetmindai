@@ -10,6 +10,7 @@ from app.services.llm.groq import GroqProvider
 
 logger = logging.getLogger(__name__)
 
+
 class LLMFactory:
     _providers: Dict[str, Type[LLMProvider]] = {
         "openrouter": OpenRouterProvider,
@@ -27,7 +28,7 @@ class LLMFactory:
         """
         if not provider_name:
             provider_name = os.getenv("LLM_PROVIDER", "").strip().lower()
-            
+
         if not provider_name:
             raise ValueError(
                 "LLM_PROVIDER environment variable is not set and no provider name was supplied."
@@ -38,8 +39,8 @@ class LLMFactory:
 
         provider_cls = cls._providers[provider_name]
         provider_instance = provider_cls()
-        
+
         # Validate keys/config
         provider_instance.validate()
-        
+
         return provider_instance

@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useModalStore } from "@/store/useModalStore";
 import { chatService } from "../services/chat.service";
 import { ChatMessage, ChatSession } from "../types/chat";
 
-export function useChat(meetingId: string) {
+export function useChat(meetingId: string | null) {
+  const { showModal } = useModalStore();
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -14,34 +16,34 @@ export function useChat(meetingId: string) {
   const [newTitleVal, setNewTitleVal] = useState("");
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  const fetchChatSession = async (sessionId: string) => {
+  const fetchChatSession = useCallback(async (sessionId: string) => {
     try {
       const data = await chatService.getSessionDetails(sessionId);
       setActiveSession(data);
       if (data.messages && data.messages.length > 0) {
-        setChatMessages(data.messages.map((m: any) => ({ role: m.role, text: m.text })));
+        setChatMessages(data.messages.map((m: ChatMessage) => ({ role: m.role, text: m.text })));
       } else {
         setChatMessages([]);
       }
     } catch (e) {
       console.error("Failed to fetch session messages", e);
     }
-  };
+  }, []);
 
-  const fetchSessionsListSilent = async () => {
+  const fetchSessionsListSilent = useCallback(async () => {
     try {
       const data = await chatService.getSessions(meetingId);
       setSessions(data);
       if (activeSessionId) {
-        const current = data.find((s: any) => s.id === activeSessionId);
+        const current = data.find((s: ChatSession) => s.id === activeSessionId);
         if (current) setActiveSession(current);
       }
     } catch (e) {
       console.warn("Silent sessions fetch failed:", e);
     }
-  };
+  }, [meetingId, activeSessionId]);
 
-  const initializeSessions = async () => {
+  const initializeSessions = useCallback(async () => {
     try {
       const data = await chatService.getSessions(meetingId);
       setSessions(data);
@@ -60,13 +62,11 @@ export function useChat(meetingId: string) {
     } catch (e) {
       console.error("Initialization of sessions failed:", e);
     }
-  };
+  }, [meetingId, fetchChatSession]);
 
   useEffect(() => {
-    if (meetingId) {
-      initializeSessions();
-    }
-  }, [meetingId]);
+    initializeSessions();
+  }, [meetingId, initializeSessions]);
 
   const handleNewChat = async () => {
     try {
@@ -82,15 +82,23 @@ export function useChat(meetingId: string) {
 
   const handleClearChat = async () => {
     if (!activeSessionId) return;
-    if (!confirm("Are you sure you want to clear this session's history?")) return;
-    try {
-      const ok = await chatService.clearSessionMessages(activeSessionId);
-      if (ok) {
-        setChatMessages([]);
+    
+    showModal({
+      title: "Clear Chat",
+      message: "Are you sure you want to clear this session's history?",
+      type: "confirm",
+      confirmText: "Clear History",
+      onConfirm: async () => {
+        try {
+          const ok = await chatService.clearSessionMessages(activeSessionId);
+          if (ok) {
+            setChatMessages([]);
+          }
+        } catch (e) {
+          console.error("Failed to clear chat messages", e);
+        }
       }
-    } catch (e) {
-      console.error("Failed to clear chat messages", e);
-    }
+    });
   };
 
   const handleToggleArchive = async (archiveVal: boolean) => {
@@ -172,7 +180,11 @@ export function useChat(meetingId: string) {
         fetchSessionsListSilent();
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(errorData.detail || "Failed to get AI answer.");
+        showModal({
+          title: "Error",
+          message: errorData.detail || "Failed to get AI answer.",
+          type: "error"
+        });
         setChatLoading(false);
         setChatStatus("idle");
       }
@@ -197,7 +209,11 @@ export function useChat(meetingId: string) {
       .map(m => `${m.role === "user" ? "User" : "MeetingMind AI"}: ${m.text}`)
       .join("\n\n");
     navigator.clipboard.writeText(formatted);
-    alert("Chat history copied to clipboard!");
+    showModal({
+      title: "Copied",
+      message: "Chat history copied to clipboard!",
+      type: "success"
+    });
   };
 
   const exportMarkdown = () => {
@@ -218,7 +234,7 @@ export function useChat(meetingId: string) {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     let html = `<html><head><title>${activeSession?.title || "Chat History"}</title>`;
-    html += `<style>body{font-family:sans-serif;padding:40px;color:#0f172a;} h1{color:#0f766e;} .msg{margin-bottom:20px;padding:15px;border-radius:10px;} .user{background:#e6f4f1;border-left:4px solid #0f766e;} .assistant{background:#f8fafc;border-left:4px solid #94a3b8;} .role{font-weight:bold;margin-bottom:5px;font-size:12px;text-transform:uppercase;color:#64748b;}</style></head><body>`;
+    html += `<style>body{font-family:sans-serif;padding:40px;color:#102C23;} h1{color:#113229;} .msg{margin-bottom:20px;padding:15px;border-radius:10px;} .user{background:#e6f4f1;border-left:4px solid #113229;} .assistant{background:#f8fafc;border-left:4px solid #94a3b8;} .role{font-weight:bold;margin-bottom:5px;font-size:12px;text-transform:uppercase;color:#64748b;}</style></head><body>`;
     html += `<h1>${activeSession?.title || "Meeting Chat Session"}</h1>`;
     chatMessages.forEach(msg => {
       html += `<div class="msg ${msg.role === "user" ? "user" : "assistant"}">`;
