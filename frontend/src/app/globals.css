@@ -157,3 +157,38 @@ body {
   animation: wave-bar 1s ease-in-out infinite;
 }
 
+@media print {
+  /* Hide UI chrome, sidebars, navigations, audio players, chatbot components */
+  aside, nav, header, footer, button,
+  div[role="dialog"],
+  .fixed,
+  .no-print,
+  button[title="Open Chat Assistant"],
+  .border-b.border-slate-200.gap-1 {
+    display: none !important;
+  }
+
+  /* Reset layout constraints for full-page print */
+  body, html, .h-screen, .h-\[calc\(100vh-4rem\)\] {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Expand main container full width */
+  .flex-1, main, .w-full {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Ensure printed text has perfect contrast and visibility */
+  p, span, h1, h2, h3, h4, td, th {
+    color: #111827 !important;
+  }
+}
+

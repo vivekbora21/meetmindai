@@ -8,7 +8,7 @@ import {
 import { 
   ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid 
 } from "recharts";
-import { getApiUrl } from "../../config";
+import { getApiUrl, parseUTCDate } from "../../config";
 
 interface OverviewStats {
   total_meetings: number;
@@ -111,7 +111,7 @@ export default function Analytics() {
 
     meetingsList.forEach(m => {
       if (!m.meeting_date) return;
-      const mDate = new Date(m.meeting_date);
+      const mDate = parseUTCDate(m.meeting_date);
       const durationHours = (m.duration_seconds || 0) / 3600;
 
       for (const week of weeks) {

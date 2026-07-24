@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { parseUTCDate } from "../../../config";
 
 interface ActivityLogItem {
   id: string;
@@ -31,7 +32,7 @@ export default function ActivitySection({ activityLogs }: ActivitySectionProps) 
             <div className="space-y-1">
               <div className="flex items-center gap-3">
                 <span className="text-xs font-bold text-slate-800">{log.action}</span>
-                <span className="text-[10px] text-slate-400 font-semibold">{new Date(log.created_at).toLocaleString()}</span>
+                <span className="text-[10px] text-slate-400 font-semibold">{parseUTCDate(log.created_at).toLocaleString()}</span>
               </div>
               <p className="text-xs text-slate-550 font-semibold">{log.details}</p>
               <span className="text-[9px] font-mono text-slate-400">Terminal Address: {log.ip_address}</span>

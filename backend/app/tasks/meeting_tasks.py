@@ -2,7 +2,7 @@ import logging
 import os
 import time
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from app.celery_app import celery_app
 from app.database.connection import SessionLocal
@@ -29,6 +29,7 @@ from app.services.embedding_service import EmbeddingService
 from app.services.ai.gemini_service import GeminiService
 from app.services.knowledge_graph_service import KnowledgeGraphService
 from app.services.cache_service import MeetingContextCache
+from app.utils.llm_context import set_llm_context
 
 logger = logging.getLogger(__name__)
 
@@ -577,7 +578,8 @@ def generate_ai_analysis(self, meeting_id: str):
             transcript_text += f"{speaker_name}: {t.text}\n"
 
         gemini_service = GeminiService()
-        insights = gemini_service.extract_meeting_insights(transcript_text)
+        with set_llm_context(meeting_id=meeting_id, task_type="meeting_insights"):
+            insights = gemini_service.extract_meeting_insights(transcript_text)
 
         # Clear old items first
         db.query(ActionItem).filter(ActionItem.meeting_id == meeting_id).delete()
@@ -1038,9 +1040,12 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
     current_generic_names = [spk.display_name for spk in generic_speakers]
 
     gemini_service = GeminiService()
-    detected_mapping = gemini_service.identify_speaker_names(
-        transcript_text, current_generic_names, known_members
-    )
+    with set_llm_context(
+        meeting_id=meeting.id, task_type="speaker_diarization_mapping"
+    ):
+        detected_mapping = gemini_service.identify_speaker_names(
+            transcript_text, current_generic_names, known_members
+        )
 
     if not detected_mapping:
         logger.debug("auto_detect_speaker_names | No speaker names detected by LLM.")
@@ -1071,7 +1076,14 @@ def auto_detect_speaker_names(db: Session, meeting_id: str):
 
 
 @celery_app.task
-def send_mom_email(meeting_id: str):
+def send_mom_email(
+    meeting_id: str,
+    to_emails: Optional[List[str]] = None,
+    cc_emails: Optional[List[str]] = None,
+    bcc_emails: Optional[List[str]] = None,
+    subject: Optional[str] = None,
+    template_type: str = "standard",
+):
     """
     Celery task to generate and distribute the Minutes of Meeting (MOM)
     email once the entire pipeline has finished.
@@ -1081,7 +1093,15 @@ def send_mom_email(meeting_id: str):
     try:
         from app.services.email_service import EmailService
 
-        EmailService.send_mom_email(db, meeting_id)
+        EmailService.send_mom_email(
+            db,
+            meeting_id,
+            to_emails=to_emails,
+            cc_emails=cc_emails,
+            bcc_emails=bcc_emails,
+            subject=subject,
+            template_type=template_type,
+        )
     except Exception as e:
         logger.error(f"send_mom_email task failed: {e}")
     finally:

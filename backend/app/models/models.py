@@ -947,3 +947,26 @@ class CalendarEvent(Base):
             unique=True,
         ),
     )
+
+
+class AIModelUsage(Base):
+    __tablename__ = "ai_model_usages"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
+    )
+    meeting_id = Column(
+        String(36), ForeignKey("meetings.id", ondelete="SET NULL"), nullable=True
+    )
+    provider = Column(String(50), nullable=False)
+    model_name = Column(String(100), nullable=False)
+    task_type = Column(String(100), nullable=True)
+    prompt_tokens = Column(Integer, nullable=True)
+    completion_tokens = Column(Integer, nullable=True)
+    total_tokens = Column(Integer, nullable=True)
+    latency_seconds = Column(Float, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("User")
+    meeting = relationship("Meeting")

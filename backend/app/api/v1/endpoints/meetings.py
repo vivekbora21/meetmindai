@@ -1,6 +1,7 @@
 import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -12,6 +13,7 @@ from app.schemas.meetings import (
     MeetingDetailOut,
     JoinMeetingLinkRequest,
     RenameSpeakerRequest,
+    SendMomEmailRequest,
 )
 from app.repositories.meeting_repository import meeting_repository
 from app.services.meeting.meeting_service import meeting_service
@@ -133,6 +135,7 @@ def retry_meeting_stage(
 @router.post("/{meeting_id}/send-mom")
 def send_meeting_mom_email(
     meeting_id: str,
+    payload: SendMomEmailRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -142,6 +145,40 @@ def send_meeting_mom_email(
 
     from app.tasks.meeting_tasks import send_mom_email
 
-    send_mom_email.delay(meeting_id)
+    send_mom_email.delay(
+        meeting_id,
+        to_emails=payload.to,
+        cc_emails=payload.cc,
+        bcc_emails=payload.bcc,
+        subject=payload.subject,
+        template_type=payload.template_type,
+    )
 
     return {"status": "success", "message": "MOM email dispatch initiated"}
+
+
+@router.get("/{meeting_id}/mom-preview", response_class=HTMLResponse)
+def get_meeting_mom_preview(
+    meeting_id: str,
+    template_type: str = "standard",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    meeting = meeting_repository.get(db, meeting_id, current_user.organization_id)
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    from app.services.email_service import EmailService
+    from app.models.models import ActionItem, Decision, Risk, Question
+
+    action_items = (
+        db.query(ActionItem).filter(ActionItem.meeting_id == meeting_id).all()
+    )
+    decisions = db.query(Decision).filter(Decision.meeting_id == meeting_id).all()
+    risks = db.query(Risk).filter(Risk.meeting_id == meeting_id).all()
+    questions = db.query(Question).filter(Question.meeting_id == meeting_id).all()
+
+    html = EmailService.generate_mom_html(
+        meeting, action_items, decisions, risks, questions, template_type
+    )
+    return HTMLResponse(content=html)

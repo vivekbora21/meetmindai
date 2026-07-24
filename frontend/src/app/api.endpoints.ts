@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     SPEAKER: (meetingId: string, speakerId: string) => `/api/v1/meetings/${meetingId}/speakers/${speakerId}`,
     RETRY: (meetingId: string, stage: string) => `/api/v1/meetings/${meetingId}/retry?stage=${stage}`,
     SEND_MOM: (id: string) => `/api/v1/meetings/${id}/send-mom`,
+    MOM_PREVIEW: (id: string, templateType: string) => `/api/v1/meetings/${id}/mom-preview?template_type=${templateType}`,
   },
   CHAT: {
     HISTORY: (meetingId: string) => `/api/v1/search/meetings/${meetingId}/chat-history`,

@@ -65,6 +65,7 @@ class LLMProvider:
                 f"LLMProvider | Attempting completion with model '{model}' (Cascade step {idx+1}/{len(self.models)})"
             )
             try:
+                start_time = time.time()
                 response = execute_with_retry(
                     self.client.chat.completions.create,
                     max_retries=max_retries,
@@ -73,7 +74,26 @@ class LLMProvider:
                     temperature=temperature,
                     **extra_args,
                 )
+                latency = time.time() - start_time
                 self.model_name = model
+
+                # Log usage
+                try:
+                    usage = getattr(response, "usage", None)
+                    p_tok = usage.prompt_tokens if usage else None
+                    c_tok = usage.completion_tokens if usage else None
+                    from app.services.llm.tracker import log_llm_usage
+
+                    log_llm_usage(
+                        provider=self.provider_name,
+                        model_name=model,
+                        prompt_tokens=p_tok,
+                        completion_tokens=c_tok,
+                        latency_seconds=latency,
+                    )
+                except Exception as ex:
+                    logger.warning(f"Failed to log usage in generate_completion: {ex}")
+
                 return response
             except Exception as e:
                 logger.warning(
@@ -82,6 +102,8 @@ class LLMProvider:
                 last_exception = e
 
         logger.error("LLMProvider | All models in cascade failed.")
+        if last_exception is None:
+            raise RuntimeError("All models in cascade failed.")
         raise last_exception
 
     def generate_completion_stream(
@@ -101,6 +123,7 @@ class LLMProvider:
                 f"LLMProvider | Attempting streaming completion with model '{model}' (Cascade step {idx+1}/{len(self.models)})"
             )
             try:
+                start_time = time.time()
                 stream = execute_with_retry(
                     self.client.chat.completions.create,
                     max_retries=max_retries,
@@ -111,7 +134,51 @@ class LLMProvider:
                     **extra_args,
                 )
                 self.model_name = model
-                return stream
+
+                def stream_wrapper(stream_obj, model_used, start_time_val):
+                    # Fallback token estimates based on characters
+                    p_chars = sum(
+                        len(m.get("content", ""))
+                        for m in messages
+                        if isinstance(m, dict)
+                    )
+                    prompt_tokens_estimated = int(p_chars / 4) if p_chars > 0 else 0
+                    completion_tokens_count = 0
+                    try:
+                        for chunk in stream_obj:
+                            usage = getattr(chunk, "usage", None)
+                            if usage:
+                                prompt_tokens_estimated = usage.prompt_tokens
+                                completion_tokens_count = usage.completion_tokens
+                            else:
+                                choices = getattr(chunk, "choices", [])
+                                if choices:
+                                    delta = getattr(choices[0], "delta", None)
+                                    content = getattr(delta, "content", None)
+                                    if content:
+                                        # Standard rough token estimation: ~1.3 tokens per word
+                                        completion_tokens_count += (
+                                            int(len(content.split()) * 1.3) or 1
+                                        )
+                            yield chunk
+                    finally:
+                        latency = time.time() - start_time_val
+                        try:
+                            from app.services.llm.tracker import log_llm_usage
+
+                            log_llm_usage(
+                                provider=self.provider_name,
+                                model_name=model_used,
+                                prompt_tokens=prompt_tokens_estimated,
+                                completion_tokens=completion_tokens_count,
+                                latency_seconds=latency,
+                            )
+                        except Exception as ex:
+                            logger.warning(
+                                f"Failed to log usage in generate_completion_stream wrapper: {ex}"
+                            )
+
+                return stream_wrapper(stream, model, start_time)
             except Exception as e:
                 logger.warning(
                     f"LLMProvider | Streaming with model '{model}' failed: {e}. Trying next model in cascade..."
@@ -119,6 +186,8 @@ class LLMProvider:
                 last_exception = e
 
         logger.error("LLMProvider | All models in streaming cascade failed.")
+        if last_exception is None:
+            raise RuntimeError("All models in streaming cascade failed.")
         raise last_exception
 
     async def generate_async_completion(
@@ -137,6 +206,7 @@ class LLMProvider:
                 f"LLMProvider | Attempting async completion with model '{model}' (Cascade step {idx+1}/{len(self.models)})"
             )
             try:
+                start_time = time.time()
                 response = await execute_async_with_retry(
                     self.async_client.chat.completions.create,
                     max_retries=max_retries,
@@ -145,7 +215,28 @@ class LLMProvider:
                     temperature=temperature,
                     **extra_args,
                 )
+                latency = time.time() - start_time
                 self.model_name = model
+
+                # Log usage
+                try:
+                    usage = getattr(response, "usage", None)
+                    p_tok = usage.prompt_tokens if usage else None
+                    c_tok = usage.completion_tokens if usage else None
+                    from app.services.llm.tracker import log_llm_usage
+
+                    log_llm_usage(
+                        provider=self.provider_name,
+                        model_name=model,
+                        prompt_tokens=p_tok,
+                        completion_tokens=c_tok,
+                        latency_seconds=latency,
+                    )
+                except Exception as ex:
+                    logger.warning(
+                        f"Failed to log usage in generate_async_completion: {ex}"
+                    )
+
                 return response
             except Exception as e:
                 logger.warning(
@@ -154,6 +245,8 @@ class LLMProvider:
                 last_exception = e
 
         logger.error("LLMProvider | All async models in cascade failed.")
+        if last_exception is None:
+            raise RuntimeError("All async models in cascade failed.")
         raise last_exception
 
     def validate(self) -> None:
@@ -220,6 +313,8 @@ def execute_with_retry(
     logger.error(
         f"LLM Client: All {max_retries} attempts failed. Last exception: {last_exception}"
     )
+    if last_exception is None:
+        raise RuntimeError("All attempts failed.")
     raise last_exception
 
 
@@ -281,4 +376,6 @@ async def execute_async_with_retry(
     logger.error(
         f"LLM Client: All {max_retries} attempts failed. Last exception: {last_exception}"
     )
+    if last_exception is None:
+        raise RuntimeError("All attempts failed.")
     raise last_exception

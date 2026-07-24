@@ -63,13 +63,34 @@ const PROVIDERS: ProviderOption[] = [
   }
 ];
 
+const generatePlatformUrl = (providerId: string) => {
+  const randStr = (length: number) => {
+    const chars = "abcdefghijklmnopqrstuvwxyz";
+    return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+  const randDigits = (length: number) => {
+    return Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
+  };
+
+  switch (providerId) {
+    case "google_meet":
+      return `https://meet.google.com/${randStr(3)}-${randStr(4)}-${randStr(3)}`;
+    case "zoom":
+      return `https://zoom.us/j/${randDigits(10)}`;
+    case "teams":
+      return `https://teams.microsoft.com/l/meetup-join/19%3ameeting_${randStr(20)}%40thread.v2/0?context=%7b%22Tid%22%3a%22${randStr(8)}-${randStr(4)}-${randStr(4)}-${randStr(4)}-${randStr(12)}%22%2c%22Oid%22%3a%22${randStr(8)}-${randStr(4)}-${randStr(4)}-${randStr(4)}-${randStr(12)}%22%7d`;
+    default:
+      return "";
+  }
+};
+
 export default function CreateMeetingPage() {
   const router = useRouter();
 
   // Form State
   const [title, setTitle] = useState("");
   const [selectedProvider, setSelectedProvider] = useState<ProviderOption>(PROVIDERS[0]);
-  const [meetingUrl, setMeetingUrl] = useState("");
+  const [meetingUrl, setMeetingUrl] = useState(() => generatePlatformUrl(PROVIDERS[0].id));
   const [isImmediate, setIsImmediate] = useState(true);
   const [scheduledStart, setScheduledStart] = useState("");
   const [botName, setBotName] = useState("MeetMind AI Assistant");
@@ -85,6 +106,7 @@ export default function CreateMeetingPage() {
 
   const handleSelectProvider = (prov: ProviderOption) => {
     setSelectedProvider(prov);
+    setMeetingUrl(generatePlatformUrl(prov.id));
   };
 
   const handleAddMember = (emailToAdd?: string) => {
@@ -333,8 +355,16 @@ export default function CreateMeetingPage() {
             {/* Provider URL Input */}
             <div className="flex flex-col gap-2 pt-2">
               <label className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                <span>{selectedProvider.isNative ? "In-App Room Link (Auto Generated)" : "Meeting Invite Link"}</span>
-                {!selectedProvider.isNative && <span className="text-rose-500">*</span>}
+                <span>{selectedProvider.isNative ? "In-App Room Link (Auto Generated)" : `${selectedProvider.name} Meeting Link (Auto-Generated)`}</span>
+                {!selectedProvider.isNative && (
+                  <button
+                    type="button"
+                    onClick={() => setMeetingUrl(generatePlatformUrl(selectedProvider.id))}
+                    className="text-xs text-[#D98A44] hover:underline font-bold"
+                  >
+                    Regenerate Link
+                  </button>
+                )}
               </label>
               <div className="relative">
                 <LinkIcon className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />

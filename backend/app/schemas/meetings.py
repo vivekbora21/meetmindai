@@ -138,6 +138,8 @@ class MeetingDetailOut(BaseModel):
     meeting_date: datetime
     executive_summary: Optional[str]
     one_minute_read: Optional[str]
+    attendees: Optional[List[Any]] = None
+    organizer_email: Optional[str] = None
     followup_email: Optional[str]
     sentiment_summary: Optional[str]
     original_filename: Optional[str] = None
@@ -174,3 +176,11 @@ class JoinMeetingLinkRequest(BaseModel):
 
 class RenameSpeakerRequest(BaseModel):
     display_name: str
+
+
+class SendMomEmailRequest(BaseModel):
+    to: List[str]
+    cc: Optional[List[str]] = None
+    bcc: Optional[List[str]] = None
+    subject: Optional[str] = None
+    template_type: Optional[str] = "standard"

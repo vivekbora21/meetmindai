@@ -23,7 +23,7 @@ import {
   Loader2,
   AlertCircle
 } from "lucide-react";
-import { getApiUrl } from "../../config";
+import { getApiUrl, parseUTCDate } from "../../config";
 
 interface Source {
   chunk_id: string;
@@ -697,7 +697,7 @@ export default function AIWorkspacePage() {
                   <div className="flex-1 min-w-0">
                     <p className={`text-xs font-bold truncate pr-2 ${isActive ? "text-[#113229]" : "text-slate-750"}`}>{s.title}</p>
                     <span className="text-[9px] text-slate-400 font-bold mt-1 block">
-                      {new Date(s.updated_at).toLocaleDateString()} at {new Date(s.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      {parseUTCDate(s.updated_at).toLocaleDateString()} at {parseUTCDate(s.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZoneName: 'short'})}
                     </span>
                   </div>
                 </button>

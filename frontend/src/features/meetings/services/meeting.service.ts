@@ -126,9 +126,22 @@ export const meetingService = {
     return res.json();
   },
 
-  async sendMomEmail(meetingId: string): Promise<{ status: string; message: string }> {
+  async sendMomEmail(
+    meetingId: string,
+    payload: {
+      to: string[];
+      cc?: string[];
+      bcc?: string[];
+      subject?: string;
+      template_type?: string;
+    }
+  ): Promise<{ status: string; message: string }> {
     const res = await fetch(getApiUrl(API_ENDPOINTS.MEETINGS.SEND_MOM(meetingId)), {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload),
       credentials: "include"
     });
     if (!res.ok) throw new Error("Failed to send MOM email");

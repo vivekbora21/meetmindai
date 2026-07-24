@@ -23,6 +23,7 @@ import { ParticipantsPanel } from "@/features/meetings/components/ParticipantsPa
 import { RecordingUploadZone } from "@/features/meetings/components/RecordingUploadZone";
 import { IngestionPipelineTracker } from "@/features/meetings/components/IngestionPipelineTracker";
 import { AiAnalysisBanner } from "@/features/meetings/components/AiAnalysisBanner";
+import { SendMomModal } from "@/features/meetings/components/SendMomModal";
 
 export default function MeetingDetail({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -45,6 +46,8 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
     audioRef,
     jiraSyncing,
     jiraStatus,
+    isSendMomModalOpen,
+    setIsSendMomModalOpen,
     setMeetingDetail,
     fetchMeetingDetail,
     handleMediaUpload,
@@ -320,6 +323,12 @@ export default function MeetingDetail({ params }: { params: Promise<{ id: string
           )}
         </section>
       </main>
+
+      <SendMomModal
+        isOpen={isSendMomModalOpen}
+        onClose={() => setIsSendMomModalOpen(false)}
+        meeting={meetingDetail}
+      />
     </div>
   );
 }

@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Search, AlertTriangle, ShieldAlert, TrendingUp, ChevronRight, Brain, 
+import {
+  Search, AlertTriangle, ShieldAlert, TrendingUp, ChevronRight, Brain,
   Sparkles, Loader2, Scale, ClipboardCheck, ArrowRight,
-  Calendar, Clock, Video, Sparkle, CheckCircle2, 
+  Calendar, Clock, Video, Sparkle, CheckCircle2,
   Activity, XCircle, ArrowUpRight
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -21,14 +21,14 @@ const ActivityChart = dynamic(
     )
   }
 );
-import { getApiUrl } from "../../config";
+import { getApiUrl, parseUTCDate } from "../../config";
 import { MeetingDetail } from "@/features/meetings/types/meeting";
 import { meetingService } from "@/features/meetings/services/meeting.service";
 import { IngestMeetingCard } from "@/features/meetings/components/IngestMeetingCard";
 
 const getMeetingStatusInfo = (m: MeetingDetail) => {
   const now = new Date();
-  const meetingDate = new Date(m.meeting_date);
+  const meetingDate = parseUTCDate(m.meeting_date);
   const statusNorm = (m.status || "").toUpperCase();
   const isCompleted = statusNorm === "COMPLETED";
   const isFailed = statusNorm === "FAILED" || statusNorm === "ERROR";
@@ -75,7 +75,7 @@ const getMeetingStatusInfo = (m: MeetingDetail) => {
   // At this point, the meeting status in backend is UPLOADED (or similar) and hasMedia is false.
   // This means it's a scheduled meeting from calendar sync or manually entered link.
   const isFuture = meetingDate > now;
-  
+
   if (isFuture) {
     return {
       statusLabel: "Scheduled",
@@ -178,7 +178,7 @@ export default function Dashboard() {
     } catch (err) {
       if (err instanceof Error && err.message === "Unauthorized") {
         eraseCookie("isAuthenticated");
-        router.push("/");
+        router.push("/login");
       }
       console.warn("Backend not active for meetings fetch.");
     }
@@ -196,7 +196,7 @@ export default function Dashboard() {
     if (!matchesSearch) return false;
 
     const statusInfo = getMeetingStatusInfo(m);
-    
+
     // Hide scheduled future meetings from dashboard recent list
     if (statusInfo.statusLabel === "Scheduled") return false;
 
@@ -237,8 +237,8 @@ export default function Dashboard() {
     });
 
     meetings.forEach(m => {
-      const mDate = new Date(m.meeting_date);
-      const matchIdx = last7Days.findIndex(day => 
+      const mDate = parseUTCDate(m.meeting_date);
+      const matchIdx = last7Days.findIndex(day =>
         day.dateObj.getDate() === mDate.getDate() &&
         day.dateObj.getMonth() === mDate.getMonth() &&
         day.dateObj.getFullYear() === mDate.getFullYear()
@@ -281,7 +281,7 @@ export default function Dashboard() {
         {/* Ambient decorative glow mesh */}
         <div className="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-[#D98A44]/20 blur-3xl pointer-events-none"></div>
         <div className="absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-[#113229]/50 blur-3xl pointer-events-none"></div>
-        
+
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
@@ -326,8 +326,8 @@ export default function Dashboard() {
               {stats.productivity_score}%
             </span>
             <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden p-0.5 border border-slate-200/50">
-              <div 
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-500" 
+              <div
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-500"
                 style={{ width: `${stats.productivity_score}%` }}
               ></div>
             </div>
@@ -353,8 +353,8 @@ export default function Dashboard() {
               {stats.total_decisions}
             </span>
             <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden p-0.5 border border-slate-200/50">
-              <div 
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500" 
+              <div
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, stats.total_decisions * 5)}%` }}
               ></div>
             </div>
@@ -382,8 +382,8 @@ export default function Dashboard() {
               {stats.pending_action_items}
             </span>
             <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden p-0.5 border border-slate-200/50">
-              <div 
-                className="bg-gradient-to-r from-[#D98A44] to-amber-600 h-full rounded-full transition-all duration-500" 
+              <div
+                className="bg-gradient-to-r from-[#D98A44] to-amber-600 h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, stats.pending_action_items * 10)}%` }}
               ></div>
             </div>
@@ -411,8 +411,8 @@ export default function Dashboard() {
               {stats.active_risks}
             </span>
             <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden p-0.5 border border-slate-200/50">
-              <div 
-                className="bg-gradient-to-r from-rose-500 to-red-600 h-full rounded-full transition-all duration-500" 
+              <div
+                className="bg-gradient-to-r from-rose-500 to-red-600 h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(100, stats.active_risks * 20)}%` }}
               ></div>
             </div>
@@ -427,7 +427,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Chart and Recent Meetings */}
         <section className="lg:col-span-8 flex flex-col gap-8">
-          
+
           {/* Recharts Analytics Section */}
           <div className="p-6 rounded-2xl bg-white border border-[#DEDDDA]/60 shadow-sm flex flex-col gap-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -469,13 +469,13 @@ export default function Dashboard() {
                 <h2 className="text-lg font-extrabold font-outfit text-[#102C23]">Recent Meeting Activity</h2>
                 <span className="text-slate-400 text-xs font-semibold">({filteredMeetings.length} records)</span>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 {/* Search Bar inside recent list header for sleekness */}
                 <div className="relative">
                   <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-400" />
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="Search syncs..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -484,23 +484,21 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex bg-slate-100/80 p-0.5 rounded-full gap-0.5 border border-slate-200">
-                  <button 
+                  <button
                     onClick={() => setActiveTab("all")}
-                    className={`text-[10px] px-3.5 py-1 rounded-full font-bold transition-colors ${
-                      activeTab === "all" 
-                        ? "bg-[#113229] text-white shadow-sm" 
+                    className={`text-[10px] px-3.5 py-1 rounded-full font-bold transition-colors ${activeTab === "all"
+                        ? "bg-[#113229] text-white shadow-sm"
                         : "text-slate-500 hover:text-[#102C23]"
-                    }`}
+                      }`}
                   >
                     All
                   </button>
-                  <button 
+                  <button
                     onClick={() => setActiveTab("processing")}
-                    className={`text-[10px] px-3.5 py-1 rounded-full font-bold transition-colors ${
-                      activeTab === "processing" 
-                        ? "bg-[#113229] text-white shadow-sm" 
+                    className={`text-[10px] px-3.5 py-1 rounded-full font-bold transition-colors ${activeTab === "processing"
+                        ? "bg-[#113229] text-white shadow-sm"
                         : "text-slate-500 hover:text-[#102C23]"
-                    }`}
+                      }`}
                   >
                     Processing
                   </button>
@@ -523,7 +521,7 @@ export default function Dashboard() {
                 const isTeams = meeting.platform === "Teams";
 
                 return (
-                  <div 
+                  <div
                     key={meeting.id}
                     onClick={() => {
                       router.push(`/meetings/${meeting.id}`);
@@ -540,35 +538,34 @@ export default function Dashboard() {
                         {isScheduled && <Calendar className="w-5 h-5 text-blue-500" />}
                         {isEnded && <Clock className="w-5 h-5 text-slate-500" />}
                       </div>
-  
+
                       <div className="flex flex-col min-w-0 gap-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-bold text-[#102C23] text-sm md:text-[14.5px] leading-snug truncate max-w-[200px] sm:max-w-xs md:max-w-md group-hover:text-[#113229] transition-colors">
                             {meeting.title}
                           </h3>
-                          
+
                           {/* Platform badge */}
-                          <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border ${
-                            isGoogleMeet ? "bg-red-50 text-red-700 border-red-100" :
-                            isTeams ? "bg-indigo-50 text-indigo-700 border-indigo-100" :
-                            "bg-[#F9F8F6] text-slate-500 border-slate-200"
-                          }`}>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border ${isGoogleMeet ? "bg-red-50 text-red-700 border-red-100" :
+                              isTeams ? "bg-indigo-50 text-indigo-700 border-indigo-100" :
+                                "bg-[#F9F8F6] text-slate-500 border-slate-200"
+                            }`}>
                             {meeting.platform}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {new Date(meeting.meeting_date).toLocaleDateString("en-US", {
+                            {parseUTCDate(meeting.meeting_date).toLocaleDateString("en-US", {
                               weekday: "short", month: "short", day: "numeric"
                             })}
                           </span>
                           <span>•</span>
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {new Date(meeting.meeting_date).toLocaleTimeString("en-US", {
-                              hour: "2-digit", minute: "2-digit", hour12: true
+                            {parseUTCDate(meeting.meeting_date).toLocaleTimeString("en-US", {
+                              hour: "2-digit", minute: "2-digit", hour12: true, timeZoneName: "short"
                             })}
                           </span>
                           {meeting.duration_seconds && (
@@ -580,7 +577,7 @@ export default function Dashboard() {
                             </>
                           )}
                         </div>
-  
+
                         {/* Summary details */}
                         <div className="flex items-center gap-1.5 text-xs mt-2 border-t border-slate-50 pt-2">
                           {isCompleted ? (
@@ -612,13 +609,13 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
-  
+
                     <div className="flex items-center justify-between md:justify-end gap-4 border-t border-slate-50 pt-3 md:pt-0 md:border-0">
                       {/* Status Pill */}
                       <span className={`text-[10px] px-3 py-1 rounded-full font-bold border capitalize tracking-wide ${statusInfo.badgeClass}`}>
                         {statusInfo.statusLabel}
                       </span>
-  
+
                       <div className="flex items-center gap-1 text-slate-350 group-hover:text-[#113229] transition-all transform group-hover:translate-x-1">
                         <span className="text-[10px] font-extrabold uppercase opacity-0 group-hover:opacity-100 transition-opacity">View Insights</span>
                         <ChevronRight className="w-4 h-4" />
@@ -627,7 +624,7 @@ export default function Dashboard() {
                   </div>
                 );
               })}
-  
+
               {filteredMeetings.length === 0 && (
                 <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-sm bg-white">
                   No meetings found matching your search query.
@@ -638,7 +635,7 @@ export default function Dashboard() {
             {/* View More Meetings */}
             {filteredMeetings.length > 5 && (
               <div className="flex justify-center mt-3">
-                <button 
+                <button
                   onClick={() => router.push("/meetings")}
                   className="flex items-center gap-1.5 text-white bg-[#113229] hover:bg-[#0D241E] px-6 py-2 rounded-full text-xs font-bold shadow-md hover:shadow-lg transition-all"
                 >
@@ -651,7 +648,7 @@ export default function Dashboard() {
 
         {/* Right Column: Ingest Meeting and AI Suggestions */}
         <section className="lg:col-span-4 flex flex-col gap-8">
-          
+
           {/* Tabbed Ingest Meeting Card */}
           <IngestMeetingCard
             onMeetingAdded={(newMeeting) => {
@@ -667,7 +664,7 @@ export default function Dashboard() {
                 <Sparkles className="w-4 h-4 text-[#113229]" /> Smart Recommendations
               </h3>
             </div>
-            
+
             <div className="flex flex-col gap-4">
               {/* Suggestion 1 */}
               <div className="p-3.5 rounded-xl bg-[#F9F8F6]/85 border border-slate-150 flex gap-3 hover:border-amber-250 transition-all duration-300">
@@ -708,7 +705,7 @@ export default function Dashboard() {
               <p className="text-[10px] text-slate-200 leading-relaxed font-semibold">
                 &quot;Draft follow-up tasks from the last database architecture meeting&quot;
               </p>
-              <button 
+              <button
                 onClick={() => router.push("/ai-workspace")}
                 className="w-full mt-1.5 py-1.5 rounded-lg bg-[#D98A44] hover:bg-[#c97b37] text-white font-extrabold text-[10px] transition-colors flex items-center justify-center gap-1"
               >
@@ -718,7 +715,7 @@ export default function Dashboard() {
 
             {/* View All Suggestions */}
             <div className="flex justify-center mt-1 border-t border-slate-100 pt-3">
-              <button 
+              <button
                 onClick={() => router.push("/suggestions")}
                 className="flex items-center gap-1 text-[#113229] hover:text-[#0D241E] text-xs font-extrabold transition-all"
               >

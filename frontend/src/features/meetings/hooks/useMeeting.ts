@@ -40,7 +40,7 @@ export function useMeeting(meetingId: string) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [runningAiAnalysis, setRunningAiAnalysis] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingEmail] = useState(false);
 
   // Audio playing state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -72,6 +72,27 @@ export function useMeeting(meetingId: string) {
       fetchMeetingDetail();
     }
   }, [meetingId, fetchMeetingDetail]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab && ["summary", "timeline", "actions", "decisions", "risks", "technical", "participants", "decisions_risks"].includes(tab)) {
+        setActiveTab(tab as "summary" | "timeline" | "actions" | "decisions" | "risks" | "technical" | "participants" | "decisions_risks");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && meetingDetail) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("print") === "true") {
+        setTimeout(() => {
+          window.print();
+        }, 1200);
+      }
+    }
+  }, [meetingDetail]);
 
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | undefined = undefined;
@@ -150,25 +171,10 @@ export function useMeeting(meetingId: string) {
     }
   };
 
-  const handleSendMomEmail = async () => {
-    setSendingEmail(true);
-    try {
-      const res = await meetingService.sendMomEmail(meetingId);
-      showModal({
-        title: "Email Dispatched",
-        message: res.message || "MOM email dispatch initiated successfully!",
-        type: "success"
-      });
-    } catch (e) {
-      console.error("MOM email send error", e);
-      showModal({
-        title: "Dispatch Failed",
-        message: "Error sending MOM email. Please try again.",
-        type: "error"
-      });
-    } finally {
-      setSendingEmail(false);
-    }
+  const [isSendMomModalOpen, setIsSendMomModalOpen] = useState(false);
+
+  const handleSendMomEmail = () => {
+    setIsSendMomModalOpen(true);
   };
 
   const togglePlay = () => {
@@ -221,6 +227,8 @@ export function useMeeting(meetingId: string) {
     audioRef,
     jiraSyncing,
     jiraStatus,
+    isSendMomModalOpen,
+    setIsSendMomModalOpen,
     setMeetingDetail,
     fetchMeetingDetail,
     handleMediaUpload,
