@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { 
   Search, Brain, ShieldAlert, Loader2, ChevronRight, Calendar, Clock, Video, Archive
 } from "lucide-react";
+import { parseUTCDate } from "../../config";
 import Pagination from "../../components/Pagination";
 import { MeetingDetail } from "@/features/meetings/types/meeting";
 import { meetingService } from "@/features/meetings/services/meeting.service";
@@ -12,7 +13,7 @@ import { IngestMeetingCard } from "@/features/meetings/components/IngestMeetingC
 
 const getMeetingStatusInfo = (m: MeetingDetail) => {
   const now = new Date();
-  const meetingDate = new Date(m.meeting_date);
+  const meetingDate = parseUTCDate(m.meeting_date);
   const statusNorm = (m.status || "").toUpperCase();
   const isCompleted = statusNorm === "COMPLETED";
   const isFailed = statusNorm === "FAILED" || statusNorm === "ERROR";
@@ -271,15 +272,15 @@ export default function MeetingsPage() {
                       <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {new Date(meeting.meeting_date).toLocaleDateString("en-US", {
+                          {parseUTCDate(meeting.meeting_date).toLocaleDateString("en-US", {
                             weekday: "short", month: "short", day: "numeric"
                           })}
                         </span>
                         <span>•</span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {new Date(meeting.meeting_date).toLocaleTimeString("en-US", {
-                            hour: "2-digit", minute: "2-digit", hour12: true
+                          {parseUTCDate(meeting.meeting_date).toLocaleTimeString("en-US", {
+                            hour: "2-digit", minute: "2-digit", hour12: true, timeZoneName: "short"
                           })}
                         </span>
                         {meeting.duration_seconds && (

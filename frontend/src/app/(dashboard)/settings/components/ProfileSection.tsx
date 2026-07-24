@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { User, Upload, Check } from "lucide-react";
-import { getApiUrl } from "../../../config";
+import { getApiUrl, parseUTCDate } from "../../../config";
 
 interface ProfileInfo {
   profile_picture: string | null;
@@ -237,7 +237,7 @@ export default function ProfileSection({
       <div className="bg-[#F9F8F6] rounded-2xl p-5 border border-[#DEDDDA]/40 flex flex-wrap gap-x-8 gap-y-3 text-xs text-slate-500 font-medium">
         <div>Account Status: <span className="text-[#113229] font-bold capitalize">{profile.account_status}</span></div>
         <div>Plan Type: <span className="text-indigo-755 font-bold capitalize">{profile.subscription_plan}</span></div>
-        {profile.last_login && <div>Last Login: <span>{new Date(profile.last_login).toLocaleString()}</span></div>}
+        {profile.last_login && <div>Last Login: <span>{parseUTCDate(profile.last_login).toLocaleString()}</span></div>}
       </div>
 
       {/* Change Password Block */}

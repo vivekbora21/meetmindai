@@ -88,4 +88,13 @@ export interface MeetingDetail {
   technical_status?: string | null;
   key_themes_status?: string | null;
   error_message?: string | null;
+  attendees?: Attendee[] | null;
+  organizer_email?: string | null;
 }
+
+export interface AttendeeObj {
+  name?: string | null;
+  email?: string | null;
+  address?: string | null;
+}
+export type Attendee = string | AttendeeObj;

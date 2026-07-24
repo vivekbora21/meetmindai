@@ -1,6 +1,7 @@
 import React from "react";
 import { Calendar, Clock } from "lucide-react";
 import { MeetingDetail } from "../types/meeting";
+import { parseUTCDate } from "@/app/config";
 
 interface MeetingHeaderProps {
   detail: MeetingDetail;
@@ -13,7 +14,7 @@ export const MeetingHeader: React.FC<MeetingHeaderProps> = ({ detail }) => {
       <div className="flex items-center gap-4 text-xs text-slate-500 font-medium">
         <span className="flex items-center gap-1">
           <Calendar className="w-3.5 h-3.5" />
-          {new Date(detail.meeting_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+          {parseUTCDate(detail.meeting_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
         </span>
         <span className="flex items-center gap-1">
           <Clock className="w-3.5 h-3.5" />

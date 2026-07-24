@@ -12,6 +12,7 @@ from app.models.models import Meeting, User, ChatMessage, ChatSession
 from app.helpers.auth import get_current_user
 from app.services.ai.rag_service import RAGService
 from app.tasks.meeting_tasks import generate_embeddings
+from app.utils.llm_context import set_llm_context
 from app.schemas.ai import (
     ChatFilter,
     WorkspaceChatQuery,
@@ -88,64 +89,72 @@ def chat_with_workspace(
     if query.stream:
 
         def stream_response():
-            full_text = ""
-            # Yield the session ID prefix so the client knows it instantly
-            yield f"__SESSION_ID__:{session_id}\n"
+            with set_llm_context(user_id=current_user.id, task_type="rag_chat"):
+                full_text = ""
+                # Yield the session ID prefix so the client knows it instantly
+                yield f"__SESSION_ID__:{session_id}\n"
 
-            for token in RAGService.chat_answer_stream(
-                db, current_user, question, filters=filters_dict, session_id=session_id
-            ):
-                if "__METADATA_SEPARATOR__" in token:
-                    yield token
-                else:
-                    full_text += token
-                    yield token
+                for token in RAGService.chat_answer_stream(
+                    db,
+                    current_user,
+                    question,
+                    filters=filters_dict,
+                    session_id=session_id,
+                ):
+                    if "__METADATA_SEPARATOR__" in token:
+                        yield token
+                    else:
+                        full_text += token
+                        yield token
 
-            # Save assistant response
-            if full_text.strip():
-                db_gen = SessionLocal()
-                try:
-                    assistant_msg = ChatMessage(
-                        meeting_id=None,
-                        user_id=current_user.id,
-                        session_id=session_id,
-                        role="assistant",
-                        text=full_text,
-                    )
-                    db_gen.add(assistant_msg)
+                # Save assistant response
+                if full_text.strip():
+                    db_gen = SessionLocal()
+                    try:
+                        assistant_msg = ChatMessage(
+                            meeting_id=None,
+                            user_id=current_user.id,
+                            session_id=session_id,
+                            role="assistant",
+                            text=full_text,
+                        )
+                        db_gen.add(assistant_msg)
 
-                    # Update session title if default
-                    session_db = (
-                        db_gen.query(ChatSession)
-                        .filter(ChatSession.id == session_id)
-                        .first()
-                    )
-                    if session_db and (
-                        session_db.title == "New Workspace Chat"
-                        or not session_db.title.strip()
-                    ):
-                        try:
-                            from app.services.ai.gemini_service import GeminiService
+                        # Update session title if default
+                        session_db = (
+                            db_gen.query(ChatSession)
+                            .filter(ChatSession.id == session_id)
+                            .first()
+                        )
+                        if session_db and (
+                            session_db.title == "New Workspace Chat"
+                            or not session_db.title.strip()
+                        ):
+                            try:
+                                from app.services.ai.gemini_service import GeminiService
 
-                            new_title = GeminiService().generate_title(question)
-                            if new_title:
-                                session_db.title = new_title
-                        except Exception as e:
-                            logger.warning(f"Error auto-updating session title: {e}")
-                    db_gen.commit()
-                except Exception as save_err:
-                    logger.error(
-                        f"Error saving streamed assistant response: {save_err}"
-                    )
-                finally:
-                    db_gen.close()
+                                new_title = GeminiService().generate_title(question)
+                                if new_title:
+                                    session_db.title = new_title
+                            except Exception as e:
+                                logger.warning(
+                                    f"Error auto-updating session title: {e}"
+                                )
+                        db_gen.commit()
+                    except Exception as save_err:
+                        logger.error(
+                            f"Error saving streamed assistant response: {save_err}"
+                        )
+                    finally:
+                        db_gen.close()
 
         return StreamingResponse(stream_response(), media_type="text/plain")
     else:
         # Non-streaming
-        res = RAGService.chat_answer(
-            db, current_user, question, filters=filters_dict, session_id=session_id
-        )
+        with set_llm_context(user_id=current_user.id, task_type="rag_chat"):
+            res = RAGService.chat_answer(
+                db, current_user, question, filters=filters_dict, session_id=session_id
+            )
 
         # Save assistant message
         assistant_msg = ChatMessage(
@@ -290,46 +299,50 @@ def regenerate_last_message(
     if query.stream:
 
         def stream_response():
-            full_text = ""
-            for token in RAGService.chat_answer_stream(
+            with set_llm_context(
+                user_id=current_user.id, task_type="rag_chat_regenerate"
+            ):
+                full_text = ""
+                for token in RAGService.chat_answer_stream(
+                    db,
+                    current_user,
+                    question,
+                    filters=filters_dict,
+                    session_id=query.session_id,
+                ):
+                    if "__METADATA_SEPARATOR__" in token:
+                        yield token
+                    else:
+                        full_text += token
+                        yield token
+
+                if full_text.strip():
+                    db_gen = SessionLocal()
+                    try:
+                        assistant_msg = ChatMessage(
+                            meeting_id=None,
+                            user_id=current_user.id,
+                            session_id=query.session_id,
+                            role="assistant",
+                            text=full_text,
+                        )
+                        db_gen.add(assistant_msg)
+                        db_gen.commit()
+                    except Exception as save_err:
+                        logger.error(f"Error saving regenerated response: {save_err}")
+                    finally:
+                        db_gen.close()
+
+        return StreamingResponse(stream_response(), media_type="text/plain")
+    else:
+        with set_llm_context(user_id=current_user.id, task_type="rag_chat_regenerate"):
+            res = RAGService.chat_answer(
                 db,
                 current_user,
                 question,
                 filters=filters_dict,
                 session_id=query.session_id,
-            ):
-                if "__METADATA_SEPARATOR__" in token:
-                    yield token
-                else:
-                    full_text += token
-                    yield token
-
-            if full_text.strip():
-                db_gen = SessionLocal()
-                try:
-                    assistant_msg = ChatMessage(
-                        meeting_id=None,
-                        user_id=current_user.id,
-                        session_id=query.session_id,
-                        role="assistant",
-                        text=full_text,
-                    )
-                    db_gen.add(assistant_msg)
-                    db_gen.commit()
-                except Exception as save_err:
-                    logger.error(f"Error saving regenerated response: {save_err}")
-                finally:
-                    db_gen.close()
-
-        return StreamingResponse(stream_response(), media_type="text/plain")
-    else:
-        res = RAGService.chat_answer(
-            db,
-            current_user,
-            question,
-            filters=filters_dict,
-            session_id=query.session_id,
-        )
+            )
         assistant_msg = ChatMessage(
             meeting_id=None,
             user_id=current_user.id,

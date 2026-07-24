@@ -408,7 +408,7 @@ export default function CalendarPage() {
     const d = new Date(isoString);
     // Display in local timezone - isoString already has Z suffix (UTC), so
     // toLocaleTimeString will correctly convert to the user's local time.
-    return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+    return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true, timeZoneName: "short" });
   };
 
   const getCalendarDayKey = (year: number, month: number, day: number) => {

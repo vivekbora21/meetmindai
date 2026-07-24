@@ -8,7 +8,13 @@ from sqlalchemy import or_, text
 
 from app.database.connection import SessionLocal
 
-from app.models.models import ConnectedAccount, Meeting, Provider, ScheduledMeeting, AgentLiveSession
+from app.models.models import (
+    ConnectedAccount,
+    Meeting,
+    Provider,
+    ScheduledMeeting,
+    AgentLiveSession,
+)
 from app.services.google_calendar import GoogleCalendarService
 from app.services.microsoft_calendar import MicrosoftCalendarService
 from app.services.zoom_calendar import ZoomCalendarService

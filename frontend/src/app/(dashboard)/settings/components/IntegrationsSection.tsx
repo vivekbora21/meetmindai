@@ -2,6 +2,7 @@
 
 import React from "react";
 import { X, RefreshCw } from "lucide-react";
+import { parseUTCDate } from "../../../config";
 
 interface IntegrationItem {
   id: string;
@@ -157,7 +158,7 @@ export default function IntegrationsSection({
                   </div>
                   <div className="flex justify-between">
                     <span>Last sync:</span>
-                    <span>{conn.last_sync ? new Date(conn.last_sync).toLocaleString() : "Never"}</span>
+                    <span>{conn.last_sync ? parseUTCDate(conn.last_sync).toLocaleString() : "Never"}</span>
                   </div>
                   <div className="flex items-center justify-between border-t border-[#F9F8F6] pt-2">
                     <span className="font-semibold text-slate-700">Auto synchronization</span>

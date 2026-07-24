@@ -3,7 +3,7 @@ import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.config.email import email_settings
@@ -436,7 +436,16 @@ class EmailService:
         return html
 
     @classmethod
-    def send_mom_email(cls, db: Session, meeting_id: str) -> None:
+    def send_mom_email(
+        cls,
+        db: Session,
+        meeting_id: str,
+        to_emails: Optional[List[str]] = None,
+        cc_emails: Optional[List[str]] = None,
+        bcc_emails: Optional[List[str]] = None,
+        subject: Optional[str] = None,
+        template_type: str = "standard",
+    ) -> None:
         """
         Gathers meeting data, formats it using the template, fetches the recipients list,
         and attempts to send the MOM report via SMTP. Saves a copy locally for inspection.
@@ -455,33 +464,37 @@ class EmailService:
         questions = db.query(Question).filter(Question.meeting_id == meeting_id).all()
 
         # Build list of recipients
-        recipients = set()
-        if meeting.organizer_email:
-            recipients.add(meeting.organizer_email)
+        if to_emails:
+            recipients_list = to_emails
+        else:
+            recipients = set()
+            if meeting.organizer_email:
+                recipients.add(meeting.organizer_email)
 
-        if meeting.attendees:
-            try:
-                for att in meeting.attendees:
-                    if isinstance(att, str) and "@" in att:
-                        recipients.add(att)
-                    elif isinstance(att, dict):
-                        email = att.get("email") or att.get("address")
-                        if email and "@" in email:
-                            recipients.add(email)
-            except Exception:
-                pass
+            if meeting.attendees:
+                try:
+                    for att in meeting.attendees:
+                        if isinstance(att, str) and "@" in att:
+                            recipients.add(att)
+                        elif isinstance(att, dict):
+                            email = att.get("email") or att.get("address")
+                            if email and "@" in email:
+                                recipients.add(email)
+                except Exception:
+                    pass
 
-        # Fallback to org users if none found
-        if not recipients:
-            org_users = (
-                db.query(User)
-                .filter(User.organization_id == meeting.organization_id)
-                .all()
-            )
-            for u in org_users:
-                recipients.add(u.email)
+            # Fallback to org users if none found
+            if not recipients:
+                org_users = (
+                    db.query(User)
+                    .filter(User.organization_id == meeting.organization_id)
+                    .all()
+                )
+                for u in org_users:
+                    recipients.add(u.email)
 
-        recipients_list = list(recipients)
+            recipients_list = list(recipients)
+
         if not recipients_list:
             logger.warning(
                 f"[EmailService] No recipients found for meeting {meeting_id}. Aborting."
@@ -518,11 +531,17 @@ class EmailService:
         # 3. Create MIMEMultipart email message
         try:
             msg = MIMEMultipart("alternative")
-            msg["Subject"] = f"Minutes of Meeting: {meeting.title}"
+            if subject:
+                msg["Subject"] = subject
+            else:
+                msg["Subject"] = f"Minutes of Meeting: {meeting.title}"
+
             msg["From"] = (
                 f"{email_settings.SMTP_FROM_NAME} <{email_settings.SMTP_FROM_EMAIL}>"
             )
             msg["To"] = ", ".join(recipients_list)
+            if cc_emails:
+                msg["Cc"] = ", ".join(cc_emails)
 
             # Plain text fallback
             text_fallback = f"Minutes of Meeting: {meeting.title}\n\n"
@@ -536,9 +555,17 @@ class EmailService:
             msg.attach(MIMEText(text_fallback, "plain"))
             msg.attach(MIMEText(html_content, "html"))
 
+            # SMTP recipients list is the union of To, CC, and BCC
+            smtp_recipients = list(recipients_list)
+            if cc_emails:
+                smtp_recipients.extend(cc_emails)
+            if bcc_emails:
+                smtp_recipients.extend(bcc_emails)
+            smtp_recipients = list(set(smtp_recipients))
+
             # Send via SMTP
             logger.info(
-                f"[EmailService] Dispatching MOM email to recipients: {recipients_list}"
+                f"[EmailService] Dispatching MOM email to recipients: {smtp_recipients}"
             )
 
             if email_settings.SMTP_SSL:
@@ -554,7 +581,7 @@ class EmailService:
 
             server.login(email_settings.SMTP_USER, email_settings.SMTP_PASSWORD)
             server.sendmail(
-                email_settings.SMTP_FROM_EMAIL, recipients_list, msg.as_string()
+                email_settings.SMTP_FROM_EMAIL, smtp_recipients, msg.as_string()
             )
             server.quit()
             logger.info("[EmailService] MOM email sent successfully.")

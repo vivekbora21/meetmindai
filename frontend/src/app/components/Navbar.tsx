@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Bell, 
-  Sparkles, 
-  ChevronDown, 
-  LogOut, 
+import {
+  Bell,
+  Sparkles,
+  ChevronDown,
+  LogOut,
   Settings,
   Loader2
 } from "lucide-react";
@@ -19,10 +19,10 @@ interface NavbarProps {
   onLogout: () => Promise<void> | void;
 }
 
-export default function Navbar({ 
-  userName, 
-  userRole, 
-  loading, 
+export default function Navbar({
+  userName,
+  userRole,
+  loading,
   onLogout
 }: NavbarProps) {
   const router = useRouter();
@@ -52,15 +52,6 @@ export default function Navbar({
 
       {/* Right side: Global Actions and Profile */}
       <div className="flex items-center gap-4 sm:gap-5">
-        {/* Quick Search Shortcut Cue */}
-        <button
-          type="button"
-          onClick={() => router.push("/meetings")}
-          className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100/80 border border-slate-200 text-xs text-slate-500 hover:text-slate-900 hover:border-slate-300 transition-all cursor-pointer"
-        >
-          <span className="text-[11px] font-medium">Quick search syncs...</span>
-          <kbd className="px-1.5 py-0.5 text-[9px] font-bold bg-white text-slate-500 rounded border border-slate-200 shadow-xs">⌘K</kbd>
-        </button>
 
         {/* AI Ready Badge */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#113229]/5 text-[#113229] text-xs font-bold border border-[#113229]/15 shadow-xs">
@@ -69,7 +60,7 @@ export default function Navbar({
         </div>
 
         {/* Notification Bell */}
-        <button 
+        <button
           aria-label="View notifications"
           className="p-2 text-slate-500 hover:text-[#113229] transition-colors relative rounded-xl hover:bg-slate-100/80"
         >
@@ -88,7 +79,7 @@ export default function Navbar({
               </div>
             </div>
           ) : (
-            <button 
+            <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               aria-haspopup="true"
               aria-expanded={dropdownOpen}
@@ -112,7 +103,7 @@ export default function Navbar({
 
           {/* Dropdown Menu */}
           {dropdownOpen && (
-            <div 
+            <div
               role="menu"
               aria-label="User account options"
               className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-lg py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-100"
@@ -121,9 +112,9 @@ export default function Navbar({
                 <p className="text-xs font-bold text-slate-800">{userName}</p>
                 <p className="text-[10px] text-slate-400 font-medium capitalize mt-0.5">{userRole} Account</p>
               </div>
-              
+
               <div className="p-1.5 flex flex-col gap-0.5">
-                <button 
+                <button
                   role="menuitem"
                   onClick={() => {
                     setDropdownOpen(false);
@@ -133,7 +124,7 @@ export default function Navbar({
                 >
                   <Settings className="w-4 h-4 text-slate-400" aria-hidden="true" /> Settings
                 </button>
-                <button 
+                <button
                   role="menuitem"
                   disabled={isLoggingOut}
                   onClick={async () => {

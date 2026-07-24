@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Brain, Loader2, MessageSquare, X } from "lucide-react";
 import { getApiUrl } from "../config";
@@ -28,6 +28,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const logoutToastShownRef = useRef(false);
   
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
@@ -89,9 +90,11 @@ export default function DashboardLayout({
         setCookie("isAuthenticated", "true", 86400);
         setIsAuthenticated(true);
       } else {
+        eraseCookie("mock_mode");
         eraseCookie("isAuthenticated");
         setIsAuthenticated(false);
-        router.push("/");
+        toast.error("Session expired. Please sign in again.");
+        router.push("/login");
       }
     } catch {
       console.warn("Backend not active. Falling back to mock details.");
@@ -105,6 +108,18 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const isMockMode = getCookie("mock_mode") === "true";
+    const hasAuthCookie = getCookie("isAuthenticated") === "true";
+
+    if (!isMockMode && !hasAuthCookie) {
+      eraseCookie("mock_mode");
+      eraseCookie("isAuthenticated");
+      setIsAuthenticated(false);
+      toast.error("No authentication found. Please sign in.");
+      router.push("/login");
+      setLoading(false);
+      return;
+    }
+
     if (isMockMode) {
       setUserName("Vivek Singh Bora");
       setUserRole("Admin");
@@ -113,7 +128,41 @@ export default function DashboardLayout({
     } else {
       fetchProfile();
     }
-  }, [fetchProfile]);
+  }, [fetchProfile, router]);
+
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      try {
+        const response = await originalFetch(...args);
+        if (response.status === 401 || response.status === 403) {
+          const urlString = typeof args[0] === 'string' ? args[0] : (args[0] instanceof Request ? args[0].url : '');
+          const isBackendApi = urlString.includes('/api/v1/') || urlString.includes(':8000/api/');
+          if (isBackendApi && !urlString.includes('/api/v1/auth/logout') && !urlString.includes('/api/v1/auth/me')) {
+            eraseCookie("mock_mode");
+            eraseCookie("isAuthenticated");
+            setIsAuthenticated(false);
+            
+            if (!logoutToastShownRef.current) {
+              logoutToastShownRef.current = true;
+              toast.error("Session expired. Please sign in again.");
+              setTimeout(() => {
+                logoutToastShownRef.current = false;
+              }, 5000);
+            }
+            router.push("/login");
+          }
+        }
+        return response;
+      } catch (error) {
+        throw error;
+      }
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [router]);
 
   const handleLogout = async () => {
     try {
